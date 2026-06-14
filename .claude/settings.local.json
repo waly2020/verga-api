@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Rename-Item \"c:\\\\Users\\\\walyg\\\\Desktop\\\\PROJETS\\\\VERGA\\\\database\\\\migrations\\\\2026_06_13_155810_create_offres_table.php\" \"2026_06_13_155810_create_b_offres_table.php\")"
+    ]
+  }
+}
