@@ -2,11 +2,12 @@ import { Head, Link } from '@inertiajs/react';
 import { router } from '@inertiajs/react';
 import { PlusCircle, Trash2 } from 'lucide-react';
 import { ConfirmDialog } from '@/components/admin/confirm-dialog';
-import { DataTable, type Column } from '@/components/admin/data-table';
+import { DataTable  } from '@/components/admin/data-table';
+import type {Column} from '@/components/admin/data-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import type { Paginated } from '@/types';
 import admin from '@/routes/admin';
+import type { Paginated } from '@/types';
 
 const ROLE_META: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' }> = {
     admin:         { label: 'Administrateur', variant: 'default' },
@@ -34,6 +35,7 @@ const columns: Column<CollaborateurRow>[] = [
         label: 'Rôle',
         render: (r) => {
             const meta = ROLE_META[r.role] ?? { label: r.role, variant: 'outline' as const };
+
             return <Badge variant={meta.variant}>{meta.label}</Badge>;
         },
     },

@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
-import ReactPaginate from 'react-paginate';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { useRef, useState } from 'react';
+import ReactPaginate from 'react-paginate';
+import { EmptyState } from '@/components/admin/empty-state';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { EmptyState } from '@/components/admin/empty-state';
 import type { PaginationMeta } from '@/types';
 
 export interface Column<T extends Record<string, unknown>> {
@@ -71,19 +71,35 @@ export function DataTable<T extends Record<string, unknown>>({
 }: DataTableProps<T>) {
     const isServer = Boolean(pagination);
 
+    const normalizedFilter = initialFilter || 'all';
+
     const [search, setSearch] = useState(initialSearch);
-    const [filterValue, setFilterValue] = useState(initialFilter || 'all');
+    const [prevInitialSearch, setPrevInitialSearch] = useState(initialSearch);
+
+    if (initialSearch !== prevInitialSearch) {
+        setPrevInitialSearch(initialSearch);
+        setSearch(initialSearch);
+    }
+
+    const [filterValue, setFilterValue] = useState(normalizedFilter);
+    const [prevInitialFilter, setPrevInitialFilter] = useState(normalizedFilter);
+
+    if (normalizedFilter !== prevInitialFilter) {
+        setPrevInitialFilter(normalizedFilter);
+        setFilterValue(normalizedFilter);
+    }
+
     const [clientPage, setClientPage] = useState(0);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Sync controlled state when server props change (e.g. browser back)
-    useEffect(() => { setSearch(initialSearch); }, [initialSearch]);
-    useEffect(() => { setFilterValue(initialFilter || 'all'); }, [initialFilter]);
-
     function handleSearch(value: string) {
         setSearch(value);
+
         if (isServer && onSearchChange) {
-            if (debounceRef.current) clearTimeout(debounceRef.current);
+            if (debounceRef.current) {
+clearTimeout(debounceRef.current);
+}
+
             debounceRef.current = setTimeout(() => onSearchChange(value), 350);
         } else {
             setClientPage(0);
@@ -92,6 +108,7 @@ export function DataTable<T extends Record<string, unknown>>({
 
     function handleFilter(value: string) {
         setFilterValue(value);
+
         if (isServer && onFilterChange) {
             onFilterChange(value === 'all' ? '' : value);
         } else {
@@ -118,6 +135,7 @@ export function DataTable<T extends Record<string, unknown>>({
                       .includes(search.toLowerCase());
               const matchFilter =
                   !filterKey || filterValue === 'all' || String(row[filterKey]) === filterValue;
+
               return matchSearch && matchFilter;
           });
 

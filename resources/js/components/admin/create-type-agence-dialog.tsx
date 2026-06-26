@@ -30,7 +30,10 @@ export function CreateTypeAgenceDialog({ open, onOpenChange }: Props) {
     });
 
     const handleOpenChange = (value: boolean) => {
-        if (!value) reset();
+        if (!value) {
+reset();
+}
+
         onOpenChange(value);
     };
 

@@ -3,7 +3,6 @@ import { router } from '@inertiajs/react';
 import {
     ArrowLeft,
     Ban,
-    Banknote,
     Building2,
     CreditCard,
     Mail,

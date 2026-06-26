@@ -3,12 +3,13 @@ import { router } from '@inertiajs/react';
 import { PlusCircle } from 'lucide-react';
 import { useState } from 'react';
 import { CreateOffreDialog } from '@/components/admin/create-offre-dialog';
+import { DataTable  } from '@/components/admin/data-table';
+import type {Column} from '@/components/admin/data-table';
 import { ExportButtons } from '@/components/admin/export-buttons';
-import { DataTable, type Column } from '@/components/admin/data-table';
 import { StatusBadge } from '@/components/admin/status-badge';
 import { Button } from '@/components/ui/button';
-import type { Paginated } from '@/types';
 import admin from '@/routes/admin';
+import type { Paginated } from '@/types';
 
 const TYPE_LABELS: Record<string, string> = {
     particulier: 'Au kg',

@@ -161,6 +161,7 @@ export default function ColisShow({ colis, next_statut }: Props) {
                             {STEPS.map((step, i) => {
                                 const done  = i <= stepIndex;
                                 const Icon  = step.Icon;
+
                                 return (
                                     <div key={step.key} className="flex flex-1 flex-col items-center">
                                         <div className="flex w-full items-center">
@@ -274,6 +275,7 @@ export default function ColisShow({ colis, next_statut }: Props) {
                                 {colis.historique.map((h, i) => {
                                     const Icon  = STATUT_ICON[h.statut] ?? Circle;
                                     const color = STATUT_COLOR[h.statut] ?? 'bg-slate-400';
+
                                     return (
                                         <li key={h.id} className="relative">
                                             {/* pastille */}
