@@ -28,7 +28,7 @@ type Commande = {
     code: string;
     montant_total: string;
     statut: string;
-    user: { id: number; name: string; email: string } | null;
+    client: { id: string; nom: string; prenom: string; email: string } | null;
 };
 
 type HistoriqueItem = {
@@ -224,7 +224,11 @@ export default function ColisShow({ colis, next_statut }: Props) {
                             {colis.commande ? (
                                 <div className="space-y-3">
                                     <Row label="Code commande">
-                                        <span className="font-mono text-sm font-medium">{colis.commande.code}</span>
+                                        <Button variant="link" size="sm" asChild className="h-auto p-0 font-mono text-sm font-medium">
+                                            <Link href={admin.commandes.show(colis.commande.id).url}>
+                                                {colis.commande.code}
+                                            </Link>
+                                        </Button>
                                     </Row>
                                     <Row label="Montant">
                                         <span className="font-semibold tabular-nums">
@@ -234,11 +238,11 @@ export default function ColisShow({ colis, next_statut }: Props) {
                                     <Row label="Statut commande">
                                         <StatusBadge status={colis.commande.statut} />
                                     </Row>
-                                    {colis.commande.user && (
+                                    {colis.commande.client && (
                                         <Row label="Client">
                                             <div className="flex items-center gap-1.5">
                                                 <User className="h-3.5 w-3.5 text-muted-foreground" />
-                                                <span>{colis.commande.user.name}</span>
+                                                <span>{colis.commande.client.prenom} {colis.commande.client.nom}</span>
                                             </div>
                                         </Row>
                                     )}

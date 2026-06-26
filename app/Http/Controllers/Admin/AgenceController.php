@@ -24,8 +24,8 @@ class AgenceController extends Controller
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('nom', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('ville', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('ville', 'like', "%{$search}%");
             });
         }
 
@@ -34,8 +34,8 @@ class AgenceController extends Controller
         }
 
         return Inertia::render('admin/agences/index', [
-            'agences'       => $query->latest()->paginate(15)->withQueryString(),
-            'filters'       => $request->only(['search', 'statut']),
+            'agences' => $query->latest()->paginate(15)->withQueryString(),
+            'filters' => $request->only(['search', 'statut']),
             'types_agences' => TypeAgence::orderBy('nom')->get(['id', 'nom']),
         ]);
     }
@@ -43,46 +43,46 @@ class AgenceController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'gerant_name'     => ['required', 'string', 'max:255'],
-            'gerant_email'    => ['required', 'email', 'max:255', 'unique:users,email'],
+            'gerant_name' => ['required', 'string', 'max:255'],
+            'gerant_email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'gerant_password' => ['required', 'confirmed', Password::min(8)],
-            'nom'             => ['required', 'string', 'max:255'],
-            'email'           => ['required', 'email', 'max:255', 'unique:agences,email'],
-            'telephone'       => ['required', 'string', 'max:20'],
-            'type_agence_id'  => ['nullable', 'uuid', 'exists:type_agences,id'],
-            'ville'           => ['nullable', 'string', 'max:255'],
-            'adresse'         => ['nullable', 'string', 'max:255'],
-            'pays'            => ['nullable', 'string', 'max:100'],
+            'nom' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:agences,email'],
+            'telephone' => ['required', 'string', 'max:20'],
+            'type_agence_id' => ['nullable', 'uuid', 'exists:type_agences,id'],
+            'ville' => ['nullable', 'string', 'max:255'],
+            'adresse' => ['nullable', 'string', 'max:255'],
+            'pays' => ['nullable', 'string', 'max:100'],
         ], [
-            'gerant_name.required'     => 'Le nom du gérant est obligatoire.',
-            'gerant_email.required'    => "L'email du gérant est obligatoire.",
-            'gerant_email.unique'      => 'Cet email est déjà utilisé.',
+            'gerant_name.required' => 'Le nom du gérant est obligatoire.',
+            'gerant_email.required' => "L'email du gérant est obligatoire.",
+            'gerant_email.unique' => 'Cet email est déjà utilisé.',
             'gerant_password.required' => 'Le mot de passe est obligatoire.',
             'gerant_password.confirmed' => 'Les mots de passe ne correspondent pas.',
-            'nom.required'             => "Le nom de l'agence est obligatoire.",
-            'email.required'           => "L'email de l'agence est obligatoire.",
-            'email.unique'             => "Cet email est déjà utilisé par une autre agence.",
-            'telephone.required'       => 'Le téléphone est obligatoire.',
+            'nom.required' => "Le nom de l'agence est obligatoire.",
+            'email.required' => "L'email de l'agence est obligatoire.",
+            'email.unique' => 'Cet email est déjà utilisé par une autre agence.',
+            'telephone.required' => 'Le téléphone est obligatoire.',
         ]);
 
         DB::transaction(function () use ($request) {
             $user = User::create([
-                'name'     => $request->gerant_name,
-                'email'    => $request->gerant_email,
+                'name' => $request->gerant_name,
+                'email' => $request->gerant_email,
                 'password' => $request->gerant_password,
-                'role'     => 'agence',
+                'role' => 'agence',
             ]);
 
             Agence::create([
-                'user_id'        => $user->id,
+                'user_id' => $user->id,
                 'type_agence_id' => $request->type_agence_id,
-                'nom'            => $request->nom,
-                'email'          => $request->email,
-                'telephone'      => $request->telephone,
-                'ville'          => $request->ville,
-                'adresse'        => $request->adresse,
-                'pays'           => $request->pays ?? 'Gabon',
-                'statut'         => 'actif',
+                'nom' => $request->nom,
+                'email' => $request->email,
+                'telephone' => $request->telephone,
+                'ville' => $request->ville,
+                'adresse' => $request->adresse,
+                'pays' => $request->pays ?? 'Gabon',
+                'statut' => 'actif',
             ]);
         });
 
@@ -94,15 +94,15 @@ class AgenceController extends Controller
         $agence->load(['user:id,name,email', 'typeAgence:id,nom']);
 
         $stats = [
-            'nb_offres'         => $agence->offres()->count(),
-            'nb_commandes'      => $agence->commandes()->count(),
-            'total_paiements'   => (float) Paiement::join('commandes', 'paiements.commande_id', '=', 'commandes.id')
-                                        ->where('commandes.agence_id', $agence->id)
-                                        ->where('paiements.statut', 'validé')
-                                        ->sum('paiements.montant'),
+            'nb_offres' => $agence->offres()->count(),
+            'nb_commandes' => $agence->commandes()->count(),
+            'total_paiements' => (float) Paiement::join('commandes', 'paiements.commande_id', '=', 'commandes.id')
+                ->where('commandes.agence_id', $agence->id)
+                ->where('paiements.statut', 'validé')
+                ->sum('paiements.montant'),
             'total_commissions' => (float) Commission::join('commandes', 'commissions.commande_id', '=', 'commandes.id')
-                                        ->where('commandes.agence_id', $agence->id)
-                                        ->sum('commissions.montant'),
+                ->where('commandes.agence_id', $agence->id)
+                ->sum('commissions.montant'),
         ];
 
         $offres = $agence->offres()
@@ -110,15 +110,15 @@ class AgenceController extends Controller
             ->get(['id', 'titre', 'type', 'prix', 'statut', 'origine', 'destination']);
 
         $commandes = $agence->commandes()
-            ->with('user:id,name')
+            ->with('client:id,nom,prenom')
             ->latest()
             ->limit(10)
-            ->get(['id', 'code', 'user_id', 'quantite', 'montant_total', 'statut', 'created_at']);
+            ->get(['id', 'code', 'client_id', 'quantite', 'montant_total', 'statut', 'created_at']);
 
         return Inertia::render('admin/agences/show', [
-            'agence'    => $agence,
-            'stats'     => $stats,
-            'offres'    => $offres,
+            'agence' => $agence,
+            'stats' => $stats,
+            'offres' => $offres,
             'commandes' => $commandes,
         ]);
     }

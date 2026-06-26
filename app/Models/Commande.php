@@ -13,7 +13,7 @@ class Commande extends Model
     use HasUuids;
 
     protected $fillable = [
-        'user_id',
+        'client_id',
         'offre_id',
         'agence_id',
         'code',
@@ -25,14 +25,14 @@ class Commande extends Model
     protected function casts(): array
     {
         return [
-            'quantite'      => 'decimal:3',
+            'quantite' => 'decimal:3',
             'montant_total' => 'decimal:2',
         ];
     }
 
-    public function user(): BelongsTo
+    public function client(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Client::class);
     }
 
     public function offre(): BelongsTo

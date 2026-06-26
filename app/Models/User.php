@@ -7,11 +7,11 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
+use Laravel\Sanctum\HasApiTokens;
 
 /**
  * @property int $id
@@ -33,13 +33,13 @@ use Illuminate\Support\Carbon;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
+            'password' => 'hashed',
         ];
     }
 
@@ -48,19 +48,9 @@ class User extends Authenticatable
         return $this->hasOne(Agence::class);
     }
 
-    public function commandes(): HasMany
+    public function client(): HasOne
     {
-        return $this->hasMany(Commande::class);
-    }
-
-    public function avis(): HasMany
-    {
-        return $this->hasMany(Avis::class);
-    }
-
-    public function reclamations(): HasMany
-    {
-        return $this->hasMany(Reclamation::class);
+        return $this->hasOne(Client::class);
     }
 
     public function isAdmin(): bool
@@ -71,5 +61,10 @@ class User extends Authenticatable
     public function isAgence(): bool
     {
         return in_array($this->role, ['agence', 'agent_agence']);
+    }
+
+    public function isClient(): bool
+    {
+        return $this->role === 'client';
     }
 }

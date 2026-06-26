@@ -26,7 +26,7 @@ class ReversementController extends Controller
 
         return Inertia::render('admin/reversements/index', [
             'reversements' => $query->latest()->paginate(15)->withQueryString(),
-            'filters'      => $request->only(['search', 'statut']),
+            'filters' => $request->only(['search', 'statut']),
         ]);
     }
 
@@ -37,8 +37,8 @@ class ReversementController extends Controller
         }
 
         $reversement->update([
-            'statut'      => 'effectué',
-            'admin_id'    => $request->user()->id,
+            'statut' => 'effectué',
+            'admin_id' => $request->user()->id,
             'effectue_le' => Carbon::now(),
         ]);
 

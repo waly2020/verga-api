@@ -247,7 +247,11 @@ export default function ReclamationShow({ reclamation, transitions }: Props) {
                             {reclamation.commande ? (
                                 <div className="space-y-3">
                                     <Row label="Code">
-                                        <span className="font-mono text-sm font-medium">{reclamation.commande.code}</span>
+                                        <Button variant="link" size="sm" asChild className="h-auto p-0 font-mono text-sm font-medium">
+                                            <Link href={admin.commandes.show(reclamation.commande.id).url}>
+                                                {reclamation.commande.code}
+                                            </Link>
+                                        </Button>
                                     </Row>
                                     <Row label="Montant">
                                         <span className="font-semibold tabular-nums">

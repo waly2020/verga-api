@@ -20,7 +20,7 @@ class Commission extends Model
     {
         return [
             'montant' => 'decimal:2',
-            'taux'    => 'decimal:2',
+            'taux' => 'decimal:2',
         ];
     }
 

@@ -23,7 +23,7 @@ class Colis extends Model
     protected function casts(): array
     {
         return [
-            'poids'  => 'decimal:3',
+            'poids' => 'decimal:3',
             'volume' => 'decimal:3',
         ];
     }

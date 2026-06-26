@@ -22,7 +22,7 @@ class Reversement extends Model
     protected function casts(): array
     {
         return [
-            'montant'     => 'decimal:2',
+            'montant' => 'decimal:2',
             'effectue_le' => 'datetime',
         ];
     }

@@ -26,7 +26,7 @@ class OffreController extends Controller
         }
 
         return Inertia::render('admin/offres/index', [
-            'offres'  => $query->latest()->paginate(15)->withQueryString(),
+            'offres' => $query->latest()->paginate(15)->withQueryString(),
             'filters' => $request->only(['search', 'statut']),
             'agences' => Agence::where('statut', 'actif')->orderBy('nom')->get(['id', 'nom']),
         ]);
@@ -35,23 +35,23 @@ class OffreController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'agence_id'   => ['required', 'uuid', 'exists:agences,id'],
-            'titre'       => ['required', 'string', 'max:255'],
-            'type'        => ['required', Rule::in(['particulier', 'metre_cube', 'conteneur'])],
-            'prix'        => ['required', 'numeric', 'min:0'],
-            'origine'     => ['required', 'string', 'max:255'],
+            'agence_id' => ['required', 'uuid', 'exists:agences,id'],
+            'titre' => ['required', 'string', 'max:255'],
+            'type' => ['required', Rule::in(['particulier', 'metre_cube', 'conteneur'])],
+            'prix' => ['required', 'numeric', 'min:0'],
+            'origine' => ['required', 'string', 'max:255'],
             'destination' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'statut'      => ['required', Rule::in(['active', 'inactive'])],
+            'statut' => ['required', Rule::in(['active', 'inactive'])],
         ], [
-            'agence_id.required'   => "L'agence est obligatoire.",
-            'agence_id.exists'     => "Cette agence n'existe pas.",
-            'titre.required'       => 'Le titre est obligatoire.',
-            'type.required'        => 'Le type est obligatoire.',
-            'prix.required'        => 'Le prix est obligatoire.',
-            'prix.numeric'         => 'Le prix doit être un nombre.',
-            'prix.min'             => 'Le prix ne peut pas être négatif.',
-            'origine.required'     => "L'origine est obligatoire.",
+            'agence_id.required' => "L'agence est obligatoire.",
+            'agence_id.exists' => "Cette agence n'existe pas.",
+            'titre.required' => 'Le titre est obligatoire.',
+            'type.required' => 'Le type est obligatoire.',
+            'prix.required' => 'Le prix est obligatoire.',
+            'prix.numeric' => 'Le prix doit être un nombre.',
+            'prix.min' => 'Le prix ne peut pas être négatif.',
+            'origine.required' => "L'origine est obligatoire.",
             'destination.required' => 'La destination est obligatoire.',
         ]);
 

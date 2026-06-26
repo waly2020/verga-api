@@ -1,5 +1,18 @@
 <?php
 
+/*
+|--------------------------------------------------------------------------
+| Routes WEB — Applications internes
+|--------------------------------------------------------------------------
+|
+| Back-office admin VERGA (Inertia + React, ce dépôt).
+| Auth session Fortify · middleware admin · pages /admin/*
+|
+| ⚠ Les apps externes (back-office agence Angular, app client) passent
+|   par routes/api.php — ne pas ajouter leurs endpoints ici.
+|
+*/
+
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
@@ -8,9 +21,9 @@ if (app()->isLocal()) {
         $user = User::firstOrCreate(
             ['email' => 'admin@verga.test'],
             [
-                'name'     => 'Admin VERGA',
+                'name' => 'Admin VERGA',
                 'password' => bcrypt('password'),
-                'role'     => 'admin',
+                'role' => 'admin',
             ]
         );
 

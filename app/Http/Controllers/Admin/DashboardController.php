@@ -29,12 +29,12 @@ class DashboardController extends Controller
             ->sum('montant');
 
         $stats = [
-            'agences'               => Agence::where('statut', 'actif')->count(),
-            'commandes_total'       => Commande::whereBetween('created_at', [$debut, $fin])->count(),
-            'solde_commissions'     => $soldeCommissions,
-            'solde_paiements'       => $soldePaiements,
+            'agences' => Agence::where('statut', 'actif')->count(),
+            'commandes_total' => Commande::whereBetween('created_at', [$debut, $fin])->count(),
+            'solde_commissions' => $soldeCommissions,
+            'solde_paiements' => $soldePaiements,
             'reclamations_ouvertes' => Reclamation::where('statut', 'ouverte')->count(),
-            'reversements_attente'  => (float) Reversement::where('statut', 'en_attente')->sum('montant'),
+            'reversements_attente' => (float) Reversement::where('statut', 'en_attente')->sum('montant'),
         ];
 
         $commandesParStatut = Commande::whereBetween('created_at', [$debut, $fin])
@@ -69,11 +69,11 @@ class DashboardController extends Controller
             ->toArray();
 
         return Inertia::render('admin/dashboard', [
-            'stats'                  => $stats,
-            'commandes_par_statut'   => $commandesParStatut,
-            'paiements_par_agence'   => $paiementsParAgence,
+            'stats' => $stats,
+            'commandes_par_statut' => $commandesParStatut,
+            'paiements_par_agence' => $paiementsParAgence,
             'commissions_par_agence' => $commissionsParAgence,
-            'periode'                => $periode,
+            'periode' => $periode,
         ]);
     }
 
@@ -82,12 +82,12 @@ class DashboardController extends Controller
         $now = Carbon::now();
 
         return match ($periode) {
-            'mois'         => [$now->copy()->startOfMonth(),                      $now->copy()->endOfMonth()],
+            'mois' => [$now->copy()->startOfMonth(),                      $now->copy()->endOfMonth()],
             'mois_dernier' => [$now->copy()->subMonth()->startOfMonth(),           $now->copy()->subMonth()->endOfMonth()],
-            'trimestre'    => [$now->copy()->startOfQuarter(),                     $now->copy()->endOfQuarter()],
-            'semestre'     => [$now->copy()->subMonths(6)->startOfDay(),           $now->copy()->endOfDay()],
-            'annee'        => [$now->copy()->startOfYear(),                        $now->copy()->endOfYear()],
-            default        => [Carbon::createFromDate(2020, 1, 1)->startOfDay(),   $now->copy()->endOfDay()],
+            'trimestre' => [$now->copy()->startOfQuarter(),                     $now->copy()->endOfQuarter()],
+            'semestre' => [$now->copy()->subMonths(6)->startOfDay(),           $now->copy()->endOfDay()],
+            'annee' => [$now->copy()->startOfYear(),                        $now->copy()->endOfYear()],
+            default => [Carbon::createFromDate(2020, 1, 1)->startOfDay(),   $now->copy()->endOfDay()],
         };
     }
 }

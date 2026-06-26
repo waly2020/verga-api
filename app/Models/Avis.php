@@ -11,7 +11,7 @@ class Avis extends Model
     use HasUuids;
 
     protected $fillable = [
-        'user_id',
+        'client_id',
         'agence_id',
         'commande_id',
         'note',
@@ -25,9 +25,9 @@ class Avis extends Model
         ];
     }
 
-    public function user(): BelongsTo
+    public function client(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Client::class);
     }
 
     public function agence(): BelongsTo

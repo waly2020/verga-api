@@ -1,0 +1,1766 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "VERGA API",
+        "description": "API REST pour les applications externes VERGA (back-office agence Angular, application client mobile/web). Authentification Bearer Sanctum.",
+        "contact": {
+            "name": "VERGA",
+            "email": "contact@verga.test"
+        },
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "/api/v1",
+            "description": "API v1"
+        }
+    ],
+    "paths": {
+        "/agence/login": {
+            "post": {
+                "tags": [
+                    "Agence - Auth"
+                ],
+                "summary": "Connexion agence",
+                "description": "Authentifie le gérant de l'agence (email du compte `users`) et retourne un token Bearer.",
+                "operationId": "agenceLogin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "gerant@agence.test"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "password"
+                                    },
+                                    "device_name": {
+                                        "type": "string",
+                                        "example": "angular-backoffice"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Connexion réussie",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/TokenResponse"
+                                        },
+                                        {
+                                            "properties": {
+                                                "user": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "email": {
+                                                            "type": "string"
+                                                        },
+                                                        "role": {
+                                                            "type": "string",
+                                                            "example": "agence"
+                                                        },
+                                                        "agence": {
+                                                            "type": "object"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Agence bloquée ou suspendue",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MessageResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Identifiants invalides",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Trop de tentatives"
+                    }
+                }
+            }
+        },
+        "/agence/logout": {
+            "post": {
+                "tags": [
+                    "Agence - Auth"
+                ],
+                "summary": "Déconnexion agence",
+                "operationId": "agenceLogout",
+                "responses": {
+                    "200": {
+                        "description": "Token révoqué",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MessageResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/agence/me": {
+            "get": {
+                "tags": [
+                    "Agence - Auth"
+                ],
+                "summary": "Profil agence connectée",
+                "operationId": "agenceMe",
+                "responses": {
+                    "200": {
+                        "description": "Profil utilisateur et agence"
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    },
+                    "403": {
+                        "description": "Compte non agence ou agence inactive"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/agence/password": {
+            "put": {
+                "tags": [
+                    "Agence - Auth"
+                ],
+                "summary": "Modifier le mot de passe",
+                "operationId": "agenceUpdatePassword",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "current_password",
+                                    "password",
+                                    "password_confirmation"
+                                ],
+                                "properties": {
+                                    "current_password": {
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "password_confirmation": {
+                                        "type": "string",
+                                        "format": "password"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Mot de passe mis à jour",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MessageResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation échouée",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/agence/offres": {
+            "get": {
+                "tags": [
+                    "Agence - Offres"
+                ],
+                "summary": "Lister les offres de l'agence",
+                "operationId": "agenceListOffres",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Recherche par titre",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "statut",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "active",
+                                "inactive",
+                                "archivée"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste paginée des offres"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Agence - Offres"
+                ],
+                "summary": "Créer une offre",
+                "operationId": "agenceCreateOffre",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "titre",
+                                    "type",
+                                    "prix",
+                                    "origine",
+                                    "destination"
+                                ],
+                                "properties": {
+                                    "titre": {
+                                        "type": "string",
+                                        "example": "Forfait Particulier Chine → Libreville"
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "particulier",
+                                            "metre_cube",
+                                            "conteneur"
+                                        ]
+                                    },
+                                    "prix": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 8750
+                                    },
+                                    "origine": {
+                                        "type": "string",
+                                        "example": "Chine"
+                                    },
+                                    "destination": {
+                                        "type": "string",
+                                        "example": "Libreville"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "statut": {
+                                        "type": "string",
+                                        "default": "active",
+                                        "enum": [
+                                            "active",
+                                            "inactive"
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Offre créée"
+                    },
+                    "422": {
+                        "description": "Validation échouée"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/agence/offres/{offre}": {
+            "get": {
+                "tags": [
+                    "Agence - Offres"
+                ],
+                "summary": "Détail d'une offre",
+                "operationId": "agenceShowOffre",
+                "parameters": [
+                    {
+                        "name": "offre",
+                        "in": "path",
+                        "description": "UUID de l'offre",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Détail offre"
+                    },
+                    "404": {
+                        "description": "Offre introuvable ou autre agence"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/agence/commandes": {
+            "get": {
+                "tags": [
+                    "Agence - Commandes"
+                ],
+                "summary": "Lister les commandes de l'agence",
+                "operationId": "agenceListCommandes",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Recherche par code commande",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "statut",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "en_attente",
+                                "confirmée",
+                                "annulée"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste paginée"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/agence/commandes/{commande}": {
+            "get": {
+                "tags": [
+                    "Agence - Commandes"
+                ],
+                "summary": "Détail d'une commande",
+                "operationId": "agenceShowCommande",
+                "parameters": [
+                    {
+                        "name": "commande",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Détail avec client, offre, paiement, colis"
+                    },
+                    "404": {
+                        "description": "Commande introuvable"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/agence/commandes/{commande}/statut": {
+            "patch": {
+                "tags": [
+                    "Agence - Commandes"
+                ],
+                "summary": "Changer le statut d'une commande",
+                "description": "Transitions : `en_attente` → `confirmée` ou `annulée`.",
+                "operationId": "agenceUpdateCommandeStatut",
+                "parameters": [
+                    {
+                        "name": "commande",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "statut"
+                                ],
+                                "properties": {
+                                    "statut": {
+                                        "type": "string",
+                                        "enum": [
+                                            "confirmée",
+                                            "annulée"
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Statut mis à jour"
+                    },
+                    "422": {
+                        "description": "Transition non autorisée"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/agence/colis": {
+            "get": {
+                "tags": [
+                    "Agence - Colis"
+                ],
+                "summary": "Lister les colis de l'agence",
+                "operationId": "agenceListColis",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Recherche par référence",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "statut",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "déposé",
+                                "en_transit",
+                                "arrivé",
+                                "récupéré"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste paginée"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/agence/colis/{colis}": {
+            "get": {
+                "tags": [
+                    "Agence - Colis"
+                ],
+                "summary": "Détail d'un colis",
+                "operationId": "agenceShowColis",
+                "parameters": [
+                    {
+                        "name": "colis",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Détail avec historique et next_statut"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/agence/colis/{colis}/statut": {
+            "patch": {
+                "tags": [
+                    "Agence - Colis"
+                ],
+                "summary": "Avancer le statut d'un colis",
+                "description": "Flux : déposé → en_transit → arrivé → récupéré.",
+                "operationId": "agenceUpdateColisStatut",
+                "parameters": [
+                    {
+                        "name": "colis",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "commentaire": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "maxLength": 500
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Statut avancé"
+                    },
+                    "422": {
+                        "description": "Statut final déjà atteint"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/agence/reclamations": {
+            "get": {
+                "tags": [
+                    "Agence - Réclamations"
+                ],
+                "summary": "Lister les réclamations",
+                "operationId": "agenceListReclamations",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "statut",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ouverte",
+                                "en_cours",
+                                "résolue",
+                                "fermée"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste paginée"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Agence - Réclamations"
+                ],
+                "summary": "Créer une réclamation (agence)",
+                "operationId": "agenceCreateReclamation",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "nom",
+                                    "prenom",
+                                    "telephone",
+                                    "email",
+                                    "objet",
+                                    "description"
+                                ],
+                                "properties": {
+                                    "commande_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "nullable": true
+                                    },
+                                    "nom": {
+                                        "type": "string"
+                                    },
+                                    "prenom": {
+                                        "type": "string"
+                                    },
+                                    "telephone": {
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "objet": {
+                                        "type": "string"
+                                    },
+                                    "description": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Réclamation créée"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/agence/reclamations/{reclamation}": {
+            "get": {
+                "tags": [
+                    "Agence - Réclamations"
+                ],
+                "summary": "Détail d'une réclamation",
+                "operationId": "agenceShowReclamation",
+                "parameters": [
+                    {
+                        "name": "reclamation",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Détail réclamation"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/agence/reclamations/{reclamation}/statut": {
+            "patch": {
+                "tags": [
+                    "Agence - Réclamations"
+                ],
+                "summary": "Traiter une réclamation",
+                "description": "Transitions : ouverte → en_cours|fermée ; en_cours → résolue|fermée.",
+                "operationId": "agenceUpdateReclamationStatut",
+                "parameters": [
+                    {
+                        "name": "reclamation",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "statut"
+                                ],
+                                "properties": {
+                                    "statut": {
+                                        "type": "string",
+                                        "enum": [
+                                            "en_cours",
+                                            "résolue",
+                                            "fermée"
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Statut mis à jour"
+                    },
+                    "422": {
+                        "description": "Transition non autorisée"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/agence/paiements": {
+            "get": {
+                "tags": [
+                    "Agence - Paiements"
+                ],
+                "summary": "Lister les paiements de l'agence",
+                "operationId": "agenceListPaiements",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Recherche par référence",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "statut",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "en_attente",
+                                "validé",
+                                "remboursé",
+                                "échec"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste paginée"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/client/register": {
+            "post": {
+                "tags": [
+                    "Client - Auth"
+                ],
+                "summary": "Inscription client",
+                "description": "Crée un compte utilisateur (`role=client`) et un profil `clients`. Seule voie de création de compte client (non disponible dans le back-office admin).",
+                "operationId": "clientRegister",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "nom",
+                                    "prenom",
+                                    "email",
+                                    "password",
+                                    "password_confirmation",
+                                    "telephone"
+                                ],
+                                "properties": {
+                                    "nom": {
+                                        "type": "string",
+                                        "example": "Obame"
+                                    },
+                                    "prenom": {
+                                        "type": "string",
+                                        "example": "Sarah"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "sarah@example.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "password"
+                                    },
+                                    "password_confirmation": {
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "telephone": {
+                                        "type": "string",
+                                        "example": "0622222222"
+                                    },
+                                    "adresse": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "ville": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "pays": {
+                                        "type": "string",
+                                        "example": "Gabon",
+                                        "nullable": true
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "default": "particulier",
+                                        "enum": [
+                                            "particulier",
+                                            "entreprise",
+                                            "boutique"
+                                        ]
+                                    },
+                                    "device_name": {
+                                        "type": "string",
+                                        "example": "mobile-app"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Compte créé + token",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TokenResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation échouée",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Trop de tentatives"
+                    }
+                }
+            }
+        },
+        "/client/login": {
+            "post": {
+                "tags": [
+                    "Client - Auth"
+                ],
+                "summary": "Connexion client",
+                "operationId": "clientLogin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "device_name": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Connexion réussie",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TokenResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Compte bloqué"
+                    },
+                    "422": {
+                        "description": "Identifiants invalides"
+                    }
+                }
+            }
+        },
+        "/client/logout": {
+            "post": {
+                "tags": [
+                    "Client - Auth"
+                ],
+                "summary": "Déconnexion client",
+                "operationId": "clientLogout",
+                "responses": {
+                    "200": {
+                        "description": "Token révoqué",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MessageResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/client/me": {
+            "get": {
+                "tags": [
+                    "Client - Auth"
+                ],
+                "summary": "Profil client connecté",
+                "operationId": "clientMe",
+                "responses": {
+                    "200": {
+                        "description": "Profil utilisateur et client"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/client/profile": {
+            "put": {
+                "tags": [
+                    "Client - Profil"
+                ],
+                "summary": "Mettre à jour le profil client",
+                "operationId": "clientUpdateProfile",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "nom": {
+                                        "type": "string"
+                                    },
+                                    "prenom": {
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "telephone": {
+                                        "type": "string"
+                                    },
+                                    "adresse": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "ville": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "pays": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "particulier",
+                                            "entreprise",
+                                            "boutique"
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Profil mis à jour"
+                    },
+                    "422": {
+                        "description": "Validation échouée"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/client/password": {
+            "put": {
+                "tags": [
+                    "Client - Profil"
+                ],
+                "summary": "Modifier le mot de passe client",
+                "operationId": "clientUpdatePassword",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "current_password",
+                                    "password",
+                                    "password_confirmation"
+                                ],
+                                "properties": {
+                                    "current_password": {
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "password_confirmation": {
+                                        "type": "string",
+                                        "format": "password"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Mot de passe mis à jour",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MessageResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/client/commandes": {
+            "get": {
+                "tags": [
+                    "Client - Commandes"
+                ],
+                "summary": "Lister mes commandes",
+                "operationId": "clientListCommandes",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Recherche par code",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "statut",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "en_attente",
+                                "confirmée",
+                                "annulée"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste paginée des commandes du client"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/client/commandes/{commande}": {
+            "get": {
+                "tags": [
+                    "Client - Commandes"
+                ],
+                "summary": "Détail d'une commande",
+                "operationId": "clientShowCommande",
+                "parameters": [
+                    {
+                        "name": "commande",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Détail avec agence, offre, paiement, colis"
+                    },
+                    "404": {
+                        "description": "Commande introuvable"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/client/colis": {
+            "get": {
+                "tags": [
+                    "Client - Colis"
+                ],
+                "summary": "Lister mes colis",
+                "operationId": "clientListColis",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "statut",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "déposé",
+                                "en_transit",
+                                "arrivé",
+                                "récupéré"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste paginée"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/client/colis/{colis}": {
+            "get": {
+                "tags": [
+                    "Client - Colis"
+                ],
+                "summary": "Détail d'un colis",
+                "operationId": "clientShowColis",
+                "parameters": [
+                    {
+                        "name": "colis",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Détail avec historique"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/client/paiements": {
+            "get": {
+                "tags": [
+                    "Client - Paiements"
+                ],
+                "summary": "Lister mes paiements",
+                "operationId": "clientListPaiements",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "statut",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "en_attente",
+                                "validé",
+                                "remboursé",
+                                "échec"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste paginée"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/client/reclamations": {
+            "get": {
+                "tags": [
+                    "Client - Réclamations"
+                ],
+                "summary": "Lister mes réclamations",
+                "operationId": "clientListReclamations",
+                "parameters": [
+                    {
+                        "name": "statut",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "ouverte",
+                                "en_cours",
+                                "résolue",
+                                "fermée"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste paginée"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Client - Réclamations"
+                ],
+                "summary": "Créer une réclamation",
+                "description": "Les infos client (nom, email…) sont remplies automatiquement depuis le profil connecté.",
+                "operationId": "clientCreateReclamation",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "objet",
+                                    "description"
+                                ],
+                                "properties": {
+                                    "commande_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "nullable": true
+                                    },
+                                    "agence_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "nullable": true
+                                    },
+                                    "objet": {
+                                        "type": "string",
+                                        "example": "Retard livraison"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Mon colis est en retard."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Réclamation créée"
+                    },
+                    "422": {
+                        "description": "Commande non autorisée"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/client/reclamations/{reclamation}": {
+            "get": {
+                "tags": [
+                    "Client - Réclamations"
+                ],
+                "summary": "Détail d'une réclamation",
+                "operationId": "clientShowReclamation",
+                "parameters": [
+                    {
+                        "name": "reclamation",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Détail réclamation"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "MessageResponse": {
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "example": "Opération réussie."
+                    }
+                },
+                "type": "object"
+            },
+            "ValidationError": {
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "example": "The given data was invalid."
+                    },
+                    "errors": {
+                        "type": "object",
+                        "example": {
+                            "email": [
+                                "Identifiants incorrects."
+                            ]
+                        },
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "TokenResponse": {
+                "properties": {
+                    "token": {
+                        "type": "string",
+                        "example": "1|abcdef..."
+                    },
+                    "token_type": {
+                        "type": "string",
+                        "example": "Bearer"
+                    }
+                },
+                "type": "object"
+            },
+            "PaginationMeta": {
+                "properties": {
+                    "current_page": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "last_page": {
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "per_page": {
+                        "type": "integer",
+                        "example": 15
+                    },
+                    "total": {
+                        "type": "integer",
+                        "example": 72
+                    }
+                },
+                "type": "object"
+            }
+        },
+        "securitySchemes": {
+            "sanctum": {
+                "type": "http",
+                "description": "Token Sanctum obtenu via login ou register",
+                "bearerFormat": "Sanctum",
+                "scheme": "bearer"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Agence - Auth",
+            "description": "Connexion et session agence"
+        },
+        {
+            "name": "Agence - Offres",
+            "description": "Gestion des offres de transport"
+        },
+        {
+            "name": "Agence - Commandes",
+            "description": "Commandes reçues par l'agence"
+        },
+        {
+            "name": "Agence - Colis",
+            "description": "Suivi logistique des colis"
+        },
+        {
+            "name": "Agence - Réclamations",
+            "description": "Litiges et réclamations"
+        },
+        {
+            "name": "Agence - Paiements",
+            "description": "Transactions liées aux commandes"
+        },
+        {
+            "name": "Client - Auth",
+            "description": "Inscription, connexion et session client"
+        },
+        {
+            "name": "Client - Profil",
+            "description": "Mise à jour du profil client"
+        },
+        {
+            "name": "Client - Commandes",
+            "description": "Commandes du client"
+        },
+        {
+            "name": "Client - Colis",
+            "description": "Colis du client"
+        },
+        {
+            "name": "Client - Paiements",
+            "description": "Paiements du client"
+        },
+        {
+            "name": "Client - Réclamations",
+            "description": "Réclamations du client"
+        }
+    ]
+}

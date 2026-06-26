@@ -13,9 +13,9 @@ use Inertia\Response;
 class ColisController extends Controller
 {
     private const FLUX = [
-        "déposé"   => "en_transit",
-        "en_transit"          => "arrivé",
-        "arrivé"         => "récupéré",
+        'déposé' => 'en_transit',
+        'en_transit' => 'arrivé',
+        'arrivé' => 'récupéré',
     ];
 
     public function index(Request $request): Response
@@ -34,7 +34,7 @@ class ColisController extends Controller
         }
 
         return Inertia::render('admin/colis/index', [
-            'colis'   => $query->latest()->paginate(15)->withQueryString(),
+            'colis' => $query->latest()->paginate(15)->withQueryString(),
             'filters' => $request->only(['search', 'statut']),
         ]);
     }
@@ -43,13 +43,13 @@ class ColisController extends Controller
     {
         $colis->load([
             'agence:id,nom,email,ville',
-            'commande:id,code,user_id,montant_total,statut',
-            'commande.user:id,name,email',
+            'commande:id,code,client_id,montant_total,statut',
+            'commande.client:id,nom,prenom,email',
             'historique' => fn ($q) => $q->with('user:id,name')->latest(),
         ]);
 
         return Inertia::render('admin/colis/show', [
-            'colis'       => $colis,
+            'colis' => $colis,
             'next_statut' => self::FLUX[$colis->statut] ?? null,
         ]);
     }
@@ -65,16 +65,16 @@ class ColisController extends Controller
         $colis->update(['statut' => $next]);
 
         HistoriqueColis::create([
-            'colis_id'    => $colis->id,
-            'user_id'     => $request->user()->id,
-            'statut'      => $next,
+            'colis_id' => $colis->id,
+            'user_id' => $request->user()->id,
+            'statut' => $next,
             'commentaire' => $request->get('commentaire'),
         ]);
 
         $labels = [
-            'en_transit'  => 'en transit',
-            "arrivé" => "arrivé à destination",
-            "récupéré" => "récupéré par le client",
+            'en_transit' => 'en transit',
+            'arrivé' => 'arrivé à destination',
+            'récupéré' => 'récupéré par le client',
         ];
 
         $label = $labels[$next] ?? $next;

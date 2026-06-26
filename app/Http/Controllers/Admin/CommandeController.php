@@ -13,7 +13,7 @@ class CommandeController extends Controller
     public function index(Request $request): Response
     {
         $query = Commande::with([
-            'user:id,name',
+            'client:id,nom,prenom,email',
             'agence:id,nom',
         ]);
 
@@ -27,7 +27,24 @@ class CommandeController extends Controller
 
         return Inertia::render('admin/commandes/index', [
             'commandes' => $query->latest()->paginate(15)->withQueryString(),
-            'filters'   => $request->only(['search', 'statut']),
+            'filters' => $request->only(['search', 'statut']),
+        ]);
+    }
+
+    public function show(Commande $commande): Response
+    {
+        $commande->load([
+            'client:id,nom,prenom,email,telephone',
+            'agence:id,nom,email,ville',
+            'offre:id,titre,type,prix,origine,destination,statut',
+            'paiement',
+            'commission',
+            'colis:id,commande_id,reference,statut,created_at',
+            'reclamations:id,commande_id,objet,statut,created_at',
+        ]);
+
+        return Inertia::render('admin/commandes/show', [
+            'commande' => $commande,
         ]);
     }
 }

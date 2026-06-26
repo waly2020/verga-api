@@ -1,0 +1,239 @@
+<?php
+
+namespace Tests\Feature\Api\Agence;
+
+use App\Models\Agence;
+use App\Models\Colis;
+use App\Models\Commande;
+use App\Models\Offre;
+use App\Models\Paiement;
+use App\Models\User;
+
+class AgenceResourcesTest extends AgenceApiTestCase
+{
+    public function test_agence_can_list_and_create_offres(): void
+    {
+        ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
+
+        Offre::create([
+            'agence_id' => $agence->id,
+            'titre' => 'Offre existante',
+            'type' => 'particulier',
+            'prix' => 8750,
+            'origine' => 'Chine',
+            'destination' => 'Libreville',
+            'statut' => 'active',
+        ]);
+
+        $this->withAgenceToken($token)
+            ->getJson('/api/v1/agence/offres')
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+
+        $this->withAgenceToken($token)
+            ->postJson('/api/v1/agence/offres', [
+                'titre' => 'Nouvelle offre',
+                'type' => 'conteneur',
+                'prix' => 225000,
+                'origine' => 'France',
+                'destination' => 'Libreville',
+                'description' => 'Conteneur complet',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.titre', 'Nouvelle offre');
+
+        $this->assertDatabaseHas('offres', [
+            'agence_id' => $agence->id,
+            'titre' => 'Nouvelle offre',
+        ]);
+    }
+
+    public function test_agence_cannot_access_another_agences_offre(): void
+    {
+        ['token' => $token] = $this->createAuthenticatedAgence();
+
+        $otherUser = User::factory()->create(['role' => 'agence']);
+        $otherAgence = Agence::create([
+            'user_id' => $otherUser->id,
+            'nom' => 'Autre agence',
+            'email' => 'autre@test.com',
+            'telephone' => '0699999999',
+            'statut' => 'actif',
+        ]);
+
+        $offre = Offre::create([
+            'agence_id' => $otherAgence->id,
+            'titre' => 'Offre privée',
+            'type' => 'particulier',
+            'prix' => 1000,
+            'origine' => 'Chine',
+            'destination' => 'Libreville',
+            'statut' => 'active',
+        ]);
+
+        $this->withAgenceToken($token)
+            ->getJson("/api/v1/agence/offres/{$offre->id}")
+            ->assertNotFound();
+    }
+
+    public function test_agence_can_list_commandes_and_update_statut(): void
+    {
+        ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
+
+        $client = $this->createClient();
+        $offre = Offre::create([
+            'agence_id' => $agence->id,
+            'titre' => 'Offre test',
+            'type' => 'particulier',
+            'prix' => 8750,
+            'origine' => 'Chine',
+            'destination' => 'Libreville',
+            'statut' => 'active',
+        ]);
+
+        $commande = Commande::create([
+            'client_id' => $client->id,
+            'offre_id' => $offre->id,
+            'agence_id' => $agence->id,
+            'code' => 'CMD-TEST-001',
+            'quantite' => 10,
+            'montant_total' => 87500,
+            'statut' => 'en_attente',
+        ]);
+
+        $this->withAgenceToken($token)
+            ->getJson('/api/v1/agence/commandes')
+            ->assertOk()
+            ->assertJsonPath('data.0.code', 'CMD-TEST-001');
+
+        $this->withAgenceToken($token)
+            ->patchJson("/api/v1/agence/commandes/{$commande->id}/statut", [
+                'statut' => 'confirmée',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.statut', 'confirmée');
+    }
+
+    public function test_agence_can_list_colis_and_advance_statut(): void
+    {
+        ['agence' => $agence, 'user' => $user, 'token' => $token] = $this->createAuthenticatedAgence();
+
+        $client = $this->createClient();
+        $offre = Offre::create([
+            'agence_id' => $agence->id,
+            'titre' => 'Offre colis',
+            'type' => 'particulier',
+            'prix' => 8750,
+            'origine' => 'Chine',
+            'destination' => 'Libreville',
+            'statut' => 'active',
+        ]);
+
+        $commande = Commande::create([
+            'client_id' => $client->id,
+            'offre_id' => $offre->id,
+            'agence_id' => $agence->id,
+            'code' => 'CMD-COLIS-001',
+            'quantite' => 5,
+            'montant_total' => 43750,
+            'statut' => 'confirmée',
+        ]);
+
+        $colis = Colis::create([
+            'commande_id' => $commande->id,
+            'agence_id' => $agence->id,
+            'reference' => 'COL-001',
+            'statut' => 'déposé',
+        ]);
+
+        $this->withAgenceToken($token)
+            ->getJson('/api/v1/agence/colis')
+            ->assertOk()
+            ->assertJsonPath('data.0.reference', 'COL-001');
+
+        $this->withAgenceToken($token)
+            ->patchJson("/api/v1/agence/colis/{$colis->id}/statut", [
+                'commentaire' => 'Expédié ce matin',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.statut', 'en_transit')
+            ->assertJsonPath('next_statut', 'arrivé');
+
+        $this->assertDatabaseHas('historique_colis', [
+            'colis_id' => $colis->id,
+            'user_id' => $user->id,
+            'statut' => 'en_transit',
+        ]);
+    }
+
+    public function test_agence_can_create_and_update_reclamation_statut(): void
+    {
+        ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
+
+        $response = $this->withAgenceToken($token)
+            ->postJson('/api/v1/agence/reclamations', [
+                'nom' => 'Mba',
+                'prenom' => 'Paul',
+                'telephone' => '0611111111',
+                'email' => 'paul@test.com',
+                'objet' => 'Colis endommagé',
+                'description' => 'Le colis est arrivé abîmé.',
+            ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.statut', 'ouverte');
+
+        $reclamationId = $response->json('data.id');
+
+        $this->withAgenceToken($token)
+            ->patchJson("/api/v1/agence/reclamations/{$reclamationId}/statut", [
+                'statut' => 'en_cours',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.statut', 'en_cours');
+
+        $this->assertDatabaseHas('reclamations', [
+            'id' => $reclamationId,
+            'agence_id' => $agence->id,
+        ]);
+    }
+
+    public function test_agence_can_list_paiements(): void
+    {
+        ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
+
+        $client = $this->createClient();
+        $offre = Offre::create([
+            'agence_id' => $agence->id,
+            'titre' => 'Offre paiement',
+            'type' => 'particulier',
+            'prix' => 8750,
+            'origine' => 'Chine',
+            'destination' => 'Libreville',
+            'statut' => 'active',
+        ]);
+
+        $commande = Commande::create([
+            'client_id' => $client->id,
+            'offre_id' => $offre->id,
+            'agence_id' => $agence->id,
+            'code' => 'CMD-PAY-001',
+            'quantite' => 2,
+            'montant_total' => 17500,
+            'statut' => 'confirmée',
+        ]);
+
+        Paiement::create([
+            'commande_id' => $commande->id,
+            'montant' => 17500,
+            'methode' => 'mobile_money',
+            'reference' => 'PAY-001',
+            'statut' => 'validé',
+        ]);
+
+        $this->withAgenceToken($token)
+            ->getJson('/api/v1/agence/paiements')
+            ->assertOk()
+            ->assertJsonPath('data.0.reference', 'PAY-001');
+    }
+}

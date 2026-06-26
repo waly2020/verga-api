@@ -13,7 +13,7 @@ use Inertia\Response;
 class ReclamationController extends Controller
 {
     private const TRANSITIONS = [
-        'ouverte'  => ['en_cours', 'fermée'],
+        'ouverte' => ['en_cours', 'fermée'],
         'en_cours' => ['résolue', 'fermée'],
     ];
 
@@ -24,8 +24,8 @@ class ReclamationController extends Controller
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('nom', 'like', "%{$search}%")
-                  ->orWhere('prenom', 'like', "%{$search}%")
-                  ->orWhere('objet', 'like', "%{$search}%");
+                    ->orWhere('prenom', 'like', "%{$search}%")
+                    ->orWhere('objet', 'like', "%{$search}%");
             });
         }
 
@@ -35,7 +35,7 @@ class ReclamationController extends Controller
 
         return Inertia::render('admin/reclamations/index', [
             'reclamations' => $query->latest()->paginate(15)->withQueryString(),
-            'filters'      => $request->only(['search', 'statut']),
+            'filters' => $request->only(['search', 'statut']),
         ]);
     }
 
@@ -68,8 +68,8 @@ class ReclamationController extends Controller
 
         $labels = [
             'en_cours' => 'prise en charge',
-            'résolue'  => 'résolue',
-            'fermée'   => 'fermée',
+            'résolue' => 'résolue',
+            'fermée' => 'fermée',
         ];
 
         return back()->with(
