@@ -129,8 +129,13 @@ export default function ReclamationShow({ reclamation, transitions }: Props) {
                             <div className="flex shrink-0 flex-wrap items-center gap-2">
                                 {transitions.map((statut) => {
                                     const meta = TRANSITION_META[statut];
-                                    if (!meta) return null;
+
+                                    if (!meta) {
+return null;
+}
+
                                     const Icon = meta.icon;
+
                                     return (
                                         <ConfirmDialog
                                             key={statut}

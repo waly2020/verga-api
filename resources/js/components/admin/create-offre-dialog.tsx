@@ -58,7 +58,10 @@ export function CreateOffreDialog({ open, onOpenChange, agences }: Props) {
     });
 
     const handleOpenChange = (value: boolean) => {
-        if (!value) reset();
+        if (!value) {
+reset();
+}
+
         onOpenChange(value);
     };
 

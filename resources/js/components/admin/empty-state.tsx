@@ -1,4 +1,5 @@
-import { type LucideIcon, Package } from 'lucide-react';
+import {  Package } from 'lucide-react';
+import type {LucideIcon} from 'lucide-react';
 
 interface EmptyStateProps {
     icon?: LucideIcon;

@@ -5,12 +5,13 @@ import { useState } from 'react';
 import { ConfirmDialog } from '@/components/admin/confirm-dialog';
 import { CreateAgenceDialog } from '@/components/admin/create-agence-dialog';
 import { CreateTypeAgenceDialog } from '@/components/admin/create-type-agence-dialog';
+import { DataTable  } from '@/components/admin/data-table';
+import type {Column} from '@/components/admin/data-table';
 import { ExportButtons } from '@/components/admin/export-buttons';
-import { DataTable, type Column } from '@/components/admin/data-table';
 import { StatusBadge } from '@/components/admin/status-badge';
 import { Button } from '@/components/ui/button';
-import type { Paginated } from '@/types';
 import admin from '@/routes/admin';
+import type { Paginated } from '@/types';
 
 type AgenceRow = Record<string, unknown> & {
     id: string;

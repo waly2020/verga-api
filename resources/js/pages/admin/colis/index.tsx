@@ -2,11 +2,12 @@ import { Head, Link } from '@inertiajs/react';
 import { router } from '@inertiajs/react';
 import { ArrowRight, Eye } from 'lucide-react';
 import { ConfirmDialog } from '@/components/admin/confirm-dialog';
-import { DataTable, type Column } from '@/components/admin/data-table';
+import { DataTable  } from '@/components/admin/data-table';
+import type {Column} from '@/components/admin/data-table';
 import { StatusBadge } from '@/components/admin/status-badge';
 import { Button } from '@/components/ui/button';
-import type { Paginated } from '@/types';
 import admin from '@/routes/admin';
+import type { Paginated } from '@/types';
 
 type ColisRow = Record<string, unknown> & {
     id: string;
@@ -78,6 +79,7 @@ export default function ColisIndex({ colis, filters }: Props) {
                     onPageChange={(p) => go({ ...filters, page: p })}
                     actions={(row) => {
                         const next = NEXT_ACTION[row.statut];
+
                         return (
                             <div className="flex items-center justify-end gap-2">
                                 <Button variant="outline" size="sm" asChild>

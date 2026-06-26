@@ -1,10 +1,11 @@
 import { Head } from '@inertiajs/react';
 import { router } from '@inertiajs/react';
+import { DataTable  } from '@/components/admin/data-table';
+import type {Column} from '@/components/admin/data-table';
 import { ExportButtons } from '@/components/admin/export-buttons';
-import { DataTable, type Column } from '@/components/admin/data-table';
 import { StatusBadge } from '@/components/admin/status-badge';
-import type { Paginated } from '@/types';
 import admin from '@/routes/admin';
+import type { Paginated } from '@/types';
 
 type PaiementRow = Record<string, unknown> & {
     id: string;

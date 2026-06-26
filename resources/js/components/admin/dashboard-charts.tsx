@@ -140,6 +140,7 @@ export function DoughnutStatut({ data, total }: DoughnutStatutProps) {
                         callbacks: {
                             label: (ctx) => {
                                 const pct = ((ctx.parsed / total) * 100).toFixed(1);
+
                                 return ` ${ctx.parsed} commande${ctx.parsed > 1 ? 's' : ''} (${pct}%)`;
                             },
                         },
