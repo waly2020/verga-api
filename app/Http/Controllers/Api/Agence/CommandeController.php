@@ -1,0 +1,66 @@
+<?php
+
+namespace App\Http\Controllers\Api\Agence;
+
+use App\Http\Requests\Api\Agence\UpdateCommandeStatutRequest;
+use App\Http\Resources\Api\Agence\CommandeResource;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Validation\ValidationException;
+
+class CommandeController extends AgenceApiController
+{
+    private const TRANSITIONS = [
+        'en_attente' => ['confirmée', 'annulée'],
+    ];
+
+    public function index(Request $request): AnonymousResourceCollection
+    {
+        $query = $this->agence($request)
+            ->commandes()
+            ->with(['client:id,nom,prenom,email', 'offre:id,titre,type'])
+            ->latest();
+
+        if ($search = $request->get('search')) {
+            $query->where('code', 'like', "%{$search}%");
+        }
+
+        if ($statut = $request->get('statut')) {
+            $query->where('statut', $statut);
+        }
+
+        return CommandeResource::collection(
+            $query->paginate($request->integer('per_page', 15))->withQueryString()
+        );
+    }
+
+    public function show(Request $request, string $commande): CommandeResource
+    {
+        $model = $this->agence($request)
+            ->commandes()
+            ->with(['client:id,nom,prenom,email,telephone', 'offre', 'paiement', 'colis'])
+            ->findOrFail($commande);
+
+        return CommandeResource::make($model);
+    }
+
+    public function updateStatut(UpdateCommandeStatutRequest $request, string $commande): CommandeResource|JsonResponse
+    {
+        $model = $this->agence($request)->commandes()->findOrFail($commande);
+
+        $allowed = self::TRANSITIONS[$model->statut] ?? [];
+
+        if (! in_array($request->statut, $allowed, true)) {
+            throw ValidationException::withMessages([
+                'statut' => ['Transition de statut non autorisée pour cette commande.'],
+            ]);
+        }
+
+        $model->update(['statut' => $request->statut]);
+
+        $model->load(['client:id,nom,prenom,email', 'offre:id,titre,type']);
+
+        return CommandeResource::make($model);
+    }
+}

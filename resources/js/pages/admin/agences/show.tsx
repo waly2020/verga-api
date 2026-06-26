@@ -52,7 +52,7 @@ type OffreRow = {
 type CommandeRow = {
     id: string;
     code: string;
-    user: { id: number; name: string } | null;
+    client: { id: string; nom: string; prenom: string } | null;
     quantite: string;
     montant_total: string;
     statut: string;
@@ -308,7 +308,7 @@ export default function AgenceShow({ agence, stats, offres, commandes }: Props) 
                                     {commandes.map((cmd) => (
                                         <TableRow key={cmd.id}>
                                             <TableCell className="font-mono text-xs font-medium">{cmd.code}</TableCell>
-                                            <TableCell>{cmd.user?.name ?? '—'}</TableCell>
+                                            <TableCell>{cmd.client ? `${cmd.client.prenom} ${cmd.client.nom}` : '—'}</TableCell>
                                             <TableCell>{cmd.quantite}</TableCell>
                                             <TableCell className="font-medium tabular-nums">
                                                 {Number(cmd.montant_total).toLocaleString('fr-FR')} FCFA

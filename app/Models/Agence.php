@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Agence extends Model
 {
@@ -42,6 +41,11 @@ class Agence extends Model
     public function commandes(): HasMany
     {
         return $this->hasMany(Commande::class);
+    }
+
+    public function colis(): HasMany
+    {
+        return $this->hasMany(Colis::class);
     }
 
     public function reversements(): HasMany

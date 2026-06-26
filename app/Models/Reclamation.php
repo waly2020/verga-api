@@ -11,7 +11,7 @@ class Reclamation extends Model
     use HasUuids;
 
     protected $fillable = [
-        'user_id',
+        'client_id',
         'commande_id',
         'agence_id',
         'nom',
@@ -23,9 +23,9 @@ class Reclamation extends Model
         'statut',
     ];
 
-    public function user(): BelongsTo
+    public function client(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Client::class);
     }
 
     public function commande(): BelongsTo

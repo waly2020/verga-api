@@ -20,13 +20,13 @@ class CollaborateurController extends Controller
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
         return Inertia::render('admin/collaborateurs/index', [
             'collaborateurs' => $query->latest()->paginate(15)->withQueryString(),
-            'filters'        => $request->only(['search']),
+            'filters' => $request->only(['search']),
         ]);
     }
 
@@ -38,19 +38,19 @@ class CollaborateurController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name'     => ['required', 'string', 'max:255'],
-            'email'    => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'role'     => ['required', Rule::in(['admin', 'collaborateur'])],
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'role' => ['required', Rule::in(['admin', 'collaborateur'])],
             'password' => ['required', 'confirmed', Password::min(8)],
         ], [
-            'name.required'     => 'Le nom est obligatoire.',
-            'email.required'    => "L'adresse email est obligatoire.",
-            'email.email'       => "L'adresse email n'est pas valide.",
-            'email.unique'      => 'Cette adresse email est déjà utilisée.',
-            'role.required'     => 'Le rôle est obligatoire.',
+            'name.required' => 'Le nom est obligatoire.',
+            'email.required' => "L'adresse email est obligatoire.",
+            'email.email' => "L'adresse email n'est pas valide.",
+            'email.unique' => 'Cette adresse email est déjà utilisée.',
+            'role.required' => 'Le rôle est obligatoire.',
             'password.required' => 'Le mot de passe est obligatoire.',
             'password.confirmed' => 'Les mots de passe ne correspondent pas.',
-            'password.min'      => 'Le mot de passe doit contenir au moins 8 caractères.',
+            'password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
         ]);
 
         User::create($validated);

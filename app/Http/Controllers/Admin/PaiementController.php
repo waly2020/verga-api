@@ -24,7 +24,7 @@ class PaiementController extends Controller
 
         return Inertia::render('admin/paiements/index', [
             'paiements' => $query->latest()->paginate(15)->withQueryString(),
-            'filters'   => $request->only(['search', 'statut']),
+            'filters' => $request->only(['search', 'statut']),
         ]);
     }
 }

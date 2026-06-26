@@ -1,15 +1,17 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { router } from '@inertiajs/react';
+import { Eye } from 'lucide-react';
 import { ExportButtons } from '@/components/admin/export-buttons';
 import { DataTable, type Column } from '@/components/admin/data-table';
 import { StatusBadge } from '@/components/admin/status-badge';
+import { Button } from '@/components/ui/button';
 import type { Paginated } from '@/types';
 import admin from '@/routes/admin';
 
 type CommandeRow = Record<string, unknown> & {
     id: string;
     code: string;
-    user: { id: number; name: string } | null;
+    client: { id: string; nom: string; prenom: string } | null;
     agence: { id: string; nom: string } | null;
     quantite: string;
     montant_total: string;
@@ -24,7 +26,7 @@ interface Props {
 
 const columns: Column<CommandeRow>[] = [
     { key: 'code', label: 'Code', render: (r) => <span className="font-mono text-xs font-medium">{r.code}</span> },
-    { key: 'user', label: 'Client', render: (r) => r.user?.name ?? '—' },
+    { key: 'client', label: 'Client', render: (r) => r.client ? `${r.client.prenom} ${r.client.nom}` : '—' },
     { key: 'agence', label: 'Agence', render: (r) => r.agence?.nom ?? '—' },
     { key: 'quantite', label: 'Quantité' },
     {
@@ -83,6 +85,14 @@ export default function CommandesIndex({ commandes, filters }: Props) {
                     onSearchChange={(v) => go({ ...filters, search: v || undefined, page: 1 })}
                     onFilterChange={(v) => go({ ...filters, statut: v || undefined, page: 1 })}
                     onPageChange={(p) => go({ ...filters, page: p })}
+                    actions={(row) => (
+                        <Button variant="outline" size="sm" asChild>
+                            <Link href={admin.commandes.show(row.id).url}>
+                                <Eye className="mr-1 h-3.5 w-3.5" />
+                                Voir
+                            </Link>
+                        </Button>
+                    )}
                 />
             </div>
         </>

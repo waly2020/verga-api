@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AgenceController;
-use App\Http\Controllers\Admin\TypeAgenceController;
+use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ColisController;
 use App\Http\Controllers\Admin\CollaborateurController;
 use App\Http\Controllers\Admin\CommandeController;
@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\OffreController;
 use App\Http\Controllers\Admin\PaiementController;
 use App\Http\Controllers\Admin\ReclamationController;
 use App\Http\Controllers\Admin\ReversementController;
+use App\Http\Controllers\Admin\TypeAgenceController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified', 'admin'])
@@ -26,9 +27,13 @@ Route::middleware(['auth', 'verified', 'admin'])
         Route::patch('agences/{agence}/statut', [AgenceController::class, 'updateStatut'])->name('agences.statut');
         Route::delete('agences/{agence}', [AgenceController::class, 'destroy'])->name('agences.destroy');
 
+        Route::get('clients', [ClientController::class, 'index'])->name('clients.index');
+        Route::get('clients/{client}', [ClientController::class, 'show'])->name('clients.show');
+
         Route::get('offres', [OffreController::class, 'index'])->name('offres.index');
         Route::post('offres', [OffreController::class, 'store'])->name('offres.store');
         Route::get('commandes', [CommandeController::class, 'index'])->name('commandes.index');
+        Route::get('commandes/{commande}', [CommandeController::class, 'show'])->name('commandes.show');
         Route::get('colis', [ColisController::class, 'index'])->name('colis.index');
         Route::get('colis/{colis}', [ColisController::class, 'show'])->name('colis.show');
         Route::patch('colis/{colis}/statut', [ColisController::class, 'updateStatut'])->name('colis.statut');

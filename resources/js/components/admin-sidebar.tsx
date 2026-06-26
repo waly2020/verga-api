@@ -8,6 +8,7 @@ import {
     MessageSquareWarning,
     Package,
     ShoppingCart,
+    UserCircle,
     Users,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
@@ -28,6 +29,7 @@ import type { NavItem } from '@/types';
 const adminNavItems: NavItem[] = [
     { title: 'Tableau de bord', href: admin.dashboard(), icon: LayoutGrid },
     { title: 'Agences', href: admin.agences.index(), icon: Building2 },
+    { title: 'Clients', href: admin.clients.index(), icon: UserCircle },
     { title: 'Offres', href: admin.offres.index(), icon: Package },
     { title: 'Commandes', href: admin.commandes.index(), icon: ShoppingCart },
     { title: 'Colis', href: admin.colis.index(), icon: Archive },

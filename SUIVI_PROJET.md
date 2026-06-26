@@ -9,17 +9,44 @@
 
 | Élément | Détail |
 |---------|--------|
-| **Stack** | Laravel 13 · Inertia · React · SQLite (dev) |
+| **Stack backend** | Laravel 13 · Sanctum (API) · SQLite (dev) |
+| **Back-office admin VERGA** | Inertia · React — routes **`web.php`** (interne, ce dépôt) |
+| **Back-office agence** | Angular — consomme **`api.php`** (application externe) |
 | **Approche** | Découper chaque fonctionnalité en petits incréments livrables |
-| **Ordre de développement** | 1. Web (back-office admin) → 2. API |
+| **Ordre de développement** | 1. Web admin (interne) → 2. API (apps externes) |
+
+---
+
+## Architecture des routes
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  routes/web.php  —  Applications INTERNES (session + Inertia)   │
+│  • Back-office admin VERGA (React, ce dépôt)                    │
+│  • Auth Fortify, middleware admin, pages /admin/*               │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│  routes/api.php  —  Applications EXTERNES (JSON + Sanctum)      │
+│  • Back-office agence (Angular, autre dépôt)                      │
+│  • App mobile client (futur)                                    │
+│  • Intégrations tierces (webhooks, etc.)                        │
+│  ⚠ Ne pas y mettre de routes pour le back-office admin interne  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+| Fichier | Consommateur | Auth | Format |
+|---------|--------------|------|--------|
+| `routes/web.php` + `routes/admin.php` | Admin VERGA (React) | Session Fortify | Inertia / HTML |
+| `routes/api.php` + `routes/api/*` | Agence (Angular), clients, tiers | Bearer Sanctum | JSON |
 
 ---
 
 ## Phases du projet
 
 ```
-Phase 1 — Web (back-office admin)     [ EN COURS ]
-Phase 2 — API (exposition REST/JSON)  [ À VENIR ]
+Phase 1 — Web admin interne (routes/web.php)     [ EN COURS ]
+Phase 2 — API apps externes (routes/api.php)     [ EN COURS ]
 ```
 
 ---
@@ -35,10 +62,10 @@ Phase 2 — API (exposition REST/JSON)  [ À VENIR ]
 
 ---
 
-# Phase 1 — Web (back-office admin)
+# Phase 1 — Web admin interne (`routes/web.php`)
 
-> Interface d'administration VERGA : gestion des agences, commandes, paiements, colis, réclamations, etc.
-> Priorité : poser les fondations (BDD), construire l'interface, puis la connecter aux données réelles.
+> Back-office **VERGA** (admin / collaborateurs) — interface Inertia + React **dans ce dépôt**.
+> Auth session Fortify, pages sous `/admin/*`. **Ne pas exposer via l'API.**
 
 ---
 
@@ -169,9 +196,9 @@ Objectif : connecter chaque écran aux modèles, controllers et règles métier 
 ### 3.4 Commandes et paiements
 
 - [x] Liste des achats clients (paginée, recherche code, filtre statut)
-- [ ] Détail commande (client, offre, montant, statut)
+- [~] Détail commande (client, offre, montant, statut) — **en attente de validation**
 - [x] Liste des paiements (paginée, recherche référence, filtre statut)
-- [ ] Lien commande ↔ paiement ↔ commission
+- [~] Lien commande ↔ paiement ↔ commission — **en attente de validation**
 
 ### 3.5 Reversements et gains
 
@@ -206,24 +233,29 @@ Objectif : connecter chaque écran aux modèles, controllers et règles métier 
 
 ---
 
-# Phase 2 — API
+# Phase 2 — API applications externes (`routes/api.php`)
 
-> À traiter **après** la finalisation du back-office web.
-> Exposition des endpoints pour clients, agences et intégrations tierces.
+> Endpoints JSON consommés par des **applications hors de ce dépôt** :
+> - Back-office **agence** (Angular)
+> - App **client** mobile / web (futur)
+> - Webhooks et intégrations tierces
+>
+> Auth **Sanctum** (Bearer token). **Ne pas dupliquer ici ce qui existe déjà en web admin.**
 
 ### 2.1 Cadrage API
 
-- [ ] Définir le périmètre (client, agence, webhook paiement, etc.)
-- [ ] Choisir l'authentification API (Sanctum / tokens)
-- [ ] Rédiger la spec OpenAPI ou liste des endpoints
+- [x] Choisir l'authentification API (Sanctum / tokens)
+- [x] Documentation OpenAPI / Swagger UI (`/api/documentation`)
+- [ ] Rédiger la spec OpenAPI complète (schémas détaillés des réponses)
 
-### 2.2 Implémentation
+### 2.2 Implémentation — Agence
 
-- [ ] Endpoints auth
-- [ ] Endpoints client (recherche, commande, réclamation, avis)
-- [ ] Endpoints agence (offres, commandes, colis)
+- [~] **Auth agence** (connexion, profil, déconnexion, mot de passe) — **en attente de validation**
+- [~] **Métier agence** (offres, commandes, colis, réclamations, paiements) — **en attente de validation**
+- [~] **Clients** — table `clients`, admin consultation (web), API inscription/métier (app externe) — **en attente de validation**
+- [ ] Endpoints client avancés (avis, recherche offres, commande)
 - [ ] Endpoints admin (si nécessaire côté API)
-- [ ] Documentation et tests API
+- [ ] Documentation et tests API (autres modules)
 
 ---
 
@@ -238,18 +270,24 @@ Objectif : connecter chaque écran aux modèles, controllers et règles métier 
 | 2026-06-13 | Admin | §2.4 Composants UI réutilisables (DataTable, StatusBadge, EmptyState, ConfirmDialog) | `[x]` |
 | 2026-06-13 | Admin | §2.3 8 pages modules admin avec données mock (agences → collaborateurs) | `[x]` |
 | 2026-06-13 | Admin | §2.5 Boutons export Excel/PDF (UI placeholder, disabled) sur 5 modules | `[x]` |
-| 2026-06-13 | Admin | §3 Back-office dynamique : pagination BDD (Laravel paginate + react-paginate), recherche serveur debounce, filtres, KPIs dashboard | `[x]` |
+| 2026-06-13 | Admin | §3.4 Détail commande + liens paiement/commission/colis (show + bouton Voir) | `[~]` validation |
+| 2026-06-21 | API | Auth agence Sanctum : login, me, logout, password (9 tests) | `[~]` validation |
+| 2026-06-22 | Clients | Table clients + admin lecture seule + API register/profile/métier (20 tests) | `[~]` validation |
+| 2026-06-22 | API | Swagger (L5-Swagger) + doc OpenAPI agence + client (28 endpoints) | `[x]` |
 
 ---
 
 ## Notes et décisions
 
-- **Ordre** : Web (admin) d'abord, API ensuite.
+- **Ordre** : Web admin interne d'abord, API apps externes en parallèle ou ensuite.
+- **Séparation stricte** : `web.php` = admin VERGA (React) · `api.php` = agence Angular + apps externes. Ne pas mélanger.
 - **Découpage** : ne pas livrer un module entier d'un bloc ; cocher les sous-tâches une par une.
+- **Validation** : chaque fonctionnalité doit être validée par le client avant de passer à la suivante.
+- **API auth** : Sanctum Bearer token, préfixe `/api/v1/agence`, login via email du gérant (`users.email`).
 - **Références** : `CONTEXTE/DOCUMENT_DESCRIPTIF_DE_VERGA.pdf`, `CONTEXTE/Documentation_BDD_VERGA.pdf`.
 
 ---
 
 ## Prochaine action suggérée
 
-Commencer par **§ 1.1 Cadrage et modélisation** — compléter le schéma BDD avant d'écrire les migrations.
+**Valider l'API auth agence** (§ 2.2), puis enchaîner sur les **endpoints agence métier** (offres, commandes, colis).
