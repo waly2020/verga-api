@@ -7,6 +7,51 @@ use OpenApi\Attributes as OA;
 class AgenceEndpoints
 {
     #[OA\Post(
+        path: '/agence/register',
+        operationId: 'agenceRegister',
+        summary: 'Inscription agence',
+        description: 'Crée un compte gérant (`role=agence`) et le profil agence associé. Retourne un token Bearer pour connexion immédiate.',
+        tags: ['Agence - Auth'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['nom', 'email', 'telephone', 'gerant_name', 'gerant_email', 'password', 'password_confirmation'],
+                properties: [
+                    new OA\Property(property: 'nom', type: 'string', example: 'Transit Express Libreville'),
+                    new OA\Property(property: 'email', type: 'string', format: 'email', example: 'contact@transit-express.test'),
+                    new OA\Property(property: 'telephone', type: 'string', example: '0612345678'),
+                    new OA\Property(property: 'type_agence_id', type: 'string', format: 'uuid', nullable: true),
+                    new OA\Property(property: 'ville', type: 'string', example: 'Libreville', nullable: true),
+                    new OA\Property(property: 'adresse', type: 'string', nullable: true),
+                    new OA\Property(property: 'pays', type: 'string', example: 'Gabon', nullable: true),
+                    new OA\Property(property: 'gerant_name', type: 'string', example: 'Jean Mbaye'),
+                    new OA\Property(property: 'gerant_email', type: 'string', format: 'email', example: 'gerant@transit-express.test'),
+                    new OA\Property(property: 'password', type: 'string', format: 'password', example: 'password'),
+                    new OA\Property(property: 'password_confirmation', type: 'string', format: 'password'),
+                    new OA\Property(property: 'device_name', type: 'string', example: 'angular-backoffice'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 201, description: 'Compte créé + token', content: new OA\JsonContent(allOf: [
+                new OA\Schema(ref: '#/components/schemas/TokenResponse'),
+                new OA\Schema(properties: [
+                    new OA\Property(property: 'user', properties: [
+                        new OA\Property(property: 'id', type: 'integer'),
+                        new OA\Property(property: 'name', type: 'string'),
+                        new OA\Property(property: 'email', type: 'string'),
+                        new OA\Property(property: 'role', type: 'string', example: 'agence'),
+                        new OA\Property(property: 'agence', type: 'object'),
+                    ], type: 'object'),
+                ]),
+            ])),
+            new OA\Response(response: 422, description: 'Validation échouée', content: new OA\JsonContent(ref: '#/components/schemas/ValidationError')),
+            new OA\Response(response: 429, description: 'Trop de tentatives'),
+        ]
+    )]
+    public function register(): void {}
+
+    #[OA\Post(
         path: '/agence/login',
         operationId: 'agenceLogin',
         summary: 'Connexion agence',
@@ -121,11 +166,12 @@ class AgenceEndpoints
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['titre', 'type', 'prix', 'origine', 'destination'],
+                required: ['titre', 'type', 'prix', 'capacite_totale', 'origine', 'destination'],
                 properties: [
                     new OA\Property(property: 'titre', type: 'string', example: 'Forfait Particulier Chine → Libreville'),
                     new OA\Property(property: 'type', type: 'string', enum: ['particulier', 'metre_cube', 'conteneur']),
-                    new OA\Property(property: 'prix', type: 'number', format: 'float', example: 8750),
+                    new OA\Property(property: 'prix', type: 'number', format: 'float', example: 8750, description: 'Prix unitaire (FCFA/kg, FCFA/m³ ou FCFA/conteneur)'),
+                    new OA\Property(property: 'capacite_totale', type: 'number', format: 'float', example: 30000, description: 'Stock total (kg, m³ ou nombre de conteneurs)'),
                     new OA\Property(property: 'origine', type: 'string', example: 'Chine'),
                     new OA\Property(property: 'destination', type: 'string', example: 'Libreville'),
                     new OA\Property(property: 'description', type: 'string', nullable: true),

@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ColisController;
 use App\Http\Controllers\Admin\CollaborateurController;
 use App\Http\Controllers\Admin\CommandeController;
+use App\Http\Controllers\Admin\ConfigurationCommissionController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\OffreController;
 use App\Http\Controllers\Admin\PaiementController;
@@ -38,6 +39,10 @@ Route::middleware(['auth', 'verified', 'admin'])
         Route::get('colis/{colis}', [ColisController::class, 'show'])->name('colis.show');
         Route::patch('colis/{colis}/statut', [ColisController::class, 'updateStatut'])->name('colis.statut');
         Route::get('paiements', [PaiementController::class, 'index'])->name('paiements.index');
+        Route::get('commissions', [ConfigurationCommissionController::class, 'index'])->name('commissions.index');
+        Route::patch('commissions/{destinataire}', [ConfigurationCommissionController::class, 'update'])
+            ->whereIn('destinataire', ['client', 'agence'])
+            ->name('commissions.update');
         Route::get('reversements', [ReversementController::class, 'index'])->name('reversements.index');
         Route::patch('reversements/{reversement}/effectuer', [ReversementController::class, 'effectuer'])->name('reversements.effectuer');
         Route::get('reclamations', [ReclamationController::class, 'index'])->name('reclamations.index');

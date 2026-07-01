@@ -16,6 +16,146 @@
         }
     ],
     "paths": {
+        "/agence/register": {
+            "post": {
+                "tags": [
+                    "Agence - Auth"
+                ],
+                "summary": "Inscription agence",
+                "description": "Crée un compte gérant (`role=agence`) et le profil agence associé. Retourne un token Bearer pour connexion immédiate.",
+                "operationId": "agenceRegister",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "nom",
+                                    "email",
+                                    "telephone",
+                                    "gerant_name",
+                                    "gerant_email",
+                                    "password",
+                                    "password_confirmation"
+                                ],
+                                "properties": {
+                                    "nom": {
+                                        "type": "string",
+                                        "example": "Transit Express Libreville"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "contact@transit-express.test"
+                                    },
+                                    "telephone": {
+                                        "type": "string",
+                                        "example": "0612345678"
+                                    },
+                                    "type_agence_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "nullable": true
+                                    },
+                                    "ville": {
+                                        "type": "string",
+                                        "example": "Libreville",
+                                        "nullable": true
+                                    },
+                                    "adresse": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "pays": {
+                                        "type": "string",
+                                        "example": "Gabon",
+                                        "nullable": true
+                                    },
+                                    "gerant_name": {
+                                        "type": "string",
+                                        "example": "Jean Mbaye"
+                                    },
+                                    "gerant_email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "gerant@transit-express.test"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "password"
+                                    },
+                                    "password_confirmation": {
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "device_name": {
+                                        "type": "string",
+                                        "example": "angular-backoffice"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Compte créé + token",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/TokenResponse"
+                                        },
+                                        {
+                                            "properties": {
+                                                "user": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "email": {
+                                                            "type": "string"
+                                                        },
+                                                        "role": {
+                                                            "type": "string",
+                                                            "example": "agence"
+                                                        },
+                                                        "agence": {
+                                                            "type": "object"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation échouée",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Trop de tentatives"
+                    }
+                }
+            }
+        },
         "/agence/login": {
             "post": {
                 "tags": [
@@ -311,6 +451,7 @@
                                     "titre",
                                     "type",
                                     "prix",
+                                    "capacite_totale",
                                     "origine",
                                     "destination"
                                 ],
@@ -328,9 +469,16 @@
                                         ]
                                     },
                                     "prix": {
+                                        "description": "Prix unitaire (FCFA/kg, FCFA/m³ ou FCFA/conteneur)",
                                         "type": "number",
                                         "format": "float",
                                         "example": 8750
+                                    },
+                                    "capacite_totale": {
+                                        "description": "Stock total (kg, m³ ou nombre de conteneurs)",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 30000
                                     },
                                     "origine": {
                                         "type": "string",
@@ -946,6 +1094,268 @@
                 ]
             }
         },
+        "/client/offres": {
+            "get": {
+                "tags": [
+                    "Client - Offres"
+                ],
+                "summary": "Lister les offres disponibles",
+                "description": "Catalogue public des offres actives avec capacité disponible > 0. Aucune authentification requise.",
+                "operationId": "clientListOffres",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Recherche titre, origine, destination",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "particulier",
+                                "metre_cube",
+                                "conteneur"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste paginée des offres actives"
+                    }
+                }
+            }
+        },
+        "/client/commandes": {
+            "get": {
+                "tags": [
+                    "Client - Commandes"
+                ],
+                "summary": "Lister mes commandes",
+                "operationId": "clientListCommandes",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Recherche par code",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "statut",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "en_attente",
+                                "confirmée",
+                                "annulée"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste paginée des commandes du client"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Client - Commandes"
+                ],
+                "summary": "Créer une commande et initier le paiement",
+                "description": "Crée en une seule requête : commande, colis (description + photos), paiement en attente, puis initie Bamboo Pay (redirection). Auth optionnelle : si un token Bearer est fourni, la commande est liée au compte client ; sinon commande invité (nom/prénom obligatoires). Réponse = lien de paiement + URL de vérification du statut.",
+                "operationId": "clientCreateCommande",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "offre_id",
+                                    "quantite",
+                                    "telephone"
+                                ],
+                                "properties": {
+                                    "offre_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "quantite": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 10
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Vêtements et chaussures",
+                                        "nullable": true
+                                    },
+                                    "photos": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "format": "binary"
+                                        },
+                                        "maxItems": 5
+                                    },
+                                    "nom": {
+                                        "description": "Obligatoire si invité (sans token)",
+                                        "type": "string",
+                                        "example": "Obame"
+                                    },
+                                    "prenom": {
+                                        "description": "Obligatoire si invité (sans token)",
+                                        "type": "string",
+                                        "example": "Sarah"
+                                    },
+                                    "telephone": {
+                                        "type": "string",
+                                        "example": "0612345678"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        },
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "offre_id",
+                                    "quantite",
+                                    "telephone",
+                                    "nom",
+                                    "prenom"
+                                ],
+                                "properties": {
+                                    "offre_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "quantite": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 10
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "nom": {
+                                        "type": "string"
+                                    },
+                                    "prenom": {
+                                        "type": "string"
+                                    },
+                                    "telephone": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Commande créée + liens de paiement",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CheckoutResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation échouée ou stock insuffisant",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/client/paiements/{code}/statut": {
+            "get": {
+                "tags": [
+                    "Client - Paiements"
+                ],
+                "summary": "Vérifier le statut d'un paiement",
+                "description": "Le client envoie la référence paiement VERGA (`PAY-...`). Le backend interroge Bamboo Pay si nécessaire et applique le règlement idempotent (même logique que le webhook callback).",
+                "operationId": "clientCheckPaymentStatus",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "description": "Code paiement VERGA",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "PAY-ABCDEFGH"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Statut actuel",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaymentStatusCheckResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Paiement introuvable"
+                    }
+                }
+            }
+        },
         "/client/register": {
             "post": {
                 "tags": [
@@ -1273,61 +1683,6 @@
                 ]
             }
         },
-        "/client/commandes": {
-            "get": {
-                "tags": [
-                    "Client - Commandes"
-                ],
-                "summary": "Lister mes commandes",
-                "operationId": "clientListCommandes",
-                "parameters": [
-                    {
-                        "name": "search",
-                        "in": "query",
-                        "description": "Recherche par code",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "statut",
-                        "in": "query",
-                        "schema": {
-                            "type": "string",
-                            "enum": [
-                                "en_attente",
-                                "confirmée",
-                                "annulée"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "page",
-                        "in": "query",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "per_page",
-                        "in": "query",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Liste paginée des commandes du client"
-                    }
-                },
-                "security": [
-                    {
-                        "sanctum": []
-                    }
-                ]
-            }
-        },
         "/client/commandes/{commande}": {
             "get": {
                 "tags": [
@@ -1633,6 +1988,205 @@
                     }
                 ]
             }
+        },
+        "/client/dashboard": {
+            "get": {
+                "tags": [
+                    "Client - Dashboard"
+                ],
+                "summary": "Statistiques du tableau de bord client",
+                "description": "KPIs, répartitions par statut et dernières commandes pour le client connecté (particulier, entreprise ou boutique).",
+                "operationId": "clientDashboard",
+                "parameters": [
+                    {
+                        "name": "periode",
+                        "in": "query",
+                        "description": "Période de filtrage",
+                        "schema": {
+                            "type": "string",
+                            "default": "mois",
+                            "enum": [
+                                "mois",
+                                "mois_dernier",
+                                "trimestre",
+                                "semestre",
+                                "annee",
+                                "tout"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Statistiques client",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ClientDashboardResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    },
+                    "422": {
+                        "description": "Période invalide"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/agence/dashboard": {
+            "get": {
+                "tags": [
+                    "Agence - Dashboard"
+                ],
+                "summary": "Statistiques du tableau de bord agence",
+                "description": "KPIs opérationnels et financiers pour l'agence connectée (entreprise de transit).",
+                "operationId": "agenceDashboard",
+                "parameters": [
+                    {
+                        "name": "periode",
+                        "in": "query",
+                        "description": "Période de filtrage",
+                        "schema": {
+                            "type": "string",
+                            "default": "mois",
+                            "enum": [
+                                "mois",
+                                "mois_dernier",
+                                "trimestre",
+                                "semestre",
+                                "annee",
+                                "tout"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Statistiques agence",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AgenceDashboardResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    },
+                    "422": {
+                        "description": "Période invalide"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/payments/bamboo-pay/callback": {
+            "post": {
+                "tags": [
+                    "Paiement - Bamboo Pay"
+                ],
+                "summary": "Webhook Bamboo Pay",
+                "description": "Appelé par Bamboo Pay lors d'un changement de statut. Déclenche le même traitement idempotent que la vérification de statut côté client (`PaymentSettlementService`).",
+                "operationId": "bambooPayCallback",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "example": "completed",
+                                        "enum": [
+                                            "pending",
+                                            "completed",
+                                            "failed"
+                                        ]
+                                    },
+                                    "billingId": {
+                                        "description": "Code paiement VERGA (`PAY-...`)",
+                                        "type": "string",
+                                        "example": "PAY-ABCDEFGH"
+                                    },
+                                    "reference": {
+                                        "description": "Référence Bamboo Pay",
+                                        "type": "string",
+                                        "example": "TXN-2025-000381"
+                                    },
+                                    "paymentType": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "merchantName": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "callbackUrl": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "returnUrl": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "createdAt": {
+                                        "type": "string",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Notification reçue",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "received": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "processed": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "paiement_code": {
+                                            "type": "string",
+                                            "example": "PAY-ABCDEFGH"
+                                        },
+                                        "statut": {
+                                            "type": "string",
+                                            "example": "validé"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -1702,6 +2256,279 @@
                     }
                 },
                 "type": "object"
+            },
+            "CheckoutResponse": {
+                "properties": {
+                    "commande_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "code": {
+                        "type": "string",
+                        "example": "CMD-ABCDEFGH"
+                    },
+                    "montant_total": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 25000
+                    },
+                    "paiement_code": {
+                        "type": "string",
+                        "example": "PAY-ABCDEFGH"
+                    },
+                    "redirect_url": {
+                        "type": "string",
+                        "format": "uri",
+                        "example": "https://devfront-bamboopay.ventis.group/pay/abc"
+                    },
+                    "verification_url": {
+                        "type": "string",
+                        "format": "uri",
+                        "example": "http://localhost/api/v1/client/paiements/PAY-ABCDEFGH/statut"
+                    }
+                },
+                "type": "object"
+            },
+            "PaymentStatusCheckResponse": {
+                "properties": {
+                    "paiement_code": {
+                        "type": "string",
+                        "example": "PAY-ABCDEFGH"
+                    },
+                    "statut": {
+                        "type": "string",
+                        "enum": [
+                            "en_attente",
+                            "validé",
+                            "échec",
+                            "remboursé"
+                        ]
+                    },
+                    "bamboo_reference": {
+                        "type": "string",
+                        "example": "TXN-2025-000381",
+                        "nullable": true
+                    },
+                    "commande_code": {
+                        "type": "string",
+                        "example": "CMD-ABCDEFGH"
+                    },
+                    "commande_statut": {
+                        "type": "string",
+                        "enum": [
+                            "en_attente",
+                            "confirmée",
+                            "annulée"
+                        ]
+                    },
+                    "en_attente_bamboo": {
+                        "type": "boolean",
+                        "example": false
+                    }
+                },
+                "type": "object"
+            },
+            "ClientDashboardResponse": {
+                "properties": {
+                    "data": {
+                        "properties": {
+                            "periode": {
+                                "type": "string",
+                                "example": "mois"
+                            },
+                            "debut": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "fin": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "profil": {
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "particulier",
+                                            "entreprise",
+                                            "boutique"
+                                        ]
+                                    },
+                                    "nom": {
+                                        "type": "string"
+                                    },
+                                    "prenom": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            },
+                            "stats": {
+                                "properties": {
+                                    "nb_commandes": {
+                                        "type": "integer"
+                                    },
+                                    "nb_commandes_en_attente": {
+                                        "type": "integer"
+                                    },
+                                    "nb_commandes_confirmees": {
+                                        "type": "integer"
+                                    },
+                                    "nb_colis": {
+                                        "type": "integer"
+                                    },
+                                    "nb_colis_en_transit": {
+                                        "type": "integer"
+                                    },
+                                    "nb_colis_arrives": {
+                                        "type": "integer"
+                                    },
+                                    "total_depense": {
+                                        "type": "number",
+                                        "format": "float"
+                                    },
+                                    "nb_reclamations": {
+                                        "type": "integer"
+                                    },
+                                    "nb_reclamations_ouvertes": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            },
+                            "commandes_par_statut": {
+                                "type": "object",
+                                "additionalProperties": {
+                                    "type": "integer"
+                                }
+                            },
+                            "colis_par_statut": {
+                                "type": "object",
+                                "additionalProperties": {
+                                    "type": "integer"
+                                }
+                            },
+                            "dernieres_commandes": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "AgenceDashboardResponse": {
+                "properties": {
+                    "data": {
+                        "properties": {
+                            "periode": {
+                                "type": "string",
+                                "example": "mois"
+                            },
+                            "debut": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "fin": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "profil": {
+                                "properties": {
+                                    "nom": {
+                                        "type": "string"
+                                    },
+                                    "ville": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "statut": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            },
+                            "stats": {
+                                "properties": {
+                                    "nb_offres": {
+                                        "type": "integer"
+                                    },
+                                    "nb_offres_actives": {
+                                        "type": "integer"
+                                    },
+                                    "capacite_disponible_totale": {
+                                        "type": "number",
+                                        "format": "float"
+                                    },
+                                    "nb_commandes": {
+                                        "type": "integer"
+                                    },
+                                    "nb_commandes_en_attente": {
+                                        "type": "integer"
+                                    },
+                                    "nb_commandes_confirmees": {
+                                        "type": "integer"
+                                    },
+                                    "total_paiements": {
+                                        "type": "number",
+                                        "format": "float"
+                                    },
+                                    "total_commissions": {
+                                        "type": "number",
+                                        "format": "float"
+                                    },
+                                    "revenu_net_estime": {
+                                        "type": "number",
+                                        "format": "float"
+                                    },
+                                    "reversements_en_attente": {
+                                        "type": "number",
+                                        "format": "float"
+                                    },
+                                    "nb_colis": {
+                                        "type": "integer"
+                                    },
+                                    "nb_colis_en_transit": {
+                                        "type": "integer"
+                                    },
+                                    "nb_reclamations_ouvertes": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            },
+                            "commandes_par_statut": {
+                                "type": "object",
+                                "additionalProperties": {
+                                    "type": "integer"
+                                }
+                            },
+                            "colis_par_statut": {
+                                "type": "object",
+                                "additionalProperties": {
+                                    "type": "integer"
+                                }
+                            },
+                            "top_offres": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object"
+                                }
+                            },
+                            "dernieres_commandes": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
             }
         },
         "securitySchemes": {
@@ -1747,8 +2574,12 @@
             "description": "Mise à jour du profil client"
         },
         {
+            "name": "Client - Offres",
+            "description": "Catalogue public des offres actives"
+        },
+        {
             "name": "Client - Commandes",
-            "description": "Commandes du client"
+            "description": "Commandes du client (création publique ou connectée)"
         },
         {
             "name": "Client - Colis",
@@ -1756,11 +2587,23 @@
         },
         {
             "name": "Client - Paiements",
-            "description": "Paiements du client"
+            "description": "Paiements et vérification de statut"
         },
         {
             "name": "Client - Réclamations",
             "description": "Réclamations du client"
+        },
+        {
+            "name": "Client - Dashboard",
+            "description": "Statistiques tableau de bord client"
+        },
+        {
+            "name": "Paiement - Bamboo Pay",
+            "description": "Webhooks et intégration Bamboo Pay"
+        },
+        {
+            "name": "Agence - Dashboard",
+            "description": "Statistiques tableau de bord agence"
         }
     ]
 }

@@ -22,4 +22,5 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
     require __DIR__.'/api/agence.php';
     require __DIR__.'/api/client.php';
+    require __DIR__.'/api/payments.php';
 });

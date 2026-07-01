@@ -6,6 +6,87 @@ use OpenApi\Attributes as OA;
 
 class ClientEndpoints
 {
+    #[OA\Get(
+        path: '/client/offres',
+        operationId: 'clientListOffres',
+        summary: 'Lister les offres disponibles',
+        description: 'Catalogue public des offres actives avec capacité disponible > 0. Aucune authentification requise.',
+        tags: ['Client - Offres'],
+        parameters: [
+            new OA\QueryParameter(name: 'search', description: 'Recherche titre, origine, destination', schema: new OA\Schema(type: 'string')),
+            new OA\QueryParameter(name: 'type', schema: new OA\Schema(type: 'string', enum: ['particulier', 'metre_cube', 'conteneur'])),
+            new OA\QueryParameter(name: 'page', schema: new OA\Schema(type: 'integer')),
+            new OA\QueryParameter(name: 'per_page', schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Liste paginée des offres actives'),
+        ]
+    )]
+    public function listOffres(): void {}
+
+    #[OA\Post(
+        path: '/client/commandes',
+        operationId: 'clientCreateCommande',
+        summary: 'Créer une commande et initier le paiement',
+        description: 'Crée en une seule requête : commande, colis (description + photos), paiement en attente, puis initie Bamboo Pay (redirection). Auth optionnelle : si un token Bearer est fourni, la commande est liée au compte client ; sinon commande invité (nom/prénom obligatoires). Réponse = lien de paiement + URL de vérification du statut.',
+        tags: ['Client - Commandes'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: [
+                'multipart/form-data' => new OA\MediaType(
+                    mediaType: 'multipart/form-data',
+                    schema: new OA\Schema(
+                        required: ['offre_id', 'quantite', 'telephone'],
+                        properties: [
+                            new OA\Property(property: 'offre_id', type: 'string', format: 'uuid'),
+                            new OA\Property(property: 'quantite', type: 'number', format: 'float', example: 10),
+                            new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Vêtements et chaussures'),
+                            new OA\Property(property: 'photos', type: 'array', items: new OA\Items(type: 'string', format: 'binary'), maxItems: 5),
+                            new OA\Property(property: 'nom', type: 'string', description: 'Obligatoire si invité (sans token)', example: 'Obame'),
+                            new OA\Property(property: 'prenom', type: 'string', description: 'Obligatoire si invité (sans token)', example: 'Sarah'),
+                            new OA\Property(property: 'telephone', type: 'string', example: '0612345678'),
+                        ]
+                    )
+                ),
+                'application/json' => new OA\MediaType(
+                    mediaType: 'application/json',
+                    schema: new OA\Schema(
+                        required: ['offre_id', 'quantite', 'telephone', 'nom', 'prenom'],
+                        properties: [
+                            new OA\Property(property: 'offre_id', type: 'string', format: 'uuid'),
+                            new OA\Property(property: 'quantite', type: 'number', format: 'float', example: 10),
+                            new OA\Property(property: 'description', type: 'string', nullable: true),
+                            new OA\Property(property: 'nom', type: 'string'),
+                            new OA\Property(property: 'prenom', type: 'string'),
+                            new OA\Property(property: 'telephone', type: 'string'),
+                        ]
+                    )
+                ),
+            ]
+        ),
+        responses: [
+            new OA\Response(response: 201, description: 'Commande créée + liens de paiement', content: new OA\JsonContent(ref: '#/components/schemas/CheckoutResponse')),
+            new OA\Response(response: 422, description: 'Validation échouée ou stock insuffisant', content: new OA\JsonContent(ref: '#/components/schemas/ValidationError')),
+        ]
+    )]
+    public function createCommande(): void {}
+
+    #[OA\Get(
+        path: '/client/paiements/{code}/statut',
+        operationId: 'clientCheckPaymentStatus',
+        summary: 'Vérifier le statut d\'un paiement',
+        description: 'Le client envoie la référence paiement VERGA (`PAY-...`). Le backend interroge Bamboo Pay si nécessaire et applique le règlement idempotent (même logique que le webhook callback).',
+        tags: ['Client - Paiements'],
+        parameters: [
+            new OA\PathParameter(name: 'code', description: 'Code paiement VERGA', schema: new OA\Schema(type: 'string', example: 'PAY-ABCDEFGH')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Statut actuel', content: new OA\JsonContent(ref: '#/components/schemas/PaymentStatusCheckResponse')),
+            new OA\Response(response: 404, description: 'Paiement introuvable'),
+        ]
+    )]
+    public function checkPaymentStatus(): void {}
+
     #[OA\Post(
         path: '/client/register',
         operationId: 'clientRegister',

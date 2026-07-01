@@ -22,6 +22,7 @@ class StoreOffreRequest extends FormRequest
             'titre' => ['required', 'string', 'max:255'],
             'type' => ['required', Rule::in(['particulier', 'metre_cube', 'conteneur'])],
             'prix' => ['required', 'numeric', 'min:0'],
+            'capacite_totale' => ['required', 'numeric', 'min:0.001'],
             'origine' => ['required', 'string', 'max:255'],
             'destination' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],

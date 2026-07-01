@@ -7,6 +7,7 @@
 use App\Http\Controllers\Api\Agence\AuthController;
 use App\Http\Controllers\Api\Agence\ColisController;
 use App\Http\Controllers\Api\Agence\CommandeController;
+use App\Http\Controllers\Api\Agence\DashboardController;
 use App\Http\Controllers\Api\Agence\OffreController;
 use App\Http\Controllers\Api\Agence\PaiementController;
 use App\Http\Controllers\Api\Agence\PasswordController;
@@ -14,6 +15,10 @@ use App\Http\Controllers\Api\Agence\ReclamationController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('agence')->name('api.agence.')->group(function () {
+    Route::post('register', [AuthController::class, 'register'])
+        ->middleware('throttle:api-agence-register')
+        ->name('register');
+
     Route::post('login', [AuthController::class, 'login'])
         ->middleware('throttle:api-agence-login')
         ->name('login');
@@ -22,6 +27,8 @@ Route::prefix('agence')->name('api.agence.')->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
         Route::get('me', [AuthController::class, 'me'])->name('me');
         Route::put('password', [PasswordController::class, 'update'])->name('password.update');
+
+        Route::get('dashboard', DashboardController::class)->name('dashboard');
 
         Route::get('offres', [OffreController::class, 'index'])->name('offres.index');
         Route::post('offres', [OffreController::class, 'store'])->name('offres.store');

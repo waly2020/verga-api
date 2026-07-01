@@ -7,27 +7,28 @@ import { ExportButtons } from '@/components/admin/export-buttons';
 import { StatusBadge } from '@/components/admin/status-badge';
 import { Button } from '@/components/ui/button';
 import admin from '@/routes/admin';
-import type { Paginated } from '@/types';
-
-type CommandeRow = Record<string, unknown> & {
-    id: string;
-    code: string;
-    client: { id: string; nom: string; prenom: string } | null;
-    agence: { id: string; nom: string } | null;
-    quantite: string;
-    montant_total: string;
-    statut: string;
-    created_at: string;
-};
+import type { CommandeRow, Paginated } from '@/types';
 
 interface Props {
     commandes: Paginated<CommandeRow>;
     filters: { search?: string; statut?: string };
 }
 
+function clientLabel(row: CommandeRow): string {
+    if (row.client) {
+        return `${row.client.prenom} ${row.client.nom}`;
+    }
+
+    if (row.prenom && row.nom) {
+        return `${row.prenom} ${row.nom} (invité)`;
+    }
+
+    return '—';
+}
+
 const columns: Column<CommandeRow>[] = [
     { key: 'code', label: 'Code', render: (r) => <span className="font-mono text-xs font-medium">{r.code}</span> },
-    { key: 'client', label: 'Client', render: (r) => r.client ? `${r.client.prenom} ${r.client.nom}` : '—' },
+    { key: 'client', label: 'Client', render: (r) => clientLabel(r) },
     { key: 'agence', label: 'Agence', render: (r) => r.agence?.nom ?? '—' },
     { key: 'quantite', label: 'Quantité' },
     {

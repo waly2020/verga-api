@@ -36,10 +36,11 @@ class OffreController extends AgenceApiController
 
     public function store(StoreOffreRequest $request): JsonResponse
     {
-        $offre = $this->agence($request)->offres()->create([
-            ...$request->validated(),
-            'statut' => $request->input('statut', 'active'),
-        ]);
+        $data = $request->validated();
+        $data['capacite_disponible'] = $data['capacite_totale'];
+        $data['statut'] = $request->input('statut', 'active');
+
+        $offre = $this->agence($request)->offres()->create($data);
 
         return OffreResource::make($offre)
             ->response()

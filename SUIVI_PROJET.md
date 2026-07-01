@@ -98,7 +98,8 @@ Objectif : disposer d'un schéma fiable, documenté et migrable avant tout déve
 
 ### 1.4 Migrations — finance et relation client
 
-- [ ] `commissions` — commissions VERGA
+- [x] `commissions` — commissions VERGA (par commande)
+- [x] `configurations_commission` — taux global client / agence (fixe ou pourcentage)
 - [ ] `reversements` — reversements aux agences
 - [ ] `reclamations` — litiges clients
 - [ ] `avis` — notation des agences
@@ -225,6 +226,11 @@ Objectif : connecter chaque écran aux modèles, controllers et règles métier 
 - [ ] Notifications email admin (achat, réclamation — incrément par événement)
 - [ ] Notification WhatsApp admin (phase ultérieure si intégration non prête)
 
+### 3.8 bis Configuration commissions
+
+- [~] Page admin commissions globales (client + agence, fixe / pourcentage) — **en attente de validation**
+- [ ] Application automatique des commissions à la validation d'un paiement
+
 ### 3.9 Qualité et tests
 
 - [ ] Tests Feature par module admin critique
@@ -250,10 +256,12 @@ Objectif : connecter chaque écran aux modèles, controllers et règles métier 
 
 ### 2.2 Implémentation — Agence
 
-- [~] **Auth agence** (connexion, profil, déconnexion, mot de passe) — **en attente de validation**
+- [~] **Auth agence** (inscription, connexion, profil, déconnexion, mot de passe) — **en attente de validation**
 - [~] **Métier agence** (offres, commandes, colis, réclamations, paiements) — **en attente de validation**
 - [~] **Clients** — table `clients`, admin consultation (web), API inscription/métier (app externe) — **en attente de validation**
 - [ ] Endpoints client avancés (avis, recherche offres, commande)
+- [~] Service Bamboo Pay (redirect, instant, statut GET, callback) — **en attente de validation**
+- [ ] Branchement paiement commande + commissions sur callback Bamboo Pay
 - [ ] Endpoints admin (si nécessaire côté API)
 - [ ] Documentation et tests API (autres modules)
 
@@ -274,6 +282,8 @@ Objectif : connecter chaque écran aux modèles, controllers et règles métier 
 | 2026-06-21 | API | Auth agence Sanctum : login, me, logout, password (9 tests) | `[~]` validation |
 | 2026-06-22 | Clients | Table clients + admin lecture seule + API register/profile/métier (20 tests) | `[~]` validation |
 | 2026-06-22 | API | Swagger (L5-Swagger) + doc OpenAPI agence + client (28 endpoints) | `[x]` |
+| 2026-06-23 | Admin | Configuration commissions globales (page /admin/commissions, 6 tests) | `[~]` validation |
+| 2026-06-24 | API Client | Checkout commande (invité/connecté) + settlement Bamboo + capacité offres (7 tests) | `[~]` validation |
 
 ---
 

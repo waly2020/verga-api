@@ -5,6 +5,7 @@ use App\Http\Middleware\EnsureUserIsAgence;
 use App\Http\Middleware\EnsureUserIsClient;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\OptionalSanctumAuth;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => EnsureUserIsAdmin::class,
             'agence' => EnsureUserIsAgence::class,
             'client' => EnsureUserIsClient::class,
+            'optional.sanctum' => OptionalSanctumAuth::class,
         ]);
 
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);

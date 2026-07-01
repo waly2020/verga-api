@@ -16,9 +16,11 @@ class PaiementResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'code' => $this->code,
             'montant' => $this->montant,
             'methode' => $this->methode,
             'reference' => $this->reference,
+            'bamboo_reference' => $this->bamboo_reference,
             'statut' => $this->statut,
             'created_at' => $this->created_at?->toIso8601String(),
             'commande' => $this->whenLoaded('commande', fn () => [

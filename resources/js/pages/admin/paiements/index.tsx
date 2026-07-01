@@ -5,17 +5,7 @@ import type {Column} from '@/components/admin/data-table';
 import { ExportButtons } from '@/components/admin/export-buttons';
 import { StatusBadge } from '@/components/admin/status-badge';
 import admin from '@/routes/admin';
-import type { Paginated } from '@/types';
-
-type PaiementRow = Record<string, unknown> & {
-    id: string;
-    reference: string;
-    commande: { id: string; code: string } | null;
-    montant: string;
-    methode: string;
-    statut: string;
-    created_at: string;
-};
+import type { PaiementRow, Paginated } from '@/types';
 
 interface Props {
     paiements: Paginated<PaiementRow>;
@@ -23,7 +13,16 @@ interface Props {
 }
 
 const columns: Column<PaiementRow>[] = [
-    { key: 'reference', label: 'Référence', render: (r) => <span className="font-mono text-xs font-medium">{r.reference}</span> },
+    {
+        key: 'code',
+        label: 'Code VERGA',
+        render: (r) => <span className="font-mono text-xs font-medium">{r.code ?? '—'}</span>,
+    },
+    {
+        key: 'bamboo_reference',
+        label: 'Réf. Bamboo',
+        render: (r) => <span className="font-mono text-xs">{r.bamboo_reference ?? r.reference ?? '—'}</span>,
+    },
     { key: 'commande', label: 'Commande', render: (r) => <span className="font-mono text-xs">{r.commande?.code ?? '—'}</span> },
     {
         key: 'montant',
@@ -75,7 +74,7 @@ export default function PaiementsIndex({ paiements, filters }: Props) {
                     pagination={paiements.meta}
                     initialSearch={filters.search ?? ''}
                     initialFilter={filters.statut ?? ''}
-                    searchPlaceholder="Rechercher par référence..."
+                    searchPlaceholder="Rechercher par code ou référence Bamboo..."
                     filterKey="statut"
                     filterOptions={filterOptions}
                     emptyTitle="Aucun paiement"

@@ -10,6 +10,8 @@
 use App\Http\Controllers\Api\Client\AuthController;
 use App\Http\Controllers\Api\Client\ColisController;
 use App\Http\Controllers\Api\Client\CommandeController;
+use App\Http\Controllers\Api\Client\DashboardController;
+use App\Http\Controllers\Api\Client\OffreController;
 use App\Http\Controllers\Api\Client\PaiementController;
 use App\Http\Controllers\Api\Client\PasswordController;
 use App\Http\Controllers\Api\Client\ProfileController;
@@ -17,6 +19,12 @@ use App\Http\Controllers\Api\Client\ReclamationController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('client')->name('api.client.')->group(function () {
+    Route::get('offres', [OffreController::class, 'index'])->name('offres.index');
+    Route::post('commandes', [CommandeController::class, 'store'])
+        ->middleware('optional.sanctum')
+        ->name('commandes.store');
+    Route::get('paiements/{code}/statut', [PaiementController::class, 'statut'])->name('paiements.statut');
+
     Route::post('register', [AuthController::class, 'register'])
         ->middleware('throttle:api-client-register')
         ->name('register');
@@ -30,6 +38,8 @@ Route::prefix('client')->name('api.client.')->group(function () {
         Route::get('me', [AuthController::class, 'me'])->name('me');
         Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
         Route::put('password', [PasswordController::class, 'update'])->name('password.update');
+
+        Route::get('dashboard', DashboardController::class)->name('dashboard');
 
         Route::get('commandes', [CommandeController::class, 'index'])->name('commandes.index');
         Route::get('commandes/{commande}', [CommandeController::class, 'show'])->name('commandes.show');

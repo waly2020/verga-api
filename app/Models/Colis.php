@@ -15,6 +15,7 @@ class Colis extends Model
         'commande_id',
         'agence_id',
         'reference',
+        'description',
         'poids',
         'volume',
         'statut',
@@ -41,5 +42,10 @@ class Colis extends Model
     public function historique(): HasMany
     {
         return $this->hasMany(HistoriqueColis::class);
+    }
+
+    public function photos(): HasMany
+    {
+        return $this->hasMany(ColisPhoto::class)->orderBy('ordre');
     }
 }

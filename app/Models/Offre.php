@@ -17,6 +17,8 @@ class Offre extends Model
         'description',
         'type',
         'prix',
+        'capacite_totale',
+        'capacite_disponible',
         'origine',
         'destination',
         'statut',
@@ -26,6 +28,8 @@ class Offre extends Model
     {
         return [
             'prix' => 'decimal:2',
+            'capacite_totale' => 'decimal:3',
+            'capacite_disponible' => 'decimal:3',
         ];
     }
 

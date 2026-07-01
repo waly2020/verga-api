@@ -18,62 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import admin from '@/routes/admin';
-
-// ─── Types ────────────────────────────────────────────────────────────────
-
-type ClientInfo = { id: string; nom: string; prenom: string; email: string; telephone: string | null };
-type AgenceInfo = { id: string; nom: string; email: string; ville: string | null };
-type OffreInfo = {
-    id: string;
-    titre: string;
-    type: string;
-    prix: string;
-    origine: string | null;
-    destination: string | null;
-    statut: string;
-};
-type PaiementInfo = {
-    id: string;
-    montant: string;
-    methode: string;
-    reference: string | null;
-    statut: string;
-    created_at: string;
-};
-type CommissionInfo = {
-    id: string;
-    montant: string;
-    taux: string | null;
-    created_at: string;
-};
-type ColisRow = {
-    id: string;
-    reference: string;
-    statut: string;
-    created_at: string;
-};
-type ReclamationRow = {
-    id: string;
-    objet: string;
-    statut: string;
-    created_at: string;
-};
-type CommandeDetail = {
-    id: string;
-    code: string;
-    quantite: string;
-    montant_total: string;
-    statut: string;
-    created_at: string;
-    updated_at: string;
-    client: ClientInfo | null;
-    agence: AgenceInfo | null;
-    offre: OffreInfo | null;
-    paiement: PaiementInfo | null;
-    commission: CommissionInfo | null;
-    colis: ColisRow[];
-    reclamations: ReclamationRow[];
-};
+import type { CommandeDetail } from '@/types';
 
 interface Props {
     commande: CommandeDetail;
@@ -187,6 +132,19 @@ export default function CommandeShow({ commande }: Props) {
                                         </div>
                                     )}
                                 </>
+                            ) : commande.nom && commande.prenom ? (
+                                <>
+                                    <div className="flex items-center gap-2">
+                                        <p className="font-medium">{commande.prenom} {commande.nom}</p>
+                                        <Badge variant="outline">Invité</Badge>
+                                    </div>
+                                    {commande.telephone && (
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                            <Phone className="h-3.5 w-3.5 shrink-0" />
+                                            {commande.telephone}
+                                        </div>
+                                    )}
+                                </>
                             ) : (
                                 <p className="text-sm text-muted-foreground">Client introuvable.</p>
                             )}
@@ -236,6 +194,11 @@ export default function CommandeShow({ commande }: Props) {
                                     <p className="font-medium">{commande.offre.titre}</p>
                                     <Row label="Type">{commande.offre.type}</Row>
                                     <Row label="Prix unitaire">{fmtFcfa(commande.offre.prix)}</Row>
+                                    <Row label="Capacité">
+                                        {Number(commande.offre.capacite_disponible).toLocaleString('fr-FR')}
+                                        {' / '}
+                                        {Number(commande.offre.capacite_totale).toLocaleString('fr-FR')}
+                                    </Row>
                                     {(commande.offre.origine || commande.offre.destination) && (
                                         <Row label="Trajet">
                                             {[commande.offre.origine, commande.offre.destination]
@@ -269,9 +232,14 @@ export default function CommandeShow({ commande }: Props) {
                                 <div className="space-y-3">
                                     <Row label="Montant">{fmtFcfa(commande.paiement.montant)}</Row>
                                     <Row label="Méthode">{commande.paiement.methode}</Row>
-                                    <Row label="Référence">
+                                    <Row label="Code VERGA">
                                         <span className="font-mono text-xs">
-                                            {commande.paiement.reference ?? '—'}
+                                            {commande.paiement.code ?? '—'}
+                                        </span>
+                                    </Row>
+                                    <Row label="Réf. Bamboo">
+                                        <span className="font-mono text-xs">
+                                            {commande.paiement.bamboo_reference ?? commande.paiement.reference ?? '—'}
                                         </span>
                                     </Row>
                                     <Row label="Statut">
@@ -327,6 +295,7 @@ export default function CommandeShow({ commande }: Props) {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Référence</TableHead>
+                                        <TableHead>Description</TableHead>
                                         <TableHead>Statut</TableHead>
                                         <TableHead>Date</TableHead>
                                         <TableHead className="text-right">Action</TableHead>
@@ -336,9 +305,12 @@ export default function CommandeShow({ commande }: Props) {
                                     {commande.colis.map((colis) => (
                                         <TableRow key={colis.id}>
                                             <TableCell className="font-mono text-xs font-medium">{colis.reference}</TableCell>
+                                            <TableCell className="max-w-[240px] truncate text-sm text-muted-foreground">
+                                                {colis.description ?? '—'}
+                                            </TableCell>
                                             <TableCell><StatusBadge status={colis.statut} /></TableCell>
                                             <TableCell className="text-sm text-muted-foreground">
-                                                {fmtDate(colis.created_at)}
+                                                {colis.created_at ? fmtDate(colis.created_at) : '—'}
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <Button variant="outline" size="sm" asChild>

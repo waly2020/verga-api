@@ -12,9 +12,11 @@ class Paiement extends Model
 
     protected $fillable = [
         'commande_id',
+        'code',
         'montant',
         'methode',
         'reference',
+        'bamboo_reference',
         'statut',
     ];
 
@@ -28,5 +30,10 @@ class Paiement extends Model
     public function commande(): BelongsTo
     {
         return $this->belongsTo(Commande::class);
+    }
+
+    public function isFinalized(): bool
+    {
+        return in_array($this->statut, ['validé', 'échec', 'remboursé'], true);
     }
 }

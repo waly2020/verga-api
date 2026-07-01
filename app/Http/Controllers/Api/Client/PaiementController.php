@@ -4,11 +4,18 @@ namespace App\Http\Controllers\Api\Client;
 
 use App\Http\Resources\Api\Client\PaiementResource;
 use App\Models\Paiement;
+use App\Services\CommandeCheckoutService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class PaiementController extends ClientApiController
 {
+    public function statut(string $code, CommandeCheckoutService $checkout): JsonResponse
+    {
+        return response()->json($checkout->verifyPaymentStatus($code));
+    }
+
     public function index(Request $request): AnonymousResourceCollection
     {
         $clientId = $this->client($request)->id;

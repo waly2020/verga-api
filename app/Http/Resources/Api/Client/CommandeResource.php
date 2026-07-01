@@ -20,6 +20,9 @@ class CommandeResource extends JsonResource
             'quantite' => $this->quantite,
             'montant_total' => $this->montant_total,
             'statut' => $this->statut,
+            'nom' => $this->nom,
+            'prenom' => $this->prenom,
+            'telephone' => $this->telephone,
             'created_at' => $this->created_at?->toIso8601String(),
             'agence' => $this->whenLoaded('agence', fn () => [
                 'id' => $this->agence?->id,

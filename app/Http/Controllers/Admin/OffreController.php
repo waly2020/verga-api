@@ -39,6 +39,7 @@ class OffreController extends Controller
             'titre' => ['required', 'string', 'max:255'],
             'type' => ['required', Rule::in(['particulier', 'metre_cube', 'conteneur'])],
             'prix' => ['required', 'numeric', 'min:0'],
+            'capacite_totale' => ['required', 'numeric', 'min:0.001'],
             'origine' => ['required', 'string', 'max:255'],
             'destination' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
@@ -54,6 +55,8 @@ class OffreController extends Controller
             'origine.required' => "L'origine est obligatoire.",
             'destination.required' => 'La destination est obligatoire.',
         ]);
+
+        $validated['capacite_disponible'] = $validated['capacite_totale'];
 
         Offre::create($validated);
 
