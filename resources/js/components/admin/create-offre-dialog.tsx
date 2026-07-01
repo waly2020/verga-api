@@ -19,25 +19,15 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import admin from '@/routes/admin';
-
-type Agence = { id: string; nom: string };
+import type { AgenceSummary, CreateOffreFormData } from '@/types';
 
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    agences: Agence[];
+    agences: AgenceSummary[];
 }
 
-type FormData = {
-    agence_id: string;
-    titre: string;
-    type: string;
-    prix: string;
-    origine: string;
-    destination: string;
-    description: string;
-    statut: string;
-};
+type FormData = CreateOffreFormData;
 
 const TYPE_OPTIONS = [
     { value: 'particulier',  label: 'Au kg (particulier)' },
@@ -51,6 +41,7 @@ export function CreateOffreDialog({ open, onOpenChange, agences }: Props) {
         titre:       '',
         type:        'particulier',
         prix:        '',
+        capacite_totale: '',
         origine:     '',
         destination: '',
         description: '',
@@ -162,6 +153,24 @@ reset();
                                 {data.type === 'metre_cube'  && 'Prix par m³'}
                                 {data.type === 'conteneur'   && 'Prix par conteneur'}
                             </p>
+                        </div>
+
+                        <div className="space-y-1.5 sm:col-span-2">
+                            <Label htmlFor="offre-capacite">
+                                Capacité totale <span className="text-destructive">*</span>
+                            </Label>
+                            <Input
+                                id="offre-capacite"
+                                type="number"
+                                min="0.001"
+                                step="any"
+                                value={data.capacite_totale}
+                                onChange={(e) => setData('capacite_totale', e.target.value)}
+                                placeholder="Ex : 30000 kg, 6 conteneurs..."
+                            />
+                            {errors.capacite_totale && (
+                                <p className="text-xs text-destructive">{errors.capacite_totale}</p>
+                            )}
                         </div>
                     </div>
 

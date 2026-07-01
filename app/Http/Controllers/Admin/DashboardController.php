@@ -9,7 +9,7 @@ use App\Models\Commission;
 use App\Models\Paiement;
 use App\Models\Reclamation;
 use App\Models\Reversement;
-use Carbon\Carbon;
+use App\Support\PeriodeFilter;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -19,7 +19,7 @@ class DashboardController extends Controller
     public function __invoke(Request $request): Response
     {
         $periode = $request->get('periode', 'mois');
-        [$debut, $fin] = $this->periodeToRange($periode);
+        [$debut, $fin] = PeriodeFilter::range($periode);
 
         $soldeCommissions = (float) Commission::whereBetween('created_at', [$debut, $fin])
             ->sum('montant');
@@ -75,19 +75,5 @@ class DashboardController extends Controller
             'commissions_par_agence' => $commissionsParAgence,
             'periode' => $periode,
         ]);
-    }
-
-    private function periodeToRange(string $periode): array
-    {
-        $now = Carbon::now();
-
-        return match ($periode) {
-            'mois' => [$now->copy()->startOfMonth(),                      $now->copy()->endOfMonth()],
-            'mois_dernier' => [$now->copy()->subMonth()->startOfMonth(),           $now->copy()->subMonth()->endOfMonth()],
-            'trimestre' => [$now->copy()->startOfQuarter(),                     $now->copy()->endOfQuarter()],
-            'semestre' => [$now->copy()->subMonths(6)->startOfDay(),           $now->copy()->endOfDay()],
-            'annee' => [$now->copy()->startOfYear(),                        $now->copy()->endOfYear()],
-            default => [Carbon::createFromDate(2020, 1, 1)->startOfDay(),   $now->copy()->endOfDay()],
-        };
     }
 }

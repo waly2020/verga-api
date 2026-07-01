@@ -43,8 +43,9 @@ class ColisController extends Controller
     {
         $colis->load([
             'agence:id,nom,email,ville',
-            'commande:id,code,client_id,montant_total,statut',
+            'commande:id,code,client_id,nom,prenom,telephone,montant_total,statut',
             'commande.client:id,nom,prenom,email',
+            'photos:id,colis_id,chemin,ordre',
             'historique' => fn ($q) => $q->with('user:id,name')->latest(),
         ]);
 

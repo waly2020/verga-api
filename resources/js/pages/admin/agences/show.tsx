@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import admin from '@/routes/admin';
+import type { CommandeRow, OffreAgenceRow } from '@/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -38,26 +39,6 @@ type Agence = {
     type_agence: { id: string; nom: string } | null;
 };
 
-type OffreRow = {
-    id: string;
-    titre: string;
-    type: string;
-    prix: string;
-    origine: string;
-    destination: string;
-    statut: string;
-};
-
-type CommandeRow = {
-    id: string;
-    code: string;
-    client: { id: string; nom: string; prenom: string } | null;
-    quantite: string;
-    montant_total: string;
-    statut: string;
-    created_at: string;
-};
-
 interface Stats {
     nb_offres: number;
     nb_commandes: number;
@@ -68,7 +49,7 @@ interface Stats {
 interface Props {
     agence: Agence;
     stats: Stats;
-    offres: OffreRow[];
+    offres: OffreAgenceRow[];
     commandes: CommandeRow[];
 }
 
@@ -254,6 +235,7 @@ export default function AgenceShow({ agence, stats, offres, commandes }: Props) 
                                         <TableHead>Titre</TableHead>
                                         <TableHead>Type</TableHead>
                                         <TableHead>Prix</TableHead>
+                                        <TableHead>Stock</TableHead>
                                         <TableHead>Trajet</TableHead>
                                         <TableHead>Statut</TableHead>
                                     </TableRow>
@@ -265,6 +247,13 @@ export default function AgenceShow({ agence, stats, offres, commandes }: Props) 
                                             <TableCell>{TYPE_OFFRE[offre.type] ?? offre.type}</TableCell>
                                             <TableCell className="tabular-nums">
                                                 {Number(offre.prix).toLocaleString('fr-FR')} FCFA
+                                            </TableCell>
+                                            <TableCell className="tabular-nums text-sm">
+                                                {Number(offre.capacite_disponible).toLocaleString('fr-FR')}
+                                                <span className="text-muted-foreground">
+                                                    {' / '}
+                                                    {Number(offre.capacite_totale).toLocaleString('fr-FR')}
+                                                </span>
                                             </TableCell>
                                             <TableCell className="text-sm text-muted-foreground">
                                                 {offre.origine} → {offre.destination}
@@ -307,7 +296,13 @@ export default function AgenceShow({ agence, stats, offres, commandes }: Props) 
                                     {commandes.map((cmd) => (
                                         <TableRow key={cmd.id}>
                                             <TableCell className="font-mono text-xs font-medium">{cmd.code}</TableCell>
-                                            <TableCell>{cmd.client ? `${cmd.client.prenom} ${cmd.client.nom}` : '—'}</TableCell>
+                                            <TableCell>
+                                                {cmd.client
+                                                    ? `${cmd.client.prenom} ${cmd.client.nom}`
+                                                    : cmd.prenom && cmd.nom
+                                                      ? `${cmd.prenom} ${cmd.nom} (invité)`
+                                                      : '—'}
+                                            </TableCell>
                                             <TableCell>{cmd.quantite}</TableCell>
                                             <TableCell className="font-medium tabular-nums">
                                                 {Number(cmd.montant_total).toLocaleString('fr-FR')} FCFA

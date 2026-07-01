@@ -36,10 +36,10 @@ class CommandeController extends Controller
         $commande->load([
             'client:id,nom,prenom,email,telephone',
             'agence:id,nom,email,ville',
-            'offre:id,titre,type,prix,origine,destination,statut',
-            'paiement',
+            'offre:id,titre,type,prix,origine,destination,statut,capacite_totale,capacite_disponible',
+            'paiement:id,commande_id,code,reference,bamboo_reference,montant,methode,statut,created_at',
             'commission',
-            'colis:id,commande_id,reference,statut,created_at',
+            'colis:id,commande_id,reference,description,statut,created_at',
             'reclamations:id,commande_id,objet,statut,created_at',
         ]);
 

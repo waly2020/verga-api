@@ -2,12 +2,42 @@
 
 namespace App\Http\Controllers\Api\Client;
 
+use App\Http\Requests\Api\Client\StoreCommandeRequest;
 use App\Http\Resources\Api\Client\CommandeResource;
+use App\Services\CommandeCheckoutService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\UploadedFile;
 
 class CommandeController extends ClientApiController
 {
+    public function store(
+        StoreCommandeRequest $request,
+        CommandeCheckoutService $checkout,
+    ): JsonResponse {
+        $client = $request->user()?->client;
+
+        $data = $request->validated();
+
+        if ($client) {
+            $data['nom'] = $data['nom'] ?? $client->nom;
+            $data['prenom'] = $data['prenom'] ?? $client->prenom;
+            $data['telephone'] = $data['telephone'] ?? $client->telephone;
+        }
+
+        /** @var array<int, UploadedFile> $photos */
+        $photos = $request->file('photos', []);
+
+        $result = $checkout->checkout(
+            data: $data,
+            photos: is_array($photos) ? $photos : [],
+            clientId: $client?->id,
+        );
+
+        return response()->json($result, 201);
+    }
+
     public function index(Request $request): AnonymousResourceCollection
     {
         $query = $this->client($request)

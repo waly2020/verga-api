@@ -7,16 +7,7 @@ import type {Column} from '@/components/admin/data-table';
 import { StatusBadge } from '@/components/admin/status-badge';
 import { Button } from '@/components/ui/button';
 import admin from '@/routes/admin';
-import type { Paginated } from '@/types';
-
-type ColisRow = Record<string, unknown> & {
-    id: string;
-    reference: string;
-    commande: { id: string; code: string } | null;
-    agence: { id: string; nom: string } | null;
-    poids: string | null;
-    statut: string;
-};
+import type { ColisRow, Paginated } from '@/types';
 
 interface Props {
     colis: Paginated<ColisRow>;
@@ -32,6 +23,15 @@ const NEXT_ACTION: Record<string, { label: string; confirm: string }> = {
 const columns: Column<ColisRow>[] = [
     { key: 'reference', label: 'Référence', render: (r) => <span className="font-mono text-xs font-medium">{r.reference}</span> },
     { key: 'commande',  label: 'Commande',  render: (r) => <span className="font-mono text-xs">{r.commande?.code ?? '—'}</span> },
+    {
+        key: 'description',
+        label: 'Description',
+        render: (r) => (
+            <span className="max-w-[200px] truncate text-sm text-muted-foreground">
+                {r.description ?? '—'}
+            </span>
+        ),
+    },
     { key: 'agence',    label: 'Agence',    render: (r) => r.agence?.nom ?? '—' },
     { key: 'poids',     label: 'Poids',     render: (r) => r.poids ? `${r.poids} kg` : '—' },
     { key: 'statut',    label: 'Statut',    render: (r) => <StatusBadge status={r.statut} /> },

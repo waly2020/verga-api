@@ -18,39 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import admin from '@/routes/admin';
-
-// ─── Types ────────────────────────────────────────────────────────────────
-
-type Agence = { id: string; nom: string; email: string; ville: string | null };
-
-type Commande = {
-    id: string;
-    code: string;
-    montant_total: string;
-    statut: string;
-    client: { id: string; nom: string; prenom: string; email: string } | null;
-};
-
-type HistoriqueItem = {
-    id: string;
-    statut: string;
-    commentaire: string | null;
-    created_at: string;
-    user: { id: number; name: string } | null;
-};
-
-type ColisDetail = {
-    id: string;
-    reference: string;
-    poids: string | null;
-    volume: string | null;
-    statut: string;
-    created_at: string;
-    updated_at: string;
-    agence: Agence | null;
-    commande: Commande | null;
-    historique: HistoriqueItem[];
-};
+import type { ColisDetail } from '@/types';
 
 interface Props {
     colis: ColisDetail;
@@ -200,6 +168,7 @@ export default function ColisShow({ colis, next_statut }: Props) {
                             <Row label="Référence">
                                 <span className="font-mono text-sm font-medium">{colis.reference}</span>
                             </Row>
+                            {colis.description && <Row label="Description">{colis.description}</Row>}
                             {colis.poids && <Row label="Poids">{colis.poids} kg</Row>}
                             {colis.volume && <Row label="Volume">{colis.volume} m³</Row>}
                             <Row label="Agence">
@@ -239,14 +208,21 @@ export default function ColisShow({ colis, next_statut }: Props) {
                                     <Row label="Statut commande">
                                         <StatusBadge status={colis.commande.statut} />
                                     </Row>
-                                    {colis.commande.client && (
+                                    {colis.commande.client ? (
                                         <Row label="Client">
                                             <div className="flex items-center gap-1.5">
                                                 <User className="h-3.5 w-3.5 text-muted-foreground" />
                                                 <span>{colis.commande.client.prenom} {colis.commande.client.nom}</span>
                                             </div>
                                         </Row>
-                                    )}
+                                    ) : colis.commande.prenom && colis.commande.nom ? (
+                                        <Row label="Client">
+                                            <div className="flex items-center gap-1.5">
+                                                <User className="h-3.5 w-3.5 text-muted-foreground" />
+                                                <span>{colis.commande.prenom} {colis.commande.nom} (invité)</span>
+                                            </div>
+                                        </Row>
+                                    ) : null}
                                 </div>
                             ) : (
                                 <p className="text-sm text-muted-foreground">Aucune commande associée.</p>
@@ -254,6 +230,36 @@ export default function ColisShow({ colis, next_statut }: Props) {
                         </CardContent>
                     </Card>
                 </div>
+
+                {colis.photos && colis.photos.length > 0 && (
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm font-semibold">
+                                Photos du colis
+                                <Badge variant="secondary" className="ml-2">{colis.photos.length}</Badge>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                {colis.photos.map((photo) => (
+                                    <a
+                                        key={photo.id}
+                                        href={`/storage/${photo.chemin}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="overflow-hidden rounded-lg border bg-muted/30"
+                                    >
+                                        <img
+                                            src={`/storage/${photo.chemin}`}
+                                            alt={`Photo colis ${colis.reference}`}
+                                            className="aspect-video w-full object-cover"
+                                        />
+                                    </a>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Historique des statuts */}
                 <Card>

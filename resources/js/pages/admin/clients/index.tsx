@@ -7,19 +7,7 @@ import { ExportButtons } from '@/components/admin/export-buttons';
 import { StatusBadge } from '@/components/admin/status-badge';
 import { Button } from '@/components/ui/button';
 import admin from '@/routes/admin';
-import type { Paginated } from '@/types';
-
-type ClientRow = Record<string, unknown> & {
-    id: string;
-    nom: string;
-    prenom: string;
-    email: string;
-    telephone: string | null;
-    ville: string | null;
-    type: string;
-    statut: string;
-    commandes_count: number;
-};
+import type { ClientRow, Paginated } from '@/types';
 
 interface Props {
     clients: Paginated<ClientRow>;

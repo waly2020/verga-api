@@ -14,38 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import admin from '@/routes/admin';
-
-type Client = {
-    id: string;
-    nom: string;
-    prenom: string;
-    email: string;
-    telephone: string | null;
-    adresse: string | null;
-    ville: string | null;
-    pays: string | null;
-    type: string;
-    statut: string;
-    created_at: string;
-    user: { id: number; name: string; email: string } | null;
-};
-
-type CommandeRow = {
-    id: string;
-    code: string;
-    agence: { id: string; nom: string } | null;
-    quantite: string;
-    montant_total: string;
-    statut: string;
-    created_at: string;
-};
-
-type ReclamationRow = {
-    id: string;
-    objet: string;
-    statut: string;
-    created_at: string;
-};
+import type { ClientCommandeRow, ClientDetail, ReclamationRow } from '@/types';
 
 interface Stats {
     nb_commandes: number;
@@ -54,9 +23,9 @@ interface Stats {
 }
 
 interface Props {
-    client: Client;
+    client: ClientDetail;
     stats: Stats;
-    commandes: CommandeRow[];
+    commandes: ClientCommandeRow[];
     reclamations: ReclamationRow[];
 }
 

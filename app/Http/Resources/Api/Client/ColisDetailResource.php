@@ -17,6 +17,7 @@ class ColisDetailResource extends JsonResource
         return [
             'id' => $this->id,
             'reference' => $this->reference,
+            'description' => $this->description,
             'poids' => $this->poids,
             'volume' => $this->volume,
             'statut' => $this->statut,
@@ -27,6 +28,11 @@ class ColisDetailResource extends JsonResource
                 'id' => $this->agence?->id,
                 'nom' => $this->agence?->nom,
             ]),
+            'photos' => $this->whenLoaded('photos', fn () => $this->photos->map(fn ($photo) => [
+                'id' => $photo->id,
+                'chemin' => $photo->chemin,
+                'ordre' => $photo->ordre,
+            ])),
             'historique' => HistoriqueColisResource::collection($this->whenLoaded('historique')),
         ];
     }

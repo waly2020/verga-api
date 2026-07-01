@@ -17,6 +17,7 @@ class ColisResource extends JsonResource
         return [
             'id' => $this->id,
             'reference' => $this->reference,
+            'description' => $this->description,
             'poids' => $this->poids,
             'volume' => $this->volume,
             'statut' => $this->statut,

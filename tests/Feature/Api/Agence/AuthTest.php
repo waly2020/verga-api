@@ -33,6 +33,79 @@ class AuthTest extends TestCase
         return compact('user', 'agence');
     }
 
+    public function test_agence_can_register(): void
+    {
+        $response = $this->postJson('/api/v1/agence/register', [
+            'nom' => 'Transit Express',
+            'email' => 'contact@transit-express.test',
+            'telephone' => '0612345678',
+            'ville' => 'Libreville',
+            'pays' => 'Gabon',
+            'gerant_name' => 'Jean Mbaye',
+            'gerant_email' => 'gerant@transit-express.test',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonStructure([
+                'token',
+                'token_type',
+                'user' => ['id', 'name', 'email', 'role', 'agence' => ['id', 'nom', 'statut']],
+            ])
+            ->assertJsonPath('token_type', 'Bearer')
+            ->assertJsonPath('user.role', 'agence')
+            ->assertJsonPath('user.agence.nom', 'Transit Express');
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'gerant@transit-express.test',
+            'role' => 'agence',
+        ]);
+        $this->assertDatabaseHas('agences', [
+            'email' => 'contact@transit-express.test',
+            'statut' => 'actif',
+        ]);
+    }
+
+    public function test_agence_register_rejects_duplicate_gerant_email(): void
+    {
+        ['user' => $user] = $this->createAgenceAccount();
+
+        $response = $this->postJson('/api/v1/agence/register', [
+            'nom' => 'Autre Agence',
+            'email' => 'contact@autre-agence.test',
+            'telephone' => '0699999999',
+            'gerant_name' => 'Autre Gérant',
+            'gerant_email' => $user->email,
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['gerant_email']);
+    }
+
+    public function test_registered_agence_can_login(): void
+    {
+        $this->postJson('/api/v1/agence/register', [
+            'nom' => 'Transit Express',
+            'email' => 'contact@transit-express.test',
+            'telephone' => '0612345678',
+            'gerant_name' => 'Jean Mbaye',
+            'gerant_email' => 'gerant@transit-express.test',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ])->assertCreated();
+
+        $response = $this->postJson('/api/v1/agence/login', [
+            'email' => 'gerant@transit-express.test',
+            'password' => 'password',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('user.email', 'gerant@transit-express.test');
+    }
+
     public function test_agence_can_login_with_valid_credentials(): void
     {
         ['user' => $user] = $this->createAgenceAccount();

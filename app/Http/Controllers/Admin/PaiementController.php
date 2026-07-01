@@ -15,7 +15,11 @@ class PaiementController extends Controller
         $query = Paiement::with('commande:id,code');
 
         if ($search = $request->get('search')) {
-            $query->where('reference', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search) {
+                $q->where('code', 'like', "%{$search}%")
+                    ->orWhere('bamboo_reference', 'like', "%{$search}%")
+                    ->orWhere('reference', 'like', "%{$search}%");
+            });
         }
 
         if ($statut = $request->get('statut')) {

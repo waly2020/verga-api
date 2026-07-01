@@ -9,31 +9,18 @@ import { ExportButtons } from '@/components/admin/export-buttons';
 import { StatusBadge } from '@/components/admin/status-badge';
 import { Button } from '@/components/ui/button';
 import admin from '@/routes/admin';
-import type { Paginated } from '@/types';
+import type { AgenceSummary, OffreRow, Paginated } from '@/types';
 
 const TYPE_LABELS: Record<string, string> = {
     particulier: 'Au kg',
-    metre_cube:  'Au m³',
-    conteneur:   'Conteneur',
+    metre_cube: 'Au m³',
+    conteneur: 'Conteneur',
 };
-
-type OffreRow = Record<string, unknown> & {
-    id: string;
-    titre: string;
-    agence: { id: string; nom: string } | null;
-    type: string;
-    prix: string;
-    origine: string;
-    destination: string;
-    statut: string;
-};
-
-type Agence = { id: string; nom: string };
 
 interface Props {
     offres: Paginated<OffreRow>;
     filters: { search?: string; statut?: string };
-    agences: Agence[];
+    agences: AgenceSummary[];
 }
 
 const columns: Column<OffreRow>[] = [
@@ -41,6 +28,16 @@ const columns: Column<OffreRow>[] = [
     { key: 'agence',      label: 'Agence',       render: (r) => r.agence?.nom ?? '—' },
     { key: 'type',        label: 'Type',         render: (r) => TYPE_LABELS[r.type] ?? r.type },
     { key: 'prix',        label: 'Prix',         render: (r) => `${Number(r.prix).toLocaleString('fr-FR')} FCFA` },
+    {
+        key: 'capacite_disponible',
+        label: 'Stock',
+        render: (r) => (
+            <span className="tabular-nums text-sm">
+                {Number(r.capacite_disponible).toLocaleString('fr-FR')}
+                <span className="text-muted-foreground"> / {Number(r.capacite_totale).toLocaleString('fr-FR')}</span>
+            </span>
+        ),
+    },
     { key: 'origine',     label: 'Origine' },
     { key: 'destination', label: 'Destination' },
     { key: 'statut',      label: 'Statut',       render: (r) => <StatusBadge status={r.statut} /> },
