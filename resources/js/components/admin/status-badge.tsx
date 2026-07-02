@@ -7,6 +7,7 @@ const STATUS_MAP: Record<string, { label: string; className: string }> = {
     suspendu:    { label: 'Suspendu',    className: 'bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-100' },
     // Commande
     en_attente:  { label: 'En attente',  className: 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100' },
+    réservée:    { label: 'Réservée',    className: 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100' },
     confirmée:   { label: 'Confirmée',   className: 'bg-green-100 text-green-800 border-green-200 hover:bg-green-100' },
     annulée:     { label: 'Annulée',     className: 'bg-red-100 text-red-800 border-red-200 hover:bg-red-100' },
     // Paiement

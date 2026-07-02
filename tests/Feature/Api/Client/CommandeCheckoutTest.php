@@ -6,6 +6,7 @@ use App\Http\Integrations\BambooPay\BambooPayConnector;
 use App\Http\Integrations\BambooPay\Requests\CheckStatusRequest;
 use App\Http\Integrations\BambooPay\Requests\RedirectPaymentRequest;
 use App\Models\Agence;
+use App\Models\ConfigurationCommission;
 use App\Models\Offre;
 use App\Models\User;
 use App\Services\BambooPayService;
@@ -109,6 +110,218 @@ class CommandeCheckoutTest extends ClientApiTestCase
 
         $offre->refresh();
         $this->assertEquals(1000, (float) $offre->capacite_disponible);
+    }
+
+    public function test_reservation_checkout_applies_commission_on_paid_quantity_only(): void
+    {
+        $this->mockBambooRedirect();
+        ['offre' => $offre] = $this->createActiveOffre(100);
+
+        ConfigurationCommission::create([
+            'destinataire' => 'client',
+            'type' => 'pourcentage',
+            'valeur' => 5,
+            'actif' => true,
+        ]);
+
+        $response = $this->postJson('/api/v1/client/commandes', [
+            'offre_id' => $offre->id,
+            'quantite' => 30,
+            'quantite_reservee' => 50,
+            'nom' => 'Obame',
+            'prenom' => 'Sarah',
+            'telephone' => '0612345678',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('montant_sous_total', 75000)
+            ->assertJsonPath('montant_commission_client', 3750)
+            ->assertJsonPath('montant_total', 78750)
+            ->assertJsonPath('quantite_reservee', 50)
+            ->assertJsonPath('quantite_a_payer', 30)
+            ->assertJsonPath('mode', 'reservation');
+
+        $this->assertDatabaseHas('commandes', [
+            'quantite' => 50,
+            'quantite_payee' => 0,
+            'montant_sous_total' => 0,
+            'montant_commission_client' => 0,
+            'montant_total' => 0,
+            'statut' => 'en_attente',
+        ]);
+        $this->assertDatabaseHas('paiements', [
+            'statut' => 'en_attente',
+            'quantite' => 30,
+            'montant' => 78750,
+            'montant_commission_client' => 3750,
+        ]);
+    }
+
+    public function test_partial_payment_sets_reserved_status_and_blocks_full_capacity(): void
+    {
+        $this->mockBambooRedirect();
+        ['offre' => $offre] = $this->createActiveOffre(100);
+
+        $create = $this->postJson('/api/v1/client/commandes', [
+            'offre_id' => $offre->id,
+            'quantite' => 30,
+            'quantite_reservee' => 50,
+            'nom' => 'Test',
+            'prenom' => 'User',
+            'telephone' => '0612345678',
+        ])->assertCreated();
+
+        $commandeId = $create->json('commande_id');
+        $paiementCode = $create->json('paiement_code');
+
+        $this->postJson('/api/v1/payments/bamboo-pay/callback', [
+            'billingId' => $paiementCode,
+            'reference' => 'TXN-PARTIAL-001',
+            'status' => 'completed',
+        ])->assertOk();
+
+        $offre->refresh();
+        $this->assertEquals(50, (float) $offre->capacite_disponible);
+        $this->assertDatabaseHas('commandes', [
+            'id' => $commandeId,
+            'statut' => 'réservée',
+            'quantite_payee' => 30,
+            'capacite_bloquee' => true,
+        ]);
+    }
+
+    public function test_balance_payment_completes_reservation_with_commission_on_each_payment(): void
+    {
+        $this->mockBambooRedirect();
+        ['offre' => $offre] = $this->createActiveOffre(100);
+
+        ConfigurationCommission::create([
+            'destinataire' => 'client',
+            'type' => 'pourcentage',
+            'valeur' => 10,
+            'actif' => true,
+        ]);
+
+        ['client' => $client, 'token' => $token] = $this->createAuthenticatedClient();
+
+        $create = $this->withClientToken($token)
+            ->postJson('/api/v1/client/commandes', [
+                'offre_id' => $offre->id,
+                'quantite' => 30,
+                'quantite_reservee' => 50,
+                'telephone' => '0612345678',
+            ])
+            ->assertCreated();
+
+        $commandeId = $create->json('commande_id');
+
+        $this->postJson('/api/v1/payments/bamboo-pay/callback', [
+            'billingId' => $create->json('paiement_code'),
+            'reference' => 'TXN-PARTIAL-002',
+            'status' => 'completed',
+        ]);
+
+        $balance = $this->withClientToken($token)
+            ->postJson("/api/v1/client/commandes/{$commandeId}/paiements", [
+                'quantite' => 20,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('quantite_a_payer', 20)
+            ->assertJsonPath('montant_sous_total', 50000)
+            ->assertJsonPath('montant_commission_client', 5000)
+            ->assertJsonPath('montant_total', 55000)
+            ->assertJsonPath('mode', 'complet');
+
+        $this->postJson('/api/v1/payments/bamboo-pay/callback', [
+            'billingId' => $balance->json('paiement_code'),
+            'reference' => 'TXN-BALANCE-001',
+            'status' => 'completed',
+        ]);
+
+        $this->assertDatabaseHas('commandes', [
+            'id' => $commandeId,
+            'statut' => 'confirmée',
+            'quantite_payee' => 50,
+            'montant_sous_total' => 125000,
+            'montant_commission_client' => 12500,
+            'montant_total' => 137500,
+        ]);
+        $this->assertDatabaseCount('paiements', 2);
+    }
+
+    public function test_failed_balance_payment_keeps_reserved_status(): void
+    {
+        $this->mockBambooRedirect();
+        ['offre' => $offre] = $this->createActiveOffre(100);
+        ['token' => $token] = $this->createAuthenticatedClient();
+
+        $create = $this->withClientToken($token)
+            ->postJson('/api/v1/client/commandes', [
+                'offre_id' => $offre->id,
+                'quantite' => 30,
+                'quantite_reservee' => 50,
+                'telephone' => '0612345678',
+            ])
+            ->assertCreated();
+
+        $commandeId = $create->json('commande_id');
+
+        $this->postJson('/api/v1/payments/bamboo-pay/callback', [
+            'billingId' => $create->json('paiement_code'),
+            'status' => 'completed',
+        ]);
+
+        $balance = $this->withClientToken($token)
+            ->postJson("/api/v1/client/commandes/{$commandeId}/paiements", ['quantite' => 20])
+            ->assertCreated();
+
+        $this->postJson('/api/v1/payments/bamboo-pay/callback', [
+            'billingId' => $balance->json('paiement_code'),
+            'status' => 'failed',
+        ]);
+
+        $this->assertDatabaseHas('commandes', [
+            'id' => $commandeId,
+            'statut' => 'réservée',
+            'quantite_payee' => 30,
+        ]);
+    }
+
+    public function test_checkout_includes_client_commission_in_total_sent_to_bamboo(): void
+    {
+        $this->mockBambooRedirect();
+        ['offre' => $offre] = $this->createActiveOffre();
+
+        ConfigurationCommission::create([
+            'destinataire' => 'client',
+            'type' => 'pourcentage',
+            'valeur' => 5,
+            'actif' => true,
+        ]);
+
+        $response = $this->postJson('/api/v1/client/commandes', [
+            'offre_id' => $offre->id,
+            'quantite' => 10,
+            'nom' => 'Obame',
+            'prenom' => 'Sarah',
+            'telephone' => '0612345678',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('montant_sous_total', 25000)
+            ->assertJsonPath('montant_commission_client', 1250)
+            ->assertJsonPath('montant_total', 26250);
+
+        $this->assertDatabaseHas('commandes', [
+            'montant_sous_total' => 0,
+            'montant_commission_client' => 0,
+            'montant_total' => 0,
+        ]);
+        $this->assertDatabaseHas('paiements', [
+            'statut' => 'en_attente',
+            'montant' => 26250,
+            'montant_commission_client' => 1250,
+        ]);
     }
 
     public function test_authenticated_client_order_is_linked_to_account(): void

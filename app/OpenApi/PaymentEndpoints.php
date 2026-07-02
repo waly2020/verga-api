@@ -10,7 +10,13 @@ class PaymentEndpoints
         path: '/payments/bamboo-pay/callback',
         operationId: 'bambooPayCallback',
         summary: 'Webhook Bamboo Pay',
-        description: 'Appelé par Bamboo Pay lors d\'un changement de statut. Déclenche le même traitement idempotent que la vérification de statut côté client (`PaymentSettlementService`).',
+        description: 'Webhook Bamboo Pay — traite chaque versement de façon idempotente.
+
+**Paiement partiel (réservation)** : `completed` → commande `réservée`, stock bloqué sur `quantite_reservee`, `quantite_payee` incrémentée.
+
+**Solde payé** : `completed` → commande `confirmée` si entièrement réglée.
+
+**Échec** : annule la commande seulement si aucun paiement validé ; une commande `réservée` reste réservée si le solde échoue.',
         tags: ['Paiement - Bamboo Pay'],
         requestBody: new OA\RequestBody(
             required: true,

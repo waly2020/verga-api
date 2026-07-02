@@ -30,6 +30,8 @@ export type CommandeRow = CommandeGuestContact & {
     client: ClientSummary | null;
     agence: AgenceSummary | null;
     quantite: string;
+    montant_sous_total?: string | null;
+    montant_commission_client?: string | null;
     montant_total: string;
     statut: CommandeStatut | string;
     created_at: string;
@@ -39,6 +41,8 @@ export type CommandeDetail = CommandeGuestContact & {
     id: string;
     code: string;
     quantite: string;
+    montant_sous_total: string | null;
+    montant_commission_client: string | null;
     montant_total: string;
     statut: CommandeStatut | string;
     created_at: string;

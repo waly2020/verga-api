@@ -22,6 +22,7 @@ class StoreCommandeRequest extends FormRequest
         return [
             'offre_id' => ['required', 'uuid', 'exists:offres,id'],
             'quantite' => ['required', 'numeric', 'min:0.001'],
+            'quantite_reservee' => ['nullable', 'numeric', 'min:0.001', 'gte:quantite'],
             'description' => ['nullable', 'string', 'max:2000'],
             'photos' => ['nullable', 'array', 'max:5'],
             'photos.*' => ['image', 'max:5120'],

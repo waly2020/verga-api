@@ -5,9 +5,16 @@ namespace App\OpenApi;
 use OpenApi\Attributes as OA;
 
 #[OA\Info(
-    version: '1.0.0',
+    version: '1.1.0',
     title: 'VERGA API',
-    description: 'API REST pour les applications externes VERGA (back-office agence Angular, application client mobile/web). Authentification Bearer Sanctum.',
+    description: 'API REST pour les applications externes VERGA (back-office agence Angular, application client mobile/web). Authentification Bearer Sanctum.
+
+**Réservations et paiements multiples**
+- `quantite_reservee` : quantité bloquée sur l\'offre (ex. 50 kg)
+- `quantite` : quantité payée lors du versement en cours (ex. 30 kg)
+- Après validation du 1er paiement partiel : statut commande `réservée`, stock bloqué sur la quantité réservée
+- Solde via `POST /client/commandes/{commande}/paiements` (auth requise)
+- Commission client recalculée à chaque versement sur la quantité payée',
     contact: new OA\Contact(name: 'VERGA', email: 'contact@verga.test')
 )]
 #[OA\Server(url: '/api/v1', description: 'API v1')]
@@ -72,14 +79,108 @@ use OpenApi\Attributes as OA;
     ]
 )]
 #[OA\Schema(
+    schema: 'ClientOffreResource',
+    properties: [
+        new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+        new OA\Property(property: 'titre', type: 'string', example: 'Groupage Paris'),
+        new OA\Property(property: 'description', type: 'string', nullable: true),
+        new OA\Property(property: 'type', type: 'string', enum: ['particulier', 'metre_cube', 'conteneur']),
+        new OA\Property(property: 'prix', type: 'number', format: 'float', example: 2500),
+        new OA\Property(property: 'capacite_totale', type: 'number', format: 'float', example: 1000),
+        new OA\Property(property: 'capacite_disponible', type: 'number', format: 'float', example: 750),
+        new OA\Property(property: 'origine', type: 'string', example: 'Libreville'),
+        new OA\Property(property: 'destination', type: 'string', example: 'Paris'),
+        new OA\Property(property: 'statut', type: 'string', enum: ['active', 'inactive', 'archivée'], example: 'active'),
+        new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'agence', type: 'object', nullable: true, properties: [
+            new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+            new OA\Property(property: 'nom', type: 'string'),
+            new OA\Property(property: 'ville', type: 'string', nullable: true),
+        ]),
+    ]
+)]
+#[OA\Schema(
+    schema: 'ClientCommissionConfig',
+    properties: [
+        new OA\Property(property: 'type', type: 'string', enum: ['pourcentage', 'fixe'], example: 'pourcentage'),
+        new OA\Property(property: 'valeur', type: 'number', format: 'float', example: 5, description: 'Pourcentage ou montant fixe FCFA'),
+        new OA\Property(property: 'libelle', type: 'string', nullable: true, example: 'Frais de service'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'OffrePricingEstimateResponse',
+    properties: [
+        new OA\Property(property: 'offre_id', type: 'string', format: 'uuid'),
+        new OA\Property(property: 'quantite', type: 'number', format: 'float', example: 10),
+        new OA\Property(property: 'prix_unitaire', type: 'number', format: 'float', example: 2500, description: 'Prix unitaire de l\'offre (FCFA)'),
+        new OA\Property(property: 'montant_sous_total', type: 'number', format: 'float', example: 25000),
+        new OA\Property(property: 'montant_commission_client', type: 'number', format: 'float', example: 1250),
+        new OA\Property(property: 'montant_total', type: 'number', format: 'float', example: 26250, description: 'Montant total que le client paiera'),
+        new OA\Property(property: 'capacite_disponible', type: 'number', format: 'float', example: 1000),
+        new OA\Property(property: 'stock_suffisant', type: 'boolean', example: true),
+        new OA\Property(property: 'commission', ref: '#/components/schemas/ClientCommissionConfig', nullable: true),
+    ]
+)]
+#[OA\Schema(
     schema: 'CheckoutResponse',
     properties: [
         new OA\Property(property: 'commande_id', type: 'string', format: 'uuid'),
         new OA\Property(property: 'code', type: 'string', example: 'CMD-ABCDEFGH'),
-        new OA\Property(property: 'montant_total', type: 'number', format: 'float', example: 25000),
+        new OA\Property(property: 'commande_statut', type: 'string', enum: ['en_attente', 'réservée', 'confirmée', 'annulée']),
+        new OA\Property(property: 'quantite_reservee', type: 'number', format: 'float', example: 50),
+        new OA\Property(property: 'quantite_payee', type: 'number', format: 'float', example: 0),
+        new OA\Property(property: 'quantite_a_payer', type: 'number', format: 'float', example: 30),
+        new OA\Property(property: 'quantite_restante', type: 'number', format: 'float', example: 20),
+        new OA\Property(property: 'montant_sous_total', type: 'number', format: 'float', example: 25000, description: 'Prix offre × quantité du paiement en cours'),
+        new OA\Property(property: 'montant_commission_client', type: 'number', format: 'float', example: 1250, description: 'Commission VERGA sur ce paiement'),
+        new OA\Property(property: 'montant_total', type: 'number', format: 'float', example: 26250, description: 'Montant envoyé à Bamboo Pay pour ce paiement'),
         new OA\Property(property: 'paiement_code', type: 'string', example: 'PAY-ABCDEFGH'),
         new OA\Property(property: 'redirect_url', type: 'string', format: 'uri', example: 'https://devfront-bamboopay.ventis.group/pay/abc'),
         new OA\Property(property: 'verification_url', type: 'string', format: 'uri', example: 'http://localhost/api/v1/client/paiements/PAY-ABCDEFGH/statut'),
+        new OA\Property(property: 'mode', type: 'string', enum: ['reservation', 'complet'], description: 'reservation = paiement partiel, complet = solde total'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'SoldePaiementRequest',
+    required: ['quantite'],
+    properties: [
+        new OA\Property(property: 'quantite', type: 'number', format: 'float', example: 20, description: 'Quantité à payer (≤ quantité restante de la commande)'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'ClientCommandeResource',
+    properties: [
+        new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+        new OA\Property(property: 'code', type: 'string', example: 'CMD-ABCDEFGH'),
+        new OA\Property(property: 'quantite', type: 'number', format: 'float', description: 'Quantité réservée totale', example: 50),
+        new OA\Property(property: 'quantite_payee', type: 'number', format: 'float', example: 30),
+        new OA\Property(property: 'quantite_restante', type: 'number', format: 'float', example: 20),
+        new OA\Property(property: 'montant_sous_total', type: 'number', format: 'float', description: 'Cumul des sous-totaux des paiements validés'),
+        new OA\Property(property: 'montant_commission_client', type: 'number', format: 'float', description: 'Cumul des commissions client des paiements validés'),
+        new OA\Property(property: 'montant_total', type: 'number', format: 'float', description: 'Cumul des montants payés validés'),
+        new OA\Property(property: 'statut', type: 'string', enum: ['en_attente', 'réservée', 'confirmée', 'annulée']),
+        new OA\Property(property: 'nom', type: 'string', nullable: true),
+        new OA\Property(property: 'prenom', type: 'string', nullable: true),
+        new OA\Property(property: 'telephone', type: 'string', nullable: true),
+        new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'agence', type: 'object', nullable: true),
+        new OA\Property(property: 'offre', type: 'object', nullable: true),
+        new OA\Property(property: 'paiement', ref: '#/components/schemas/ClientPaiementResource', nullable: true, description: 'Dernier paiement initié'),
+        new OA\Property(property: 'colis', type: 'array', items: new OA\Items(type: 'object')),
+    ]
+)]
+#[OA\Schema(
+    schema: 'ClientPaiementResource',
+    properties: [
+        new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+        new OA\Property(property: 'code', type: 'string', example: 'PAY-ABCDEFGH'),
+        new OA\Property(property: 'montant', type: 'number', format: 'float', example: 78750),
+        new OA\Property(property: 'methode', type: 'string', example: 'bamboo_redirect'),
+        new OA\Property(property: 'reference', type: 'string', nullable: true),
+        new OA\Property(property: 'bamboo_reference', type: 'string', nullable: true),
+        new OA\Property(property: 'statut', type: 'string', enum: ['en_attente', 'validé', 'remboursé', 'échec']),
+        new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'commande', type: 'object', nullable: true),
     ]
 )]
 #[OA\Schema(
@@ -89,7 +190,10 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'statut', type: 'string', enum: ['en_attente', 'validé', 'échec', 'remboursé']),
         new OA\Property(property: 'bamboo_reference', type: 'string', nullable: true, example: 'TXN-2025-000381'),
         new OA\Property(property: 'commande_code', type: 'string', example: 'CMD-ABCDEFGH'),
-        new OA\Property(property: 'commande_statut', type: 'string', enum: ['en_attente', 'confirmée', 'annulée']),
+        new OA\Property(property: 'commande_statut', type: 'string', enum: ['en_attente', 'réservée', 'confirmée', 'annulée']),
+        new OA\Property(property: 'quantite_reservee', type: 'number', format: 'float', nullable: true),
+        new OA\Property(property: 'quantite_payee', type: 'number', format: 'float', nullable: true),
+        new OA\Property(property: 'quantite_restante', type: 'number', format: 'float', nullable: true),
         new OA\Property(property: 'en_attente_bamboo', type: 'boolean', example: false),
     ]
 )]

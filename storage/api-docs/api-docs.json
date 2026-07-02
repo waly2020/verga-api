@@ -2,12 +2,12 @@
     "openapi": "3.0.0",
     "info": {
         "title": "VERGA API",
-        "description": "API REST pour les applications externes VERGA (back-office agence Angular, application client mobile/web). Authentification Bearer Sanctum.",
+        "description": "API REST pour les applications externes VERGA (back-office agence Angular, application client mobile/web). Authentification Bearer Sanctum.\n\n**Réservations et paiements multiples**\n- `quantite_reservee` : quantité bloquée sur l'offre (ex. 50 kg)\n- `quantite` : quantité payée lors du versement en cours (ex. 30 kg)\n- Après validation du 1er paiement partiel : statut commande `réservée`, stock bloqué sur la quantité réservée\n- Solde via `POST /client/commandes/{commande}/paiements` (auth requise)\n- Commission client recalculée à chaque versement sur la quantité payée",
         "contact": {
             "name": "VERGA",
             "email": "contact@verga.test"
         },
-        "version": "1.0.0"
+        "version": "1.1.0"
     },
     "servers": [
         {
@@ -578,6 +578,7 @@
                             "type": "string",
                             "enum": [
                                 "en_attente",
+                                "réservée",
                                 "confirmée",
                                 "annulée"
                             ]
@@ -1099,16 +1100,26 @@
                 "tags": [
                     "Client - Offres"
                 ],
-                "summary": "Lister les offres disponibles",
-                "description": "Catalogue public des offres actives avec capacité disponible > 0. Aucune authentification requise.",
+                "summary": "Lister les offres disponibles (paginé)",
+                "description": "Catalogue public des offres actives avec capacité disponible > 0. Aucune authentification requise.\n\nFiltres disponibles :\n- `search` : titre, origine, destination, description\n- `destination` : filtre sur la destination (partiel)\n- `type` : particulier, metre_cube, conteneur\n- `date_debut` / `date_fin` : plage de dates de publication (`created_at`, format `YYYY-MM-DD`)\n- `page` / `per_page` : pagination (défaut 15, max 100)",
                 "operationId": "clientListOffres",
                 "parameters": [
                     {
                         "name": "search",
                         "in": "query",
-                        "description": "Recherche titre, origine, destination",
+                        "description": "Recherche titre, origine, destination, description",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "example": "Paris"
+                        }
+                    },
+                    {
+                        "name": "destination",
+                        "in": "query",
+                        "description": "Filtre destination (correspondance partielle)",
+                        "schema": {
+                            "type": "string",
+                            "example": "Libreville"
                         }
                     },
                     {
@@ -1124,23 +1135,135 @@
                         }
                     },
                     {
+                        "name": "date_debut",
+                        "in": "query",
+                        "description": "Date de publication minimum (inclus)",
+                        "schema": {
+                            "type": "string",
+                            "format": "date",
+                            "example": "2026-06-01"
+                        }
+                    },
+                    {
+                        "name": "date_fin",
+                        "in": "query",
+                        "description": "Date de publication maximum (inclus)",
+                        "schema": {
+                            "type": "string",
+                            "format": "date",
+                            "example": "2026-06-30"
+                        }
+                    },
+                    {
                         "name": "page",
                         "in": "query",
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "default": 1
                         }
                     },
                     {
                         "name": "per_page",
                         "in": "query",
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "default": 15,
+                            "maximum": 100
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Liste paginée des offres actives"
+                        "description": "Liste paginée des offres actives",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ClientOffreResource"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object"
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Filtres invalides",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/client/offres/{offre}/estimation": {
+            "get": {
+                "tags": [
+                    "Client - Offres"
+                ],
+                "summary": "Estimer le montant à payer (prix + commission client)",
+                "description": "Calcule le détail tarifaire avant checkout pour affichage front.\n\nRetourne le sous-total (prix × quantité), la commission client active et le total à payer via Bamboo. Public, sans authentification.\n\n**Exemple** : offre à 2 500 FCFA/kg, quantité 10, commission 5 % → sous-total 25 000, commission 1 250, total 26 250 FCFA.",
+                "operationId": "clientEstimateOffrePricing",
+                "parameters": [
+                    {
+                        "name": "offre",
+                        "in": "path",
+                        "description": "UUID de l'offre active",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "quantite",
+                        "in": "query",
+                        "description": "Quantité à estimer (kg, m³ ou conteneurs)",
+                        "required": true,
+                        "schema": {
+                            "type": "number",
+                            "format": "float",
+                            "example": 10
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Estimation tarifaire",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OffrePricingEstimateResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Offre introuvable ou inactive"
+                    },
+                    "422": {
+                        "description": "Quantité invalide",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1168,6 +1291,7 @@
                             "type": "string",
                             "enum": [
                                 "en_attente",
+                                "réservée",
                                 "confirmée",
                                 "annulée"
                             ]
@@ -1190,7 +1314,28 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Liste paginée des commandes du client"
+                        "description": "Liste paginée des commandes du client",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ClientCommandeResource"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object"
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -1204,7 +1349,7 @@
                     "Client - Commandes"
                 ],
                 "summary": "Créer une commande et initier le paiement",
-                "description": "Crée en une seule requête : commande, colis (description + photos), paiement en attente, puis initie Bamboo Pay (redirection). Auth optionnelle : si un token Bearer est fourni, la commande est liée au compte client ; sinon commande invité (nom/prénom obligatoires). Réponse = lien de paiement + URL de vérification du statut.",
+                "description": "Crée en une seule requête : commande, colis (description + photos), paiement en attente, puis initie Bamboo Pay (redirection).\n\n**Paiement total (comportement classique)** : omettre `quantite_reservee` ou la définir égale à `quantite`.\n\n**Réservation partielle** : `quantite_reservee` > `quantite`\n- Exemple : réserver 50 kg, payer 30 kg maintenant → `quantite_reservee: 50`, `quantite: 30`\n- Après validation Bamboo : commande `réservée`, stock bloqué de 50 kg\n- Solde : `POST /client/commandes/{id}/paiements` avec la quantité restante\n\nAuth optionnelle : token Bearer = commande liée au compte ; sinon invité (nom/prénom obligatoires).",
                 "operationId": "clientCreateCommande",
                 "requestBody": {
                     "required": true,
@@ -1222,9 +1367,16 @@
                                         "format": "uuid"
                                     },
                                     "quantite": {
+                                        "description": "Quantité payée lors de ce checkout (≤ quantite_reservee)",
                                         "type": "number",
                                         "format": "float",
-                                        "example": 10
+                                        "example": 30
+                                    },
+                                    "quantite_reservee": {
+                                        "description": "Quantité totale réservée (défaut = quantite). Si > quantite → mode réservation.",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 50
                                     },
                                     "description": {
                                         "type": "string",
@@ -1272,9 +1424,16 @@
                                         "format": "uuid"
                                     },
                                     "quantite": {
+                                        "description": "Quantité payée lors de ce checkout (≤ quantite_reservee)",
                                         "type": "number",
                                         "format": "float",
-                                        "example": 10
+                                        "example": 30
+                                    },
+                                    "quantite_reservee": {
+                                        "description": "Quantité totale réservée (défaut = quantite)",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 50
                                     },
                                     "description": {
                                         "type": "string",
@@ -1325,7 +1484,7 @@
                     "Client - Paiements"
                 ],
                 "summary": "Vérifier le statut d'un paiement",
-                "description": "Le client envoie la référence paiement VERGA (`PAY-...`). Le backend interroge Bamboo Pay si nécessaire et applique le règlement idempotent (même logique que le webhook callback).",
+                "description": "Interroge Bamboo Pay si nécessaire et applique le règlement idempotent (même logique que le webhook).\n\nRetourne aussi `quantite_reservee`, `quantite_payee` et `quantite_restante` pour suivre une réservation partielle.",
                 "operationId": "clientCheckPaymentStatus",
                 "parameters": [
                     {
@@ -1703,7 +1862,68 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Détail avec agence, offre, paiement, colis"
+                        "description": "Détail avec agence, offre, dernier paiement, colis",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ClientCommandeResource"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Commande introuvable"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/client/commandes/{commande}/paiements": {
+            "post": {
+                "tags": [
+                    "Client - Commandes"
+                ],
+                "summary": "Payer le solde d'une commande réservée",
+                "description": "Initie un nouveau paiement Bamboo pour une commande au statut `réservée`.\n\n- `quantite` : quantité restante à payer (ex. 20 kg si 30/50 déjà payés)\n- Commission client recalculée sur ce versement uniquement\n- Réponse identique au checkout (`CheckoutResponse`)\n- Quand le solde est validé : commande passe à `confirmée`\n\n**Prérequis** : client authentifié, propriétaire de la commande, aucun paiement `en_attente` en cours.",
+                "operationId": "clientPayCommandeBalance",
+                "parameters": [
+                    {
+                        "name": "commande",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SoldePaiementRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Paiement de solde initié",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CheckoutResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Commande non réservée ou quantité invalide"
                     },
                     "404": {
                         "description": "Commande introuvable"
@@ -2099,7 +2319,7 @@
                     "Paiement - Bamboo Pay"
                 ],
                 "summary": "Webhook Bamboo Pay",
-                "description": "Appelé par Bamboo Pay lors d'un changement de statut. Déclenche le même traitement idempotent que la vérification de statut côté client (`PaymentSettlementService`).",
+                "description": "Webhook Bamboo Pay — traite chaque versement de façon idempotente.\n\n**Paiement partiel (réservation)** : `completed` → commande `réservée`, stock bloqué sur `quantite_reservee`, `quantite_payee` incrémentée.\n\n**Solde payé** : `completed` → commande `confirmée` si entièrement réglée.\n\n**Échec** : annule la commande seulement si aucun paiement validé ; une commande `réservée` reste réservée si le solde échoue.",
                 "operationId": "bambooPayCallback",
                 "requestBody": {
                     "required": true,
@@ -2257,6 +2477,162 @@
                 },
                 "type": "object"
             },
+            "ClientOffreResource": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "titre": {
+                        "type": "string",
+                        "example": "Groupage Paris"
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "particulier",
+                            "metre_cube",
+                            "conteneur"
+                        ]
+                    },
+                    "prix": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 2500
+                    },
+                    "capacite_totale": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 1000
+                    },
+                    "capacite_disponible": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 750
+                    },
+                    "origine": {
+                        "type": "string",
+                        "example": "Libreville"
+                    },
+                    "destination": {
+                        "type": "string",
+                        "example": "Paris"
+                    },
+                    "statut": {
+                        "type": "string",
+                        "example": "active",
+                        "enum": [
+                            "active",
+                            "inactive",
+                            "archivée"
+                        ]
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "agence": {
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "nom": {
+                                "type": "string"
+                            },
+                            "ville": {
+                                "type": "string",
+                                "nullable": true
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "ClientCommissionConfig": {
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "example": "pourcentage",
+                        "enum": [
+                            "pourcentage",
+                            "fixe"
+                        ]
+                    },
+                    "valeur": {
+                        "description": "Pourcentage ou montant fixe FCFA",
+                        "type": "number",
+                        "format": "float",
+                        "example": 5
+                    },
+                    "libelle": {
+                        "type": "string",
+                        "example": "Frais de service",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "OffrePricingEstimateResponse": {
+                "properties": {
+                    "offre_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "quantite": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 10
+                    },
+                    "prix_unitaire": {
+                        "description": "Prix unitaire de l'offre (FCFA)",
+                        "type": "number",
+                        "format": "float",
+                        "example": 2500
+                    },
+                    "montant_sous_total": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 25000
+                    },
+                    "montant_commission_client": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 1250
+                    },
+                    "montant_total": {
+                        "description": "Montant total que le client paiera",
+                        "type": "number",
+                        "format": "float",
+                        "example": 26250
+                    },
+                    "capacite_disponible": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 1000
+                    },
+                    "stock_suffisant": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "commission": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/ClientCommissionConfig"
+                            }
+                        ],
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
             "CheckoutResponse": {
                 "properties": {
                     "commande_id": {
@@ -2267,10 +2643,52 @@
                         "type": "string",
                         "example": "CMD-ABCDEFGH"
                     },
-                    "montant_total": {
+                    "commande_statut": {
+                        "type": "string",
+                        "enum": [
+                            "en_attente",
+                            "réservée",
+                            "confirmée",
+                            "annulée"
+                        ]
+                    },
+                    "quantite_reservee": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 50
+                    },
+                    "quantite_payee": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 0
+                    },
+                    "quantite_a_payer": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 30
+                    },
+                    "quantite_restante": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 20
+                    },
+                    "montant_sous_total": {
+                        "description": "Prix offre × quantité du paiement en cours",
                         "type": "number",
                         "format": "float",
                         "example": 25000
+                    },
+                    "montant_commission_client": {
+                        "description": "Commission VERGA sur ce paiement",
+                        "type": "number",
+                        "format": "float",
+                        "example": 1250
+                    },
+                    "montant_total": {
+                        "description": "Montant envoyé à Bamboo Pay pour ce paiement",
+                        "type": "number",
+                        "format": "float",
+                        "example": 26250
                     },
                     "paiement_code": {
                         "type": "string",
@@ -2285,6 +2703,169 @@
                         "type": "string",
                         "format": "uri",
                         "example": "http://localhost/api/v1/client/paiements/PAY-ABCDEFGH/statut"
+                    },
+                    "mode": {
+                        "description": "reservation = paiement partiel, complet = solde total",
+                        "type": "string",
+                        "enum": [
+                            "reservation",
+                            "complet"
+                        ]
+                    }
+                },
+                "type": "object"
+            },
+            "SoldePaiementRequest": {
+                "required": [
+                    "quantite"
+                ],
+                "properties": {
+                    "quantite": {
+                        "description": "Quantité à payer (≤ quantité restante de la commande)",
+                        "type": "number",
+                        "format": "float",
+                        "example": 20
+                    }
+                },
+                "type": "object"
+            },
+            "ClientCommandeResource": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "code": {
+                        "type": "string",
+                        "example": "CMD-ABCDEFGH"
+                    },
+                    "quantite": {
+                        "description": "Quantité réservée totale",
+                        "type": "number",
+                        "format": "float",
+                        "example": 50
+                    },
+                    "quantite_payee": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 30
+                    },
+                    "quantite_restante": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 20
+                    },
+                    "montant_sous_total": {
+                        "description": "Cumul des sous-totaux des paiements validés",
+                        "type": "number",
+                        "format": "float"
+                    },
+                    "montant_commission_client": {
+                        "description": "Cumul des commissions client des paiements validés",
+                        "type": "number",
+                        "format": "float"
+                    },
+                    "montant_total": {
+                        "description": "Cumul des montants payés validés",
+                        "type": "number",
+                        "format": "float"
+                    },
+                    "statut": {
+                        "type": "string",
+                        "enum": [
+                            "en_attente",
+                            "réservée",
+                            "confirmée",
+                            "annulée"
+                        ]
+                    },
+                    "nom": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "prenom": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "telephone": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "agence": {
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "offre": {
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "paiement": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/ClientPaiementResource"
+                            }
+                        ],
+                        "nullable": true,
+                        "description": "Dernier paiement initié"
+                    },
+                    "colis": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "ClientPaiementResource": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "code": {
+                        "type": "string",
+                        "example": "PAY-ABCDEFGH"
+                    },
+                    "montant": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 78750
+                    },
+                    "methode": {
+                        "type": "string",
+                        "example": "bamboo_redirect"
+                    },
+                    "reference": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "bamboo_reference": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "statut": {
+                        "type": "string",
+                        "enum": [
+                            "en_attente",
+                            "validé",
+                            "remboursé",
+                            "échec"
+                        ]
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "commande": {
+                        "type": "object",
+                        "nullable": true
                     }
                 },
                 "type": "object"
@@ -2317,9 +2898,25 @@
                         "type": "string",
                         "enum": [
                             "en_attente",
+                            "réservée",
                             "confirmée",
                             "annulée"
                         ]
+                    },
+                    "quantite_reservee": {
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true
+                    },
+                    "quantite_payee": {
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true
+                    },
+                    "quantite_restante": {
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true
                     },
                     "en_attente_bamboo": {
                         "type": "boolean",

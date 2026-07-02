@@ -80,8 +80,49 @@ class PaymentSettlementService
             return;
         }
 
-        $commande->update(['statut' => 'confirmée']);
+        $commande->update([
+            'quantite_payee' => (float) $commande->quantite_payee + (float) $paiement->quantite,
+            'montant_sous_total' => (float) $commande->montant_sous_total + (float) $paiement->montant_sous_total,
+            'montant_commission_client' => (float) $commande->montant_commission_client + (float) $paiement->montant_commission_client,
+            'montant_total' => (float) $commande->montant_total + (float) $paiement->montant,
+        ]);
 
+        if (! $commande->capacite_bloquee) {
+            $this->blockOfferCapacity($commande);
+            $commande->update(['capacite_bloquee' => true]);
+        }
+
+        $commande->refresh();
+
+        $commande->update([
+            'statut' => $commande->isFullyPaid() ? 'confirmée' : 'réservée',
+        ]);
+    }
+
+    private function markFailed(Paiement $paiement): void
+    {
+        $paiement->update(['statut' => 'échec']);
+
+        $commande = Commande::query()
+            ->whereKey($paiement->commande_id)
+            ->lockForUpdate()
+            ->first();
+
+        if (! $commande || $commande->statut !== 'en_attente') {
+            return;
+        }
+
+        $hasValidatedPayment = $commande->paiements()
+            ->where('statut', 'validé')
+            ->exists();
+
+        if (! $hasValidatedPayment) {
+            $commande->update(['statut' => 'annulée']);
+        }
+    }
+
+    private function blockOfferCapacity(Commande $commande): void
+    {
         /** @var Offre $offre */
         $offre = Offre::query()
             ->whereKey($commande->offre_id)
@@ -94,15 +135,5 @@ class PaymentSettlementService
         if ($nouvelleCapacite <= 0) {
             $offre->update(['statut' => 'inactive']);
         }
-    }
-
-    private function markFailed(Paiement $paiement): void
-    {
-        $paiement->update(['statut' => 'échec']);
-
-        Commande::query()
-            ->whereKey($paiement->commande_id)
-            ->where('statut', 'en_attente')
-            ->update(['statut' => 'annulée']);
     }
 }

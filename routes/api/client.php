@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('client')->name('api.client.')->group(function () {
     Route::get('offres', [OffreController::class, 'index'])->name('offres.index');
+    Route::get('offres/{offre}/estimation', [OffreController::class, 'estimate'])->name('offres.estimate');
     Route::post('commandes', [CommandeController::class, 'store'])
         ->middleware('optional.sanctum')
         ->name('commandes.store');
@@ -43,6 +44,8 @@ Route::prefix('client')->name('api.client.')->group(function () {
 
         Route::get('commandes', [CommandeController::class, 'index'])->name('commandes.index');
         Route::get('commandes/{commande}', [CommandeController::class, 'show'])->name('commandes.show');
+        Route::post('commandes/{commande}/paiements', [CommandeController::class, 'storePaiement'])
+            ->name('commandes.paiements.store');
 
         Route::get('colis', [ColisController::class, 'index'])->name('colis.index');
         Route::get('colis/{colis}', [ColisController::class, 'show'])->name('colis.show');

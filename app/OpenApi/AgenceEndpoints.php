@@ -210,7 +210,7 @@ class AgenceEndpoints
         security: [['sanctum' => []]],
         parameters: [
             new OA\QueryParameter(name: 'search', description: 'Recherche par code commande', schema: new OA\Schema(type: 'string')),
-            new OA\QueryParameter(name: 'statut', schema: new OA\Schema(type: 'string', enum: ['en_attente', 'confirmée', 'annulée'])),
+            new OA\QueryParameter(name: 'statut', schema: new OA\Schema(type: 'string', enum: ['en_attente', 'réservée', 'confirmée', 'annulée'])),
             new OA\QueryParameter(name: 'page', schema: new OA\Schema(type: 'integer')),
             new OA\QueryParameter(name: 'per_page', schema: new OA\Schema(type: 'integer')),
         ],

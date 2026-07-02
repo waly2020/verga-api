@@ -17,6 +17,7 @@ class CommandeCheckoutService
     public function __construct(
         private readonly BambooPayService $bambooPay,
         private readonly PaymentSettlementService $settlement,
+        private readonly CommandePaymentService $payments,
     ) {}
 
     /**
@@ -32,10 +33,10 @@ class CommandeCheckoutService
                 ->lockForUpdate()
                 ->findOrFail($data['offre_id']);
 
-            $quantite = (float) $data['quantite'];
-            $this->validateQuantite($offre, $quantite);
+            $quantiteReservee = (float) ($data['quantite_reservee'] ?? $data['quantite']);
+            $quantiteAPayer = (float) $data['quantite'];
 
-            $montantTotal = round((float) $offre->prix * $quantite, 2);
+            $this->validateReservation($offre, $quantiteReservee, $quantiteAPayer);
 
             $commande = Commande::create([
                 'client_id' => $clientId,
@@ -45,8 +46,12 @@ class CommandeCheckoutService
                 'nom' => $data['nom'],
                 'prenom' => $data['prenom'],
                 'telephone' => $data['telephone'],
-                'quantite' => $quantite,
-                'montant_total' => $montantTotal,
+                'quantite' => $quantiteReservee,
+                'quantite_payee' => 0,
+                'montant_sous_total' => 0,
+                'montant_commission_client' => 0,
+                'montant_total' => 0,
+                'capacite_bloquee' => false,
                 'statut' => 'en_attente',
             ]);
 
@@ -60,31 +65,27 @@ class CommandeCheckoutService
 
             $this->storePhotos($colis, $photos);
 
-            $paiement = Paiement::create([
-                'commande_id' => $commande->id,
-                'code' => ReferenceGenerator::paiement(),
-                'montant' => $montantTotal,
-                'methode' => 'bamboo_redirect',
-                'statut' => 'en_attente',
-            ]);
+            return $this->payments->initiate($commande->fresh(), $offre, $quantiteAPayer);
+        });
+    }
 
-            $bambooResponse = $this->bambooPay->redirectPayment([
-                'payerName' => trim("{$data['prenom']} {$data['nom']}"),
-                'matricule' => $commande->code,
-                'raisonSociale' => trim("{$data['nom']} {$data['prenom']}"),
-                'billingId' => $paiement->code,
-                'transactionAmount' => (string) $montantTotal,
-                'phone' => $data['telephone'],
-            ]);
+    /**
+     * @return array<string, mixed>
+     */
+    public function payBalance(Commande $commande, float $quantiteAPayer): array
+    {
+        return DB::transaction(function () use ($commande, $quantiteAPayer) {
+            if ($commande->statut !== 'réservée') {
+                throw ValidationException::withMessages([
+                    'commande' => ['Seules les commandes réservées peuvent recevoir un paiement de solde.'],
+                ]);
+            }
 
-            return [
-                'commande_id' => $commande->id,
-                'code' => $commande->code,
-                'montant_total' => $montantTotal,
-                'paiement_code' => $paiement->code,
-                'redirect_url' => $bambooResponse['redirect_url'] ?? null,
-                'verification_url' => url("/api/v1/client/paiements/{$paiement->code}/statut"),
-            ];
+            $offre = Offre::query()
+                ->lockForUpdate()
+                ->findOrFail($commande->offre_id);
+
+            return $this->payments->initiate($commande, $offre, $quantiteAPayer);
         });
     }
 
@@ -106,7 +107,7 @@ class CommandeCheckoutService
             return $this->statusPayload($paiement, pending: true);
         }
 
-        $bambooStatus = $this->bambooPay->checkStatus($paiement->bamboo_reference);
+        $bambooStatus = app(BambooPayService::class)->checkStatus($paiement->bamboo_reference);
         $transactionStatus = (string) ($bambooStatus['transaction']['status'] ?? $bambooStatus['status'] ?? 'pending');
 
         $paiement = $this->settlement->settleFromBambooStatus($paiement, $transactionStatus);
@@ -114,23 +115,31 @@ class CommandeCheckoutService
         return $this->statusPayload($paiement->fresh(['commande']));
     }
 
-    private function validateQuantite(Offre $offre, float $quantite): void
+    private function validateReservation(Offre $offre, float $quantiteReservee, float $quantiteAPayer): void
     {
-        if ($quantite <= 0) {
+        if ($quantiteReservee <= 0 || $quantiteAPayer <= 0) {
             throw ValidationException::withMessages([
-                'quantite' => ['La quantité doit être supérieure à zéro.'],
+                'quantite' => ['Les quantités doivent être supérieures à zéro.'],
             ]);
         }
 
-        if ($offre->type === 'conteneur' && floor($quantite) !== $quantite) {
+        if ($quantiteAPayer > $quantiteReservee + 0.0001) {
             throw ValidationException::withMessages([
-                'quantite' => ['La quantité doit être un nombre entier pour une offre conteneur.'],
+                'quantite' => ['La quantité payée ne peut pas dépasser la quantité réservée.'],
             ]);
         }
 
-        if ((float) $offre->capacite_disponible < $quantite) {
+        if ($offre->type === 'conteneur') {
+            if (floor($quantiteReservee) !== $quantiteReservee || floor($quantiteAPayer) !== $quantiteAPayer) {
+                throw ValidationException::withMessages([
+                    'quantite' => ['La quantité doit être un nombre entier pour une offre conteneur.'],
+                ]);
+            }
+        }
+
+        if ((float) $offre->capacite_disponible < $quantiteReservee) {
             throw ValidationException::withMessages([
-                'quantite' => ['Quantité indisponible pour cette offre.'],
+                'quantite_reservee' => ['Quantité indisponible pour cette offre.'],
             ]);
         }
     }
@@ -156,12 +165,17 @@ class CommandeCheckoutService
      */
     private function statusPayload(Paiement $paiement, bool $pending = false): array
     {
+        $commande = $paiement->commande;
+
         return [
             'paiement_code' => $paiement->code,
             'statut' => $paiement->statut,
             'bamboo_reference' => $paiement->bamboo_reference,
-            'commande_code' => $paiement->commande?->code,
-            'commande_statut' => $paiement->commande?->statut,
+            'commande_code' => $commande?->code,
+            'commande_statut' => $commande?->statut,
+            'quantite_reservee' => $commande ? (float) $commande->quantite : null,
+            'quantite_payee' => $commande ? (float) $commande->quantite_payee : null,
+            'quantite_restante' => $commande?->quantiteRestante(),
             'en_attente_bamboo' => $pending,
         ];
     }

@@ -25,6 +25,7 @@ class OffreResource extends JsonResource
             'origine' => $this->origine,
             'destination' => $this->destination,
             'statut' => $this->statut,
+            'created_at' => $this->created_at?->toIso8601String(),
             'agence' => $this->whenLoaded('agence', fn () => [
                 'id' => $this->agence?->id,
                 'nom' => $this->agence?->nom,
