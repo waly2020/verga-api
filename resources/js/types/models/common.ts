@@ -2,7 +2,7 @@ export type OffreType = 'particulier' | 'metre_cube' | 'conteneur';
 
 export type OffreStatut = 'active' | 'inactive';
 
-export type CommandeStatut = 'en_attente' | 'confirmée' | 'annulée';
+export type CommandeStatut = 'en_attente' | 'réservée' | 'confirmée' | 'annulée';
 
 export type PaiementStatut = 'en_attente' | 'validé' | 'remboursé' | 'échec';
 

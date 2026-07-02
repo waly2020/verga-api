@@ -43,8 +43,12 @@ function fmtDate(value: string, withTime = false): string {
 
 export default function CommandeShow({ commande }: Props) {
     const montantTotal = Number(commande.montant_total);
+    const montantSousTotal = commande.montant_sous_total != null
+        ? Number(commande.montant_sous_total)
+        : montantTotal;
+    const commissionClient = Number(commande.montant_commission_client ?? 0);
     const commissionMontant = commande.commission ? Number(commande.commission.montant) : 0;
-    const montantAgence = montantTotal - commissionMontant;
+    const montantAgence = montantSousTotal - commissionMontant;
 
     return (
         <>
@@ -87,10 +91,15 @@ export default function CommandeShow({ commande }: Props) {
                         <CardTitle className="text-sm font-semibold">Récapitulatif financier</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                            <SummaryItem label="Montant commande" value={fmtFcfa(commande.montant_total)} />
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                            <SummaryItem label="Sous-total transport" value={fmtFcfa(montantSousTotal)} />
                             <SummaryItem
-                                label="Commission VERGA"
+                                label="Commission client"
+                                value={commissionClient > 0 ? fmtFcfa(commissionClient) : '—'}
+                            />
+                            <SummaryItem label="Total payé" value={fmtFcfa(montantTotal)} />
+                            <SummaryItem
+                                label="Commission agence"
                                 value={commande.commission ? fmtFcfa(commande.commission.montant) : '—'}
                                 hint={commande.commission?.taux ? `Taux : ${commande.commission.taux} %` : undefined}
                             />
@@ -98,8 +107,10 @@ export default function CommandeShow({ commande }: Props) {
                                 label="Part agence (estimée)"
                                 value={commande.commission ? fmtFcfa(montantAgence) : '—'}
                             />
+                        </div>
+                        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
                             <SummaryItem
-                                label="Paiement"
+                                label="Paiement Bamboo"
                                 value={commande.paiement ? fmtFcfa(commande.paiement.montant) : '—'}
                                 hint={commande.paiement?.statut ? undefined : 'Aucun paiement enregistré'}
                                 badge={commande.paiement?.statut}

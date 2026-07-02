@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Client;
 
 use App\Http\Requests\Api\Client\StoreCommandeRequest;
+use App\Http\Requests\Api\Client\StoreSoldePaiementRequest;
 use App\Http\Resources\Api\Client\CommandeResource;
 use App\Services\CommandeCheckoutService;
 use Illuminate\Http\JsonResponse;
@@ -34,6 +35,20 @@ class CommandeController extends ClientApiController
             photos: is_array($photos) ? $photos : [],
             clientId: $client?->id,
         );
+
+        return response()->json($result, 201);
+    }
+
+    public function storePaiement(
+        StoreSoldePaiementRequest $request,
+        string $commande,
+        CommandeCheckoutService $checkout,
+    ): JsonResponse {
+        $model = $this->client($request)
+            ->commandes()
+            ->findOrFail($commande);
+
+        $result = $checkout->payBalance($model, (float) $request->validated('quantite'));
 
         return response()->json($result, 201);
     }

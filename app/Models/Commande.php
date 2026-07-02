@@ -21,6 +21,10 @@ class Commande extends Model
         'prenom',
         'telephone',
         'quantite',
+        'quantite_payee',
+        'capacite_bloquee',
+        'montant_sous_total',
+        'montant_commission_client',
         'montant_total',
         'statut',
     ];
@@ -29,6 +33,10 @@ class Commande extends Model
     {
         return [
             'quantite' => 'decimal:3',
+            'quantite_payee' => 'decimal:3',
+            'capacite_bloquee' => 'boolean',
+            'montant_sous_total' => 'decimal:2',
+            'montant_commission_client' => 'decimal:2',
             'montant_total' => 'decimal:2',
         ];
     }
@@ -48,9 +56,14 @@ class Commande extends Model
         return $this->belongsTo(Agence::class);
     }
 
+    public function paiements(): HasMany
+    {
+        return $this->hasMany(Paiement::class);
+    }
+
     public function paiement(): HasOne
     {
-        return $this->hasOne(Paiement::class);
+        return $this->hasOne(Paiement::class)->latestOfMany();
     }
 
     public function commission(): HasOne
@@ -71,5 +84,20 @@ class Commande extends Model
     public function avis(): HasOne
     {
         return $this->hasOne(Avis::class);
+    }
+
+    public function quantiteRestante(): float
+    {
+        return max(0, (float) $this->quantite - (float) $this->quantite_payee);
+    }
+
+    public function isFullyPaid(): bool
+    {
+        return $this->quantiteRestante() <= 0.0001;
+    }
+
+    public function isReservation(): bool
+    {
+        return $this->quantiteRestante() > 0.0001;
     }
 }

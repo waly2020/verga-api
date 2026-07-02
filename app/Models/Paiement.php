@@ -13,7 +13,10 @@ class Paiement extends Model
     protected $fillable = [
         'commande_id',
         'code',
+        'quantite',
         'montant',
+        'montant_sous_total',
+        'montant_commission_client',
         'methode',
         'reference',
         'bamboo_reference',
@@ -23,7 +26,10 @@ class Paiement extends Model
     protected function casts(): array
     {
         return [
+            'quantite' => 'decimal:3',
             'montant' => 'decimal:2',
+            'montant_sous_total' => 'decimal:2',
+            'montant_commission_client' => 'decimal:2',
         ];
     }
 

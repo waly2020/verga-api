@@ -50,6 +50,7 @@ const columns: Column<CommandeRow>[] = [
 
 const filterOptions = [
     { label: 'En attente', value: 'en_attente' },
+    { label: 'Réservée', value: 'réservée' },
     { label: 'Confirmée', value: 'confirmée' },
     { label: 'Annulée', value: 'annulée' },
 ];

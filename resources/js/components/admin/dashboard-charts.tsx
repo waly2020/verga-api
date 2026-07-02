@@ -85,6 +85,7 @@ export function BarAgence({ data, color, emptyLabel = 'Aucune donnée' }: BarAge
 
 const STATUT_CONFIG: Record<string, { label: string; color: string }> = {
     en_attente: { label: 'En attente', color: '#f59e0b' },
+    réservée:   { label: 'Réservée',   color: '#3b82f6' },
     confirmée:  { label: 'Confirmée',  color: '#22c55e' },
     annulée:    { label: 'Annulée',    color: '#ef4444' },
 };

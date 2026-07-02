@@ -42,7 +42,18 @@ export type OffreApi = OffreCapacite & {
     origine: string;
     destination: string;
     statut: string;
+    created_at: string | null;
     agence?: (AgenceSummary & { ville?: string | null }) | null;
+};
+
+export type ListClientOffresFilters = {
+    search?: string;
+    destination?: string;
+    type?: 'particulier' | 'metre_cube' | 'conteneur';
+    date_debut?: string;
+    date_fin?: string;
+    page?: number;
+    per_page?: number;
 };
 
 export type CreateOffreFormData = {
