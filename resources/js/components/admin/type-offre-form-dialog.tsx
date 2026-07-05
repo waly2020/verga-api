@@ -33,11 +33,25 @@ const defaultForm: TypeOffreFormData = {
     actif: true,
 };
 
+function toFormData(typeOffre: TypeOffreRow): TypeOffreFormData {
+    return {
+        slug: typeOffre.slug,
+        nom: typeOffre.nom,
+        description: typeOffre.description ?? '',
+        unite: typeOffre.unite,
+        unite_label: typeOffre.unite_label,
+        quantite_entier: Boolean(typeOffre.quantite_entier),
+        quantite_min: String(typeOffre.quantite_min),
+        actif: Boolean(typeOffre.actif),
+    };
+}
+
 export function TypeOffreFormDialog({ open, onOpenChange, typeOffre }: Props) {
     const isEdit = Boolean(typeOffre);
+    const formId = isEdit ? 'type-offre-form-edit' : 'type-offre-form-create';
 
     const { data, setData, post, patch, processing, errors, reset, clearErrors } =
-        useForm<TypeOffreFormData>(defaultForm);
+        useForm<TypeOffreFormData>(typeOffre ? toFormData(typeOffre) : defaultForm);
 
     useEffect(() => {
         if (!open) {
@@ -45,22 +59,8 @@ export function TypeOffreFormDialog({ open, onOpenChange, typeOffre }: Props) {
         }
 
         clearErrors();
-
-        if (typeOffre) {
-            reset({
-                slug: typeOffre.slug,
-                nom: typeOffre.nom,
-                description: typeOffre.description ?? '',
-                unite: typeOffre.unite,
-                unite_label: typeOffre.unite_label,
-                quantite_entier: typeOffre.quantite_entier,
-                quantite_min: String(typeOffre.quantite_min),
-                actif: typeOffre.actif,
-            });
-        } else {
-            reset(defaultForm);
-        }
-    }, [open, typeOffre, reset, clearErrors]);
+        setData(typeOffre ? toFormData(typeOffre) : defaultForm);
+    }, [open, typeOffre, setData, clearErrors]);
 
     const handleOpenChange = (value: boolean) => {
         if (!value) {
@@ -102,7 +102,7 @@ export function TypeOffreFormDialog({ open, onOpenChange, typeOffre }: Props) {
                     </DialogDescription>
                 </DialogHeader>
 
-                <form id="type-offre-form" onSubmit={submit} className="space-y-4 py-2">
+                <form id={formId} onSubmit={submit} className="space-y-4 py-2">
                     {!isEdit && (
                         <div className="space-y-1.5">
                             <Label htmlFor="type-offre-slug">
@@ -247,7 +247,7 @@ export function TypeOffreFormDialog({ open, onOpenChange, typeOffre }: Props) {
                     >
                         Annuler
                     </Button>
-                    <Button type="submit" form="type-offre-form" disabled={processing}>
+                    <Button type="submit" form={formId} disabled={processing}>
                         {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {isEdit ? 'Enregistrer' : 'Créer'}
                     </Button>

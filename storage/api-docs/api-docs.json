@@ -618,6 +618,158 @@
                         "sanctum": []
                     }
                 ]
+            },
+            "delete": {
+                "tags": [
+                    "Agence - Offres"
+                ],
+                "summary": "Supprimer une offre",
+                "description": "Refusé si l'offre est liée à au moins une commande.",
+                "operationId": "agenceDeleteOffre",
+                "parameters": [
+                    {
+                        "name": "offre",
+                        "in": "path",
+                        "description": "UUID de l'offre",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Offre supprimée",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MessageResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Offre introuvable ou autre agence"
+                    },
+                    "422": {
+                        "description": "Suppression impossible (commandes liées)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Agence - Offres"
+                ],
+                "summary": "Modifier une offre",
+                "operationId": "agenceUpdateOffre",
+                "parameters": [
+                    {
+                        "name": "offre",
+                        "in": "path",
+                        "description": "UUID de l'offre",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "titre",
+                                    "prix",
+                                    "capacite_totale",
+                                    "origine",
+                                    "destination",
+                                    "statut"
+                                ],
+                                "properties": {
+                                    "titre": {
+                                        "type": "string",
+                                        "example": "Forfait Particulier Chine → Libreville"
+                                    },
+                                    "type_offre_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "particulier",
+                                            "metre_cube",
+                                            "conteneur"
+                                        ]
+                                    },
+                                    "prix": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 8750
+                                    },
+                                    "capacite_totale": {
+                                        "description": "Doit rester ≥ quantité déjà réservée sur l'offre",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 30000
+                                    },
+                                    "origine": {
+                                        "type": "string",
+                                        "example": "Chine"
+                                    },
+                                    "destination": {
+                                        "type": "string",
+                                        "example": "Libreville"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "statut": {
+                                        "type": "string",
+                                        "enum": [
+                                            "active",
+                                            "inactive",
+                                            "archivée"
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Offre mise à jour"
+                    },
+                    "404": {
+                        "description": "Offre introuvable ou autre agence"
+                    },
+                    "422": {
+                        "description": "Validation échouée"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
             }
         },
         "/agence/commandes": {

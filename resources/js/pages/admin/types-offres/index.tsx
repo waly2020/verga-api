@@ -72,8 +72,25 @@ const filterOptions = [
 ];
 
 export default function TypesOffresIndex({ types_offres, filters }: Props) {
-    const [createOpen, setCreateOpen] = useState(false);
+    const [dialogOpen, setDialogOpen] = useState(false);
     const [editing, setEditing] = useState<TypeOffreRow | null>(null);
+
+    const openCreate = () => {
+        setEditing(null);
+        setDialogOpen(true);
+    };
+
+    const openEdit = (row: TypeOffreRow) => {
+        setEditing(row);
+        setDialogOpen(true);
+    };
+
+    const handleDialogOpenChange = (open: boolean) => {
+        setDialogOpen(open);
+        if (!open) {
+            setEditing(null);
+        }
+    };
 
     const go = (params: Record<string, string | number | undefined>) =>
         router.get(admin.typesOffres.index().url, params as Record<string, string>, {
@@ -95,7 +112,7 @@ export default function TypesOffresIndex({ types_offres, filters }: Props) {
                             Gérez les modalités de tarification (kg, m³, conteneur…) et leurs règles de quantité.
                         </p>
                     </div>
-                    <Button onClick={() => setCreateOpen(true)}>
+                    <Button onClick={openCreate}>
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Nouveau type
                     </Button>
@@ -120,7 +137,7 @@ export default function TypesOffresIndex({ types_offres, filters }: Props) {
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setEditing(row)}
+                                onClick={() => openEdit(row)}
                             >
                                 <Pencil className="h-3.5 w-3.5" />
                             </Button>
@@ -149,10 +166,10 @@ export default function TypesOffresIndex({ types_offres, filters }: Props) {
                 />
             </div>
 
-            <TypeOffreFormDialog open={createOpen} onOpenChange={setCreateOpen} />
             <TypeOffreFormDialog
-                open={editing !== null}
-                onOpenChange={(open) => !open && setEditing(null)}
+                key={editing?.id ?? 'create'}
+                open={dialogOpen}
+                onOpenChange={handleDialogOpenChange}
                 typeOffre={editing}
             />
         </>

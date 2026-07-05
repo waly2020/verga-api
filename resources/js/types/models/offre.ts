@@ -8,6 +8,7 @@ export type OffreCapacite = {
 
 export type OffreRow = OffreCapacite & {
     id: string;
+    agence_id: string;
     titre: string;
     agence: AgenceSummary | null;
     type: OffreType | string;
@@ -64,7 +65,7 @@ export type ListClientOffresFilters = {
     per_page?: number;
 };
 
-export type CreateOffreFormData = {
+export type OffreFormData = {
     agence_id: string;
     titre: string;
     type_offre_id: string;
@@ -75,3 +76,6 @@ export type CreateOffreFormData = {
     description: string;
     statut: string;
 };
+
+/** @deprecated Utiliser OffreFormData */
+export type CreateOffreFormData = OffreFormData;

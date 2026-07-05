@@ -1,5 +1,6 @@
 import { useForm } from '@inertiajs/react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Package } from 'lucide-react';
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -19,31 +20,59 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import admin from '@/routes/admin';
-import type { AgenceSummary, CreateOffreFormData, TypeOffreApi } from '@/types';
+import type { AgenceSummary, OffreFormData, OffreRow, TypeOffreApi } from '@/types';
 
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     agences: AgenceSummary[];
     typesOffres: TypeOffreApi[];
+    offre?: OffreRow | null;
 }
 
-type FormData = CreateOffreFormData;
-
-export function CreateOffreDialog({ open, onOpenChange, agences, typesOffres }: Props) {
-    const defaultTypeId = typesOffres[0]?.id ?? '';
-
-    const { data, setData, post, processing, errors, reset } = useForm<FormData>({
-        agence_id:   '',
-        titre:       '',
-        type_offre_id: defaultTypeId,
-        prix:        '',
+function emptyForm(typesOffres: TypeOffreApi[]): OffreFormData {
+    return {
+        agence_id: '',
+        titre: '',
+        type_offre_id: typesOffres[0]?.id ?? '',
+        prix: '',
         capacite_totale: '',
-        origine:     '',
+        origine: '',
         destination: '',
         description: '',
-        statut:      'active',
-    });
+        statut: 'active',
+    };
+}
+
+function toFormData(offre: OffreRow, typesOffres: TypeOffreApi[]): OffreFormData {
+    return {
+        agence_id: offre.agence_id ?? offre.agence?.id ?? '',
+        titre: offre.titre,
+        type_offre_id: offre.type_offre_id ?? typesOffres[0]?.id ?? '',
+        prix: String(offre.prix),
+        capacite_totale: String(offre.capacite_totale),
+        origine: offre.origine,
+        destination: offre.destination,
+        description: offre.description ?? '',
+        statut: offre.statut,
+    };
+}
+
+export function OffreFormDialog({ open, onOpenChange, agences, typesOffres, offre }: Props) {
+    const isEdit = Boolean(offre);
+    const formId = isEdit ? 'offre-form-edit' : 'offre-form-create';
+
+    const { data, setData, post, patch, processing, errors, reset, clearErrors } =
+        useForm<OffreFormData>(offre ? toFormData(offre, typesOffres) : emptyForm(typesOffres));
+
+    useEffect(() => {
+        if (!open) {
+            return;
+        }
+
+        clearErrors();
+        setData(offre ? toFormData(offre, typesOffres) : emptyForm(typesOffres));
+    }, [open, offre, typesOffres, setData, clearErrors]);
 
     const selectedType = typesOffres.find((t) => t.id === data.type_offre_id);
 
@@ -57,27 +86,37 @@ export function CreateOffreDialog({ open, onOpenChange, agences, typesOffres }: 
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(admin.offres.store().url, {
+
+        const options = {
             onSuccess: () => {
                 reset();
                 onOpenChange(false);
             },
-        });
+        };
+
+        if (isEdit && offre) {
+            patch(admin.offres.update(offre.id).url, options);
+        } else {
+            post(admin.offres.store().url, options);
+        }
     };
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
                 <DialogHeader>
-                    <DialogTitle>Nouvelle offre</DialogTitle>
+                    <DialogTitle className="flex items-center gap-2">
+                        <Package className="h-4 w-4 text-primary" />
+                        {isEdit ? 'Modifier l\'offre' : 'Nouvelle offre'}
+                    </DialogTitle>
                     <DialogDescription>
-                        Créez une offre de transport pour une agence partenaire.
+                        {isEdit
+                            ? 'Mettez à jour les informations de l\'offre de transport.'
+                            : 'Créez une offre de transport pour une agence partenaire.'}
                     </DialogDescription>
                 </DialogHeader>
 
-                <form id="create-offre-form" onSubmit={submit} className="space-y-5 py-2">
-
-                    {/* Agence */}
+                <form id={formId} onSubmit={submit} className="space-y-5 py-2">
                     <div className="space-y-1.5">
                         <Label htmlFor="offre-agence">
                             Agence <span className="text-destructive">*</span>
@@ -99,7 +138,6 @@ export function CreateOffreDialog({ open, onOpenChange, agences, typesOffres }: 
                         {errors.agence_id && <p className="text-xs text-destructive">{errors.agence_id}</p>}
                     </div>
 
-                    {/* Titre */}
                     <div className="space-y-1.5">
                         <Label htmlFor="offre-titre">
                             Titre <span className="text-destructive">*</span>
@@ -109,12 +147,11 @@ export function CreateOffreDialog({ open, onOpenChange, agences, typesOffres }: 
                             value={data.titre}
                             onChange={(e) => setData('titre', e.target.value)}
                             placeholder="Ex : Transport Libreville → Port-Gentil"
-                            autoFocus
+                            autoFocus={!isEdit}
                         />
                         {errors.titre && <p className="text-xs text-destructive">{errors.titre}</p>}
                     </div>
 
-                    {/* Type + Prix */}
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="space-y-1.5">
                             <Label htmlFor="offre-type">
@@ -178,13 +215,19 @@ export function CreateOffreDialog({ open, onOpenChange, agences, typesOffres }: 
                                         : 'Ex : 30000 kg, 6 conteneurs...'
                                 }
                             />
+                            {isEdit && offre && (
+                                <p className="text-xs text-muted-foreground">
+                                    Stock disponible actuel :{' '}
+                                    {Number(offre.capacite_disponible).toLocaleString('fr-FR')}
+                                    {' '}/ {Number(offre.capacite_totale).toLocaleString('fr-FR')}
+                                </p>
+                            )}
                             {errors.capacite_totale && (
                                 <p className="text-xs text-destructive">{errors.capacite_totale}</p>
                             )}
                         </div>
                     </div>
 
-                    {/* Trajet */}
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="space-y-1.5">
                             <Label htmlFor="offre-origine">
@@ -213,7 +256,6 @@ export function CreateOffreDialog({ open, onOpenChange, agences, typesOffres }: 
                         </div>
                     </div>
 
-                    {/* Description */}
                     <div className="space-y-1.5">
                         <Label htmlFor="offre-description">
                             Description
@@ -222,7 +264,9 @@ export function CreateOffreDialog({ open, onOpenChange, agences, typesOffres }: 
                         <textarea
                             id="offre-description"
                             value={data.description}
-                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setData('description', e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                                setData('description', e.target.value)
+                            }
                             placeholder="Informations complémentaires sur l'offre…"
                             rows={3}
                             className="border-input bg-background placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-[80px] w-full resize-none rounded-md border px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1"
@@ -230,7 +274,6 @@ export function CreateOffreDialog({ open, onOpenChange, agences, typesOffres }: 
                         {errors.description && <p className="text-xs text-destructive">{errors.description}</p>}
                     </div>
 
-                    {/* Statut */}
                     <div className="space-y-1.5">
                         <Label htmlFor="offre-statut">Statut</Label>
                         <Select value={data.statut} onValueChange={(v) => setData('statut', v)}>
@@ -240,11 +283,11 @@ export function CreateOffreDialog({ open, onOpenChange, agences, typesOffres }: 
                             <SelectContent>
                                 <SelectItem value="active">Active</SelectItem>
                                 <SelectItem value="inactive">Inactive</SelectItem>
+                                {isEdit && <SelectItem value="archivée">Archivée</SelectItem>}
                             </SelectContent>
                         </Select>
                         {errors.statut && <p className="text-xs text-destructive">{errors.statut}</p>}
                     </div>
-
                 </form>
 
                 <DialogFooter>
@@ -256,9 +299,9 @@ export function CreateOffreDialog({ open, onOpenChange, agences, typesOffres }: 
                     >
                         Annuler
                     </Button>
-                    <Button type="submit" form="create-offre-form" disabled={processing}>
+                    <Button type="submit" form={formId} disabled={processing}>
                         {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Créer l'offre
+                        {isEdit ? 'Enregistrer' : 'Créer l\'offre'}
                     </Button>
                 </DialogFooter>
             </DialogContent>

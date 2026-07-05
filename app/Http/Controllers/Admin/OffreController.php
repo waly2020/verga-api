@@ -3,13 +3,15 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreOffreRequest;
+use App\Http\Requests\Admin\UpdateOffreRequest;
 use App\Models\Agence;
 use App\Models\Offre;
 use App\Models\TypeOffre;
+use App\Services\OffreCapaciteService;
 use App\Services\OffreTypeResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -17,6 +19,7 @@ class OffreController extends Controller
 {
     public function __construct(
         private readonly OffreTypeResolver $typeResolver,
+        private readonly OffreCapaciteService $capacite,
     ) {}
 
     public function index(Request $request): Response
@@ -39,37 +42,35 @@ class OffreController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreOffreRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'agence_id' => ['required', 'uuid', 'exists:agences,id'],
-            'titre' => ['required', 'string', 'max:255'],
-            'type_offre_id' => ['required_without:type', 'uuid', 'exists:types_offres,id'],
-            'type' => ['required_without:type_offre_id', Rule::in(['particulier', 'metre_cube', 'conteneur'])],
-            'prix' => ['required', 'numeric', 'min:0'],
-            'capacite_totale' => ['required', 'numeric', 'min:0.001'],
-            'origine' => ['required', 'string', 'max:255'],
-            'destination' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'statut' => ['required', Rule::in(['active', 'inactive'])],
-        ], [
-            'agence_id.required' => "L'agence est obligatoire.",
-            'agence_id.exists' => "Cette agence n'existe pas.",
-            'titre.required' => 'Le titre est obligatoire.',
-            'type_offre_id.required_without' => 'Le type d\'offre est obligatoire.',
-            'type.required_without' => 'Le type est obligatoire.',
-            'prix.required' => 'Le prix est obligatoire.',
-            'prix.numeric' => 'Le prix doit être un nombre.',
-            'prix.min' => 'Le prix ne peut pas être négatif.',
-            'origine.required' => "L'origine est obligatoire.",
-            'destination.required' => 'La destination est obligatoire.',
-        ]);
-
-        $data = $this->typeResolver->resolveForCreate($validated);
+        $data = $this->typeResolver->resolveForCreate($request->validated());
         $data['capacite_disponible'] = $data['capacite_totale'];
 
         Offre::create($data);
 
-        return back()->with('success', "L'offre \"{$validated['titre']}\" a été créée avec succès.");
+        return back()->with('success', "L'offre \"{$data['titre']}\" a été créée avec succès.");
+    }
+
+    public function update(UpdateOffreRequest $request, Offre $offre): RedirectResponse
+    {
+        $data = $this->typeResolver->resolveForUpdate($request->validated());
+        $data = $this->capacite->applyTotaleUpdate($offre, $data);
+
+        $offre->update($data);
+
+        return back()->with('success', "L'offre \"{$data['titre']}\" a été mise à jour.");
+    }
+
+    public function destroy(Offre $offre): RedirectResponse
+    {
+        if ($offre->commandes()->exists()) {
+            return back()->with('error', 'Impossible de supprimer une offre liée à des commandes existantes.');
+        }
+
+        $titre = $offre->titre;
+        $offre->delete();
+
+        return back()->with('success', "L'offre \"{$titre}\" a été supprimée.");
     }
 }

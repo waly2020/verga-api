@@ -99,6 +99,135 @@ class AgenceResourcesTest extends AgenceApiTestCase
         ]);
     }
 
+    public function test_agence_can_update_offre(): void
+    {
+        ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
+
+        $offre = Offre::create([
+            'agence_id' => $agence->id,
+            'titre' => 'Offre initiale',
+            'type' => 'particulier',
+            'prix' => 8750,
+            'capacite_totale' => 1000,
+            'capacite_disponible' => 800,
+            'origine' => 'Chine',
+            'destination' => 'Libreville',
+            'statut' => 'active',
+        ]);
+
+        $this->withAgenceToken($token)
+            ->patchJson("/api/v1/agence/offres/{$offre->id}", [
+                'titre' => 'Offre mise à jour',
+                'type' => 'particulier',
+                'prix' => 9000,
+                'capacite_totale' => 1200,
+                'origine' => 'France',
+                'destination' => 'Port-Gentil',
+                'description' => 'Nouvelle description',
+                'statut' => 'inactive',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.titre', 'Offre mise à jour')
+            ->assertJsonPath('data.capacite_totale', 1200)
+            ->assertJsonPath('data.capacite_disponible', 1000)
+            ->assertJsonPath('data.statut', 'inactive');
+
+        $this->assertDatabaseHas('offres', [
+            'id' => $offre->id,
+            'titre' => 'Offre mise à jour',
+            'capacite_disponible' => 1000,
+        ]);
+    }
+
+    public function test_agence_cannot_reduce_capacite_below_reserved_stock(): void
+    {
+        ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
+
+        $offre = Offre::create([
+            'agence_id' => $agence->id,
+            'titre' => 'Offre stock partiel',
+            'type' => 'particulier',
+            'prix' => 8750,
+            'capacite_totale' => 1000,
+            'capacite_disponible' => 700,
+            'origine' => 'Chine',
+            'destination' => 'Libreville',
+            'statut' => 'active',
+        ]);
+
+        $this->withAgenceToken($token)
+            ->patchJson("/api/v1/agence/offres/{$offre->id}", [
+                'titre' => 'Offre stock partiel',
+                'type' => 'particulier',
+                'prix' => 8750,
+                'capacite_totale' => 200,
+                'origine' => 'Chine',
+                'destination' => 'Libreville',
+                'statut' => 'active',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['capacite_totale']);
+    }
+
+    public function test_agence_can_delete_offre_without_commandes(): void
+    {
+        ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
+
+        $offre = Offre::create([
+            'agence_id' => $agence->id,
+            'titre' => 'À supprimer',
+            'type' => 'particulier',
+            'prix' => 1000,
+            'capacite_totale' => 100,
+            'capacite_disponible' => 100,
+            'origine' => 'A',
+            'destination' => 'B',
+            'statut' => 'active',
+        ]);
+
+        $this->withAgenceToken($token)
+            ->deleteJson("/api/v1/agence/offres/{$offre->id}")
+            ->assertOk()
+            ->assertJsonPath('message', 'Offre supprimée avec succès.');
+
+        $this->assertDatabaseMissing('offres', ['id' => $offre->id]);
+    }
+
+    public function test_agence_cannot_delete_offre_with_commandes(): void
+    {
+        ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
+        $client = $this->createClient();
+
+        $offre = Offre::create([
+            'agence_id' => $agence->id,
+            'titre' => 'Offre liée',
+            'type' => 'particulier',
+            'prix' => 1000,
+            'capacite_totale' => 100,
+            'capacite_disponible' => 100,
+            'origine' => 'A',
+            'destination' => 'B',
+            'statut' => 'active',
+        ]);
+
+        Commande::create([
+            'client_id' => $client->id,
+            'offre_id' => $offre->id,
+            'agence_id' => $agence->id,
+            'code' => 'CMD-DEL-001',
+            'quantite' => 10,
+            'montant_total' => 10000,
+            'statut' => 'en_attente',
+        ]);
+
+        $this->withAgenceToken($token)
+            ->deleteJson("/api/v1/agence/offres/{$offre->id}")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['offre']);
+
+        $this->assertDatabaseHas('offres', ['id' => $offre->id]);
+    }
+
     public function test_agence_cannot_access_another_agences_offre(): void
     {
         ['token' => $token] = $this->createAuthenticatedAgence();
