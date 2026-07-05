@@ -462,6 +462,7 @@ class CommandeCheckoutTest extends ClientApiTestCase
         $this->getJson('/api/v1/client/offres')
             ->assertOk()
             ->assertJsonPath('data.0.id', $offre->id)
-            ->assertJsonPath('data.0.capacite_disponible', '1000.000');
+            ->assertJsonPath('data.0.capacite_disponible', 1000)
+            ->assertJsonPath('data.0.capacite_totale', 1000);
     }
 }

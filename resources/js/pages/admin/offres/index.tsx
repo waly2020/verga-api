@@ -9,7 +9,7 @@ import { ExportButtons } from '@/components/admin/export-buttons';
 import { StatusBadge } from '@/components/admin/status-badge';
 import { Button } from '@/components/ui/button';
 import admin from '@/routes/admin';
-import type { AgenceSummary, OffreRow, Paginated } from '@/types';
+import type { AgenceSummary, OffreRow, Paginated, TypeOffreApi } from '@/types';
 
 const TYPE_LABELS: Record<string, string> = {
     particulier: 'Au kg',
@@ -17,16 +17,21 @@ const TYPE_LABELS: Record<string, string> = {
     conteneur: 'Conteneur',
 };
 
+function typeLabel(row: OffreRow): string {
+    return row.type_offre?.nom ?? TYPE_LABELS[row.type] ?? row.type;
+}
+
 interface Props {
     offres: Paginated<OffreRow>;
     filters: { search?: string; statut?: string };
     agences: AgenceSummary[];
+    types_offres: TypeOffreApi[];
 }
 
 const columns: Column<OffreRow>[] = [
     { key: 'titre',       label: 'Offre',       render: (r) => <span className="font-medium">{r.titre}</span> },
     { key: 'agence',      label: 'Agence',       render: (r) => r.agence?.nom ?? '—' },
-    { key: 'type',        label: 'Type',         render: (r) => TYPE_LABELS[r.type] ?? r.type },
+    { key: 'type',        label: 'Type',         render: (r) => typeLabel(r) },
     { key: 'prix',        label: 'Prix',         render: (r) => `${Number(r.prix).toLocaleString('fr-FR')} FCFA` },
     {
         key: 'capacite_disponible',
@@ -49,7 +54,7 @@ const filterOptions = [
     { label: 'Archivée', value: 'archivée' },
 ];
 
-export default function OffresIndex({ offres, filters, agences }: Props) {
+export default function OffresIndex({ offres, filters, agences, types_offres }: Props) {
     const [createOpen, setCreateOpen] = useState(false);
 
     const go = (params: Record<string, string | number | undefined>) =>
@@ -97,6 +102,7 @@ export default function OffresIndex({ offres, filters, agences }: Props) {
                 open={createOpen}
                 onOpenChange={setCreateOpen}
                 agences={agences}
+                typesOffres={types_offres}
             />
         </>
     );

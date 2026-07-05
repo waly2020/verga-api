@@ -16,6 +16,7 @@ class Offre extends Model
         'titre',
         'description',
         'type',
+        'type_offre_id',
         'prix',
         'capacite_totale',
         'capacite_disponible',
@@ -36,6 +37,11 @@ class Offre extends Model
     public function agence(): BelongsTo
     {
         return $this->belongsTo(Agence::class);
+    }
+
+    public function typeOffre(): BelongsTo
+    {
+        return $this->belongsTo(TypeOffre::class);
     }
 
     public function commandes(): HasMany

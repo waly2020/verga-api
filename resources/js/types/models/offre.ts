@@ -1,4 +1,5 @@
 import type { AgenceSummary, OffreStatut, OffreType } from './common';
+import type { TypeOffreApi, TypeOffreSummary } from './type-offre';
 
 export type OffreCapacite = {
     capacite_totale: string | number;
@@ -10,6 +11,8 @@ export type OffreRow = OffreCapacite & {
     titre: string;
     agence: AgenceSummary | null;
     type: OffreType | string;
+    type_offre_id?: string | null;
+    type_offre?: TypeOffreSummary | null;
     prix: string;
     origine: string;
     destination: string;
@@ -23,6 +26,7 @@ export type OffreSummary = {
     id: string;
     titre: string;
     type: string;
+    type_offre_id?: string | null;
     prix: string;
 };
 
@@ -31,6 +35,7 @@ export type OffreInfo = OffreSummary &
         origine: string | null;
         destination: string | null;
         statut: string;
+        type_offre?: TypeOffreSummary | null;
     };
 
 export type OffreApi = OffreCapacite & {
@@ -38,6 +43,8 @@ export type OffreApi = OffreCapacite & {
     titre: string;
     description: string | null;
     type: string;
+    type_offre_id?: string | null;
+    type_offre?: TypeOffreApi | null;
     prix: string | number;
     origine: string;
     destination: string;
@@ -50,6 +57,7 @@ export type ListClientOffresFilters = {
     search?: string;
     destination?: string;
     type?: 'particulier' | 'metre_cube' | 'conteneur';
+    type_offre_id?: string;
     date_debut?: string;
     date_fin?: string;
     page?: number;
@@ -59,7 +67,7 @@ export type ListClientOffresFilters = {
 export type CreateOffreFormData = {
     agence_id: string;
     titre: string;
-    type: string;
+    type_offre_id: string;
     prix: string;
     capacite_totale: string;
     origine: string;

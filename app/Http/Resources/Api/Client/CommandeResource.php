@@ -32,11 +32,7 @@ class CommandeResource extends JsonResource
                 'id' => $this->agence?->id,
                 'nom' => $this->agence?->nom,
             ]),
-            'offre' => $this->whenLoaded('offre', fn () => [
-                'id' => $this->offre?->id,
-                'titre' => $this->offre?->titre,
-                'type' => $this->offre?->type,
-            ]),
+            'offre' => OffreResource::make($this->whenLoaded('offre')),
             'paiement' => PaiementResource::make($this->whenLoaded('paiement')),
             'colis' => ColisResource::collection($this->whenLoaded('colis')),
         ];

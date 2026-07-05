@@ -19,7 +19,7 @@ class CommandeController extends AgenceApiController
     {
         $query = $this->agence($request)
             ->commandes()
-            ->with(['client:id,nom,prenom,email', 'offre:id,titre,type'])
+            ->with(['client:id,nom,prenom,email', 'offre.typeOffre'])
             ->latest();
 
         if ($search = $request->get('search')) {
@@ -39,7 +39,7 @@ class CommandeController extends AgenceApiController
     {
         $model = $this->agence($request)
             ->commandes()
-            ->with(['client:id,nom,prenom,email,telephone', 'offre', 'paiement', 'colis'])
+            ->with(['client:id,nom,prenom,email,telephone', 'offre.typeOffre', 'paiement', 'colis'])
             ->findOrFail($commande);
 
         return CommandeResource::make($model);
@@ -59,7 +59,7 @@ class CommandeController extends AgenceApiController
 
         $model->update(['statut' => $request->statut]);
 
-        $model->load(['client:id,nom,prenom,email', 'offre:id,titre,type']);
+        $model->load(['client:id,nom,prenom,email', 'offre.typeOffre']);
 
         return CommandeResource::make($model);
     }

@@ -21,6 +21,7 @@ class ListClientOffresRequest extends FormRequest
             'search' => ['nullable', 'string', 'max:255'],
             'destination' => ['nullable', 'string', 'max:255'],
             'type' => ['nullable', 'string', 'in:particulier,metre_cube,conteneur'],
+            'type_offre_id' => ['nullable', 'uuid', 'exists:types_offres,id'],
             'date_debut' => ['nullable', 'date'],
             'date_fin' => ['nullable', 'date', 'after_or_equal:date_debut'],
             'page' => ['nullable', 'integer', 'min:1'],

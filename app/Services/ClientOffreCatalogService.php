@@ -13,7 +13,7 @@ class ClientOffreCatalogService
     public function paginate(array $filters): LengthAwarePaginator
     {
         $query = Offre::query()
-            ->with('agence:id,nom,ville')
+            ->with(['agence:id,nom,ville', 'typeOffre:id,slug,nom,unite,unite_label,quantite_entier,quantite_min'])
             ->active()
             ->where('capacite_disponible', '>', 0);
 
@@ -32,6 +32,10 @@ class ClientOffreCatalogService
 
         if ($type = $filters['type'] ?? null) {
             $query->where('type', $type);
+        }
+
+        if ($typeOffreId = $filters['type_offre_id'] ?? null) {
+            $query->where('type_offre_id', $typeOffreId);
         }
 
         if ($dateDebut = $filters['date_debut'] ?? null) {

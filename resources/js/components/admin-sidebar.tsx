@@ -9,6 +9,7 @@ import {
     Package,
     Percent,
     ShoppingCart,
+    Tag,
     UserCircle,
     Users,
 } from 'lucide-react';
@@ -32,6 +33,7 @@ const adminNavItems: NavItem[] = [
     { title: 'Agences', href: admin.agences.index(), icon: Building2 },
     { title: 'Clients', href: admin.clients.index(), icon: UserCircle },
     { title: 'Offres', href: admin.offres.index(), icon: Package },
+    { title: "Types d'offre", href: admin.typesOffres.index(), icon: Tag },
     { title: 'Commandes', href: admin.commandes.index(), icon: ShoppingCart },
     { title: 'Colis', href: admin.colis.index(), icon: Archive },
     { title: 'Paiements', href: admin.paiements.index(), icon: CreditCard },

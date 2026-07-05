@@ -98,7 +98,12 @@ class ClientResourcesTest extends ClientApiTestCase
             'statut' => 'validé',
         ]);
 
-        $this->withClientToken($token)->getJson('/api/v1/client/commandes')->assertOk()->assertJsonPath('data.0.code', 'CMD-CLIENT-001');
+        $this->withClientToken($token)
+            ->getJson('/api/v1/client/commandes')
+            ->assertOk()
+            ->assertJsonPath('data.0.code', 'CMD-CLIENT-001')
+            ->assertJsonPath('data.0.offre.capacite_totale', 1000)
+            ->assertJsonPath('data.0.offre.capacite_disponible', 1000);
         $this->withClientToken($token)->getJson('/api/v1/client/colis')->assertOk()->assertJsonPath('data.0.reference', 'COL-CLIENT-001');
         $this->withClientToken($token)->getJson('/api/v1/client/paiements')->assertOk()->assertJsonPath('data.0.reference', 'PAY-CLIENT-001');
     }

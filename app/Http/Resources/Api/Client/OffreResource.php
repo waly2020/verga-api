@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api\Client;
 
+use App\Http\Resources\Api\TypeOffreResource;
 use App\Models\Offre;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -19,9 +20,11 @@ class OffreResource extends JsonResource
             'titre' => $this->titre,
             'description' => $this->description,
             'type' => $this->type,
-            'prix' => $this->prix,
-            'capacite_totale' => $this->capacite_totale,
-            'capacite_disponible' => $this->capacite_disponible,
+            'type_offre_id' => $this->type_offre_id,
+            'type_offre' => TypeOffreResource::make($this->whenLoaded('typeOffre')),
+            'prix' => (float) $this->prix,
+            'capacite_totale' => (float) $this->capacite_totale,
+            'capacite_disponible' => (float) $this->capacite_disponible,
             'origine' => $this->origine,
             'destination' => $this->destination,
             'statut' => $this->statut,

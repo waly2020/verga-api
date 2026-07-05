@@ -16,10 +16,12 @@ use App\Http\Controllers\Api\Client\PaiementController;
 use App\Http\Controllers\Api\Client\PasswordController;
 use App\Http\Controllers\Api\Client\ProfileController;
 use App\Http\Controllers\Api\Client\ReclamationController;
+use App\Http\Controllers\Api\TypeOffreController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('client')->name('api.client.')->group(function () {
     Route::get('offres', [OffreController::class, 'index'])->name('offres.index');
+    Route::get('types-offres', [TypeOffreController::class, 'index'])->name('types-offres.index');
     Route::get('offres/{offre}/estimation', [OffreController::class, 'estimate'])->name('offres.estimate');
     Route::post('commandes', [CommandeController::class, 'store'])
         ->middleware('optional.sanctum')

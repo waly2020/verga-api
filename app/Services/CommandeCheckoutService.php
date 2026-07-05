@@ -18,6 +18,7 @@ class CommandeCheckoutService
         private readonly BambooPayService $bambooPay,
         private readonly PaymentSettlementService $settlement,
         private readonly CommandePaymentService $payments,
+        private readonly OffreQuantityRules $quantityRules,
     ) {}
 
     /**
@@ -117,25 +118,13 @@ class CommandeCheckoutService
 
     private function validateReservation(Offre $offre, float $quantiteReservee, float $quantiteAPayer): void
     {
-        if ($quantiteReservee <= 0 || $quantiteAPayer <= 0) {
-            throw ValidationException::withMessages([
-                'quantite' => ['Les quantités doivent être supérieures à zéro.'],
-            ]);
-        }
-
         if ($quantiteAPayer > $quantiteReservee + 0.0001) {
             throw ValidationException::withMessages([
                 'quantite' => ['La quantité payée ne peut pas dépasser la quantité réservée.'],
             ]);
         }
 
-        if ($offre->type === 'conteneur') {
-            if (floor($quantiteReservee) !== $quantiteReservee || floor($quantiteAPayer) !== $quantiteAPayer) {
-                throw ValidationException::withMessages([
-                    'quantite' => ['La quantité doit être un nombre entier pour une offre conteneur.'],
-                ]);
-            }
-        }
+        $this->quantityRules->validate($offre, $quantiteReservee, $quantiteAPayer);
 
         if ((float) $offre->capacite_disponible < $quantiteReservee) {
             throw ValidationException::withMessages([

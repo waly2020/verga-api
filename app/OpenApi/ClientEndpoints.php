@@ -15,7 +15,8 @@ class ClientEndpoints
 Filtres disponibles :
 - `search` : titre, origine, destination, description
 - `destination` : filtre sur la destination (partiel)
-- `type` : particulier, metre_cube, conteneur
+- `type` : particulier, metre_cube, conteneur (legacy)
+- `type_offre_id` : UUID du type d\'offre (recommandé)
 - `date_debut` / `date_fin` : plage de dates de publication (`created_at`, format `YYYY-MM-DD`)
 - `page` / `per_page` : pagination (défaut 15, max 100)',
         tags: ['Client - Offres'],
@@ -23,6 +24,7 @@ Filtres disponibles :
             new OA\QueryParameter(name: 'search', description: 'Recherche titre, origine, destination, description', schema: new OA\Schema(type: 'string', example: 'Paris')),
             new OA\QueryParameter(name: 'destination', description: 'Filtre destination (correspondance partielle)', schema: new OA\Schema(type: 'string', example: 'Libreville')),
             new OA\QueryParameter(name: 'type', schema: new OA\Schema(type: 'string', enum: ['particulier', 'metre_cube', 'conteneur'])),
+            new OA\QueryParameter(name: 'type_offre_id', description: 'Filtre par type d\'offre (UUID)', schema: new OA\Schema(type: 'string', format: 'uuid')),
             new OA\QueryParameter(name: 'date_debut', description: 'Date de publication minimum (inclus)', schema: new OA\Schema(type: 'string', format: 'date', example: '2026-06-01')),
             new OA\QueryParameter(name: 'date_fin', description: 'Date de publication maximum (inclus)', schema: new OA\Schema(type: 'string', format: 'date', example: '2026-06-30')),
             new OA\QueryParameter(name: 'page', schema: new OA\Schema(type: 'integer', default: 1)),
@@ -48,6 +50,30 @@ Filtres disponibles :
         ]
     )]
     public function listOffres(): void {}
+
+    #[OA\Get(
+        path: '/client/types-offres',
+        operationId: 'clientListTypesOffres',
+        summary: 'Lister les types d\'offre',
+        description: 'Retourne la liste complète des types d\'offre actifs (sans pagination). Aucune authentification requise.',
+        tags: ['Client - Offres'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Liste des types d\'offre',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(ref: '#/components/schemas/TypeOffreResource')
+                        ),
+                    ]
+                )
+            ),
+        ]
+    )]
+    public function listTypesOffres(): void {}
 
     #[OA\Get(
         path: '/client/offres/{offre}/estimation',

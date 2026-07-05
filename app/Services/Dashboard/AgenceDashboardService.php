@@ -93,14 +93,15 @@ class AgenceDashboardService
             ])
             ->orderByDesc('nb_commandes')
             ->limit(5)
-            ->get(['id', 'titre', 'type', 'prix', 'statut', 'capacite_disponible'])
+            ->get(['id', 'titre', 'type', 'prix', 'statut', 'capacite_totale', 'capacite_disponible'])
             ->map(fn ($offre) => [
                 'id' => $offre->id,
                 'titre' => $offre->titre,
                 'type' => $offre->type,
-                'prix' => $offre->prix,
+                'prix' => (float) $offre->prix,
                 'statut' => $offre->statut,
-                'capacite_disponible' => $offre->capacite_disponible,
+                'capacite_totale' => (float) $offre->capacite_totale,
+                'capacite_disponible' => (float) $offre->capacite_disponible,
                 'nb_commandes' => (int) $offre->nb_commandes,
             ])
             ->values()

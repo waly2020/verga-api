@@ -267,6 +267,67 @@ Objectif : connecter chaque écran aux modèles, controllers et règles métier 
 
 ---
 
+## Backlog
+
+Fonctionnalités validées en conception mais **non planifiées pour l’implémentation immédiate**.
+
+### Profilage multi-utilisateurs agence (équipe & permissions)
+
+**Contexte** : aujourd’hui 1 agence = 1 compte gérant (`agences.user_id`). Le rôle `agent_agence` existe en base mais n’est pas exploité. Le back-office agence (Angular) doit permettre à une agence de créer des utilisateurs avec des accès limités.
+
+**Objectif** : permettre au gérant de créer des agents (opérations, commercial, finance…) avec des droits différenciés sur l’API agence.
+
+#### Modèle de données envisagé
+
+- [ ] Table **`agence_membres`** — pivot `user_id` + `agence_id` + profil + statut (`actif` / `suspendu`) + `est_proprietaire`
+- [ ] Contrainte unique `(agence_id, user_id)`
+- [ ] Migration des gérants existants → ligne `agence_membres` (profil `gerant`, `est_proprietaire = true`)
+- [ ] Phase 2 (optionnel) : table **`agence_profils`** pour profils personnalisables par agence
+
+#### Profils MVP (enum ou config)
+
+- [ ] **Gérant** — accès total + gestion des membres
+- [ ] **Opérations** — colis (suivi, changement statut), commandes (lecture)
+- [ ] **Commercial** — offres (CRUD), commandes (lecture)
+- [ ] **Finance** — paiements, reversements (lecture)
+
+#### Permissions (config PHP en V1)
+
+- [ ] Fichier `config/agence-permissions.php` — mapping profil → permissions (`colis.view`, `colis.update_statut`, `offres.create`, `membres.manage`, etc.)
+- [ ] Middleware / Gate `agence.permission` sur les routes API agence
+
+#### API à prévoir (`routes/api/agence.php`)
+
+- [ ] `GET /agence/me` enrichi (profil + liste permissions)
+- [ ] `GET /agence/membres` — liste l’équipe
+- [ ] `POST /agence/membres` — créer / inviter un agent
+- [ ] `PATCH /agence/membres/{membre}` — changer profil ou statut
+- [ ] `DELETE /agence/membres/{membre}` — retirer un membre
+- [ ] `GET /agence/profils` — profils disponibles (pour formulaires Angular)
+
+#### Refactoring technique
+
+- [ ] Remplacer `$user->agence` (HasOne gérant) par résolution via `agence_membres`
+- [ ] Adapter `EnsureUserIsAgence` pour gérant + `agent_agence` membre actif
+- [ ] Adapter `AgenceApiController::agence()` — scope toujours sur l’agence du membre
+- [ ] Policies par ressource (colis, offres, commandes…) avec double vérif : appartenance agence + permission
+
+#### Front Angular (hors ce dépôt)
+
+- [ ] Menu dynamique selon permissions retournées par `/agence/me`
+- [ ] Module gestion d’équipe (réservé au gérant)
+
+#### Documentation & tests
+
+- [ ] Swagger — nouveaux endpoints membres / profils
+- [ ] Tests Feature : CRUD membres, refus accès sans permission, isolation entre agences
+
+**Référence** : même pattern mental que les **Collaborateurs admin VERGA** (`/admin/collaborateurs`), mais scopé par `agence_id`.
+
+**Priorité** : moyenne — après validation des modules API agence actuels (auth, offres, colis, paiements).
+
+---
+
 ## Journal de suivi
 
 | Date | Module | Action | Statut |
@@ -284,6 +345,7 @@ Objectif : connecter chaque écran aux modèles, controllers et règles métier 
 | 2026-06-22 | API | Swagger (L5-Swagger) + doc OpenAPI agence + client (28 endpoints) | `[x]` |
 | 2026-06-23 | Admin | Configuration commissions globales (page /admin/commissions, 6 tests) | `[~]` validation |
 | 2026-06-24 | API Client | Checkout commande (invité/connecté) + settlement Bamboo + capacité offres (7 tests) | `[~]` validation |
+| 2026-07-05 | Backlog | Profilage multi-utilisateurs agence (`agence_membres`, profils, permissions) — conception documentée | `[ ]` backlog |
 
 ---
 
