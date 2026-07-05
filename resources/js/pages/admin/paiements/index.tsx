@@ -25,8 +25,30 @@ const columns: Column<PaiementRow>[] = [
     },
     { key: 'commande', label: 'Commande', render: (r) => <span className="font-mono text-xs">{r.commande?.code ?? '—'}</span> },
     {
+        key: 'montant_sous_total',
+        label: 'Sous-total',
+        render: (r) => (
+            <span className="tabular-nums text-muted-foreground">
+                {r.montant_sous_total != null
+                    ? `${Number(r.montant_sous_total).toLocaleString('fr-FR')} FCFA`
+                    : '—'}
+            </span>
+        ),
+    },
+    {
+        key: 'montant_commission_client',
+        label: 'Commission VERGA',
+        render: (r) => (
+            <span className="tabular-nums text-muted-foreground">
+                {r.montant_commission_client != null && Number(r.montant_commission_client) > 0
+                    ? `${Number(r.montant_commission_client).toLocaleString('fr-FR')} FCFA`
+                    : '—'}
+            </span>
+        ),
+    },
+    {
         key: 'montant',
-        label: 'Montant',
+        label: 'Total payé',
         render: (r) => (
             <span className="font-medium tabular-nums">
                 {Number(r.montant).toLocaleString('fr-FR')} FCFA

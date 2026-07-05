@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api\Client;
 
+use App\Http\Resources\Api\ColisPhotoResource;
 use App\Models\Colis;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -30,6 +31,7 @@ class ColisResource extends JsonResource
                 'id' => $this->agence?->id,
                 'nom' => $this->agence?->nom,
             ]),
+            'photos' => ColisPhotoResource::collection($this->whenLoaded('photos')),
         ];
     }
 }

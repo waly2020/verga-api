@@ -3,6 +3,7 @@ import type { AgenceDetail, AgenceSummary, ClientEmbed, ColisStatut } from './co
 export type ColisPhoto = {
     id: string;
     chemin: string;
+    url: string;
     ordre: number;
 };
 

@@ -6,9 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Agence;
 use App\Models\Commande;
 use App\Models\Commission;
-use App\Models\Paiement;
 use App\Models\Reclamation;
 use App\Models\Reversement;
+use App\Services\Dashboard\ValidatedPaiementStats;
 use App\Support\PeriodeFilter;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -21,18 +21,18 @@ class DashboardController extends Controller
         $periode = $request->get('periode', 'mois');
         [$debut, $fin] = PeriodeFilter::range($periode);
 
-        $soldeCommissions = (float) Commission::whereBetween('created_at', [$debut, $fin])
-            ->sum('montant');
+        $paiements = ValidatedPaiementStats::aggregate($debut, $fin);
 
-        $soldePaiements = (float) Paiement::where('statut', 'validé')
-            ->whereBetween('created_at', [$debut, $fin])
+        $soldeCommissionsAgence = (float) Commission::whereBetween('created_at', [$debut, $fin])
             ->sum('montant');
 
         $stats = [
             'agences' => Agence::where('statut', 'actif')->count(),
             'commandes_total' => Commande::whereBetween('created_at', [$debut, $fin])->count(),
-            'solde_commissions' => $soldeCommissions,
-            'solde_paiements' => $soldePaiements,
+            'solde_paiements' => $paiements['total'],
+            'solde_sous_total' => $paiements['sous_total'],
+            'solde_commissions_client' => $paiements['commissions_client'],
+            'solde_commissions_agence' => $soldeCommissionsAgence,
             'reclamations_ouvertes' => Reclamation::where('statut', 'ouverte')->count(),
             'reversements_attente' => (float) Reversement::where('statut', 'en_attente')->sum('montant'),
         ];
@@ -43,30 +43,17 @@ class DashboardController extends Controller
             ->pluck('total', 'statut')
             ->toArray();
 
-        $paiementsParAgence = Paiement::join('commandes', 'paiements.commande_id', '=', 'commandes.id')
-            ->join('agences', 'commandes.agence_id', '=', 'agences.id')
-            ->where('paiements.statut', 'valide')
-            ->whereBetween('paiements.created_at', [$debut, $fin])
-            ->selectRaw('agences.nom, SUM(paiements.montant) as total')
-            ->groupBy('agences.id', 'agences.nom')
-            ->orderByDesc('total')
-            ->limit(10)
-            ->get()
-            ->map(fn ($r) => ['nom' => $r->nom, 'total' => (float) $r->total])
-            ->values()
-            ->toArray();
+        $parAgence = ValidatedPaiementStats::byAgence($debut, $fin);
 
-        $commissionsParAgence = Commission::join('commandes', 'commissions.commande_id', '=', 'commandes.id')
-            ->join('agences', 'commandes.agence_id', '=', 'agences.id')
-            ->whereBetween('commissions.created_at', [$debut, $fin])
-            ->selectRaw('agences.nom, SUM(commissions.montant) as total')
-            ->groupBy('agences.id', 'agences.nom')
-            ->orderByDesc('total')
-            ->limit(10)
-            ->get()
-            ->map(fn ($r) => ['nom' => $r->nom, 'total' => (float) $r->total])
-            ->values()
-            ->toArray();
+        $paiementsParAgence = array_map(
+            fn (array $row) => ['nom' => $row['nom'], 'total' => $row['total']],
+            $parAgence,
+        );
+
+        $commissionsParAgence = array_map(
+            fn (array $row) => ['nom' => $row['nom'], 'total' => $row['commissions_client']],
+            $parAgence,
+        );
 
         return Inertia::render('admin/dashboard', [
             'stats' => $stats,

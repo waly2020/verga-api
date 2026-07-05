@@ -17,6 +17,9 @@ class PaiementResource extends JsonResource
         return [
             'id' => $this->id,
             'code' => $this->code,
+            'quantite' => $this->quantite,
+            'montant_sous_total' => $this->montant_sous_total,
+            'montant_commission_client' => $this->montant_commission_client,
             'montant' => $this->montant,
             'methode' => $this->methode,
             'reference' => $this->reference,

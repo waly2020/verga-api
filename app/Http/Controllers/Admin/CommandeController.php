@@ -37,7 +37,10 @@ class CommandeController extends Controller
             'client:id,nom,prenom,email,telephone',
             'agence:id,nom,email,ville',
             'offre:id,titre,type,prix,origine,destination,statut,capacite_totale,capacite_disponible',
-            'paiement:id,commande_id,code,reference,bamboo_reference,montant,methode,statut,created_at',
+            'paiement:id,commande_id,code,quantite,reference,bamboo_reference,montant,montant_sous_total,montant_commission_client,methode,statut,created_at',
+            'paiements' => fn ($q) => $q
+                ->select('id', 'commande_id', 'code', 'quantite', 'reference', 'bamboo_reference', 'montant', 'montant_sous_total', 'montant_commission_client', 'methode', 'statut', 'created_at')
+                ->latest(),
             'commission',
             'colis:id,commande_id,reference,description,statut,created_at',
             'reclamations:id,commande_id,objet,statut,created_at',

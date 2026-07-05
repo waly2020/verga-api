@@ -4,6 +4,7 @@ namespace Tests\Feature\Api\Agence;
 
 use App\Models\Agence;
 use App\Models\Colis;
+use App\Models\ColisPhoto;
 use App\Models\Commande;
 use App\Models\Offre;
 use App\Models\Paiement;
@@ -333,13 +334,27 @@ class AgenceResourcesTest extends AgenceApiTestCase
             'commande_id' => $commande->id,
             'agence_id' => $agence->id,
             'reference' => 'COL-001',
+            'description' => 'Documents douane',
             'statut' => 'déposé',
+        ]);
+
+        ColisPhoto::create([
+            'colis_id' => $colis->id,
+            'chemin' => "colis/{$colis->id}/doc.pdf.jpg",
+            'ordre' => 0,
         ]);
 
         $this->withAgenceToken($token)
             ->getJson('/api/v1/agence/colis')
             ->assertOk()
-            ->assertJsonPath('data.0.reference', 'COL-001');
+            ->assertJsonPath('data.0.reference', 'COL-001')
+            ->assertJsonPath('data.0.description', 'Documents douane')
+            ->assertJsonPath('data.0.photos.0.chemin', "colis/{$colis->id}/doc.pdf.jpg");
+
+        $this->withAgenceToken($token)
+            ->getJson("/api/v1/agence/colis/{$colis->id}")
+            ->assertOk()
+            ->assertJsonPath('data.photos.0.ordre', 0);
 
         $this->withAgenceToken($token)
             ->patchJson("/api/v1/agence/colis/{$colis->id}/statut", [

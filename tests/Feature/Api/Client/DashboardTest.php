@@ -37,6 +37,8 @@ class DashboardTest extends ClientApiTestCase
             ->assertJsonPath('data.stats.nb_commandes_en_attente', 1)
             ->assertJsonPath('data.stats.nb_colis_en_transit', 1)
             ->assertJsonPath('data.stats.total_depense', 50000)
+            ->assertJsonPath('data.stats.total_sous_total', 47500)
+            ->assertJsonPath('data.stats.total_commissions', 2500)
             ->assertJsonPath('data.stats.nb_reclamations_ouvertes', 1)
             ->assertJsonStructure([
                 'data' => [
@@ -52,6 +54,8 @@ class DashboardTest extends ClientApiTestCase
                         'nb_colis_en_transit',
                         'nb_colis_arrives',
                         'total_depense',
+                        'total_sous_total',
+                        'total_commissions',
                         'nb_reclamations',
                         'nb_reclamations_ouvertes',
                     ],
@@ -148,6 +152,8 @@ class DashboardTest extends ClientApiTestCase
             'commande_id' => $commandeConfirmee->id,
             'code' => 'PAY-DASH-001'.$suffix,
             'montant' => 50000,
+            'montant_sous_total' => 47500,
+            'montant_commission_client' => 2500,
             'methode' => 'bamboo_redirect',
             'statut' => 'validé',
         ]);

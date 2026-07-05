@@ -80,6 +80,15 @@ use OpenApi\Attributes as OA;
     ]
 )]
 #[OA\Schema(
+    schema: 'ColisPhotoResource',
+    properties: [
+        new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+        new OA\Property(property: 'chemin', type: 'string', example: 'colis/uuid/photo.jpg'),
+        new OA\Property(property: 'url', type: 'string', format: 'uri', example: 'http://localhost/storage/colis/uuid/photo.jpg'),
+        new OA\Property(property: 'ordre', type: 'integer', example: 0),
+    ]
+)]
+#[OA\Schema(
     schema: 'HistoriqueColisResource',
     properties: [
         new OA\Property(property: 'id', type: 'string', format: 'uuid'),
@@ -97,6 +106,7 @@ use OpenApi\Attributes as OA;
     properties: [
         new OA\Property(property: 'id', type: 'string', format: 'uuid'),
         new OA\Property(property: 'reference', type: 'string', example: 'COL-ABCDEFGH'),
+        new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Vêtements et accessoires'),
         new OA\Property(property: 'poids', type: 'number', format: 'float', nullable: true),
         new OA\Property(property: 'volume', type: 'number', format: 'float', nullable: true),
         new OA\Property(property: 'statut', type: 'string', enum: ['déposé', 'en_transit', 'arrivé', 'récupéré']),
@@ -104,9 +114,33 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'commande', type: 'object', nullable: true),
         new OA\Property(
+            property: 'photos',
+            type: 'array',
+            items: new OA\Items(ref: '#/components/schemas/ColisPhotoResource')
+        ),
+        new OA\Property(
             property: 'historique',
             type: 'array',
             items: new OA\Items(ref: '#/components/schemas/HistoriqueColisResource')
+        ),
+    ]
+)]
+#[OA\Schema(
+    schema: 'ClientColisResource',
+    properties: [
+        new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+        new OA\Property(property: 'reference', type: 'string', example: 'COL-ABCDEFGH'),
+        new OA\Property(property: 'description', type: 'string', nullable: true),
+        new OA\Property(property: 'poids', type: 'number', format: 'float', nullable: true),
+        new OA\Property(property: 'volume', type: 'number', format: 'float', nullable: true),
+        new OA\Property(property: 'statut', type: 'string', enum: ['déposé', 'en_transit', 'arrivé', 'récupéré']),
+        new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'commande', type: 'object', nullable: true),
+        new OA\Property(property: 'agence', type: 'object', nullable: true),
+        new OA\Property(
+            property: 'photos',
+            type: 'array',
+            items: new OA\Items(ref: '#/components/schemas/ColisPhotoResource')
         ),
     ]
 )]
@@ -229,7 +263,10 @@ use OpenApi\Attributes as OA;
     properties: [
         new OA\Property(property: 'id', type: 'string', format: 'uuid'),
         new OA\Property(property: 'code', type: 'string', example: 'PAY-ABCDEFGH'),
-        new OA\Property(property: 'montant', type: 'number', format: 'float', example: 78750),
+        new OA\Property(property: 'quantite', type: 'number', format: 'float', example: 2.5),
+        new OA\Property(property: 'montant_sous_total', type: 'number', format: 'float', example: 75000, description: 'Prix offre × quantité de ce paiement'),
+        new OA\Property(property: 'montant_commission_client', type: 'number', format: 'float', example: 3750, description: 'Commission VERGA sur ce paiement'),
+        new OA\Property(property: 'montant', type: 'number', format: 'float', example: 78750, description: 'Total débité au client pour ce paiement'),
         new OA\Property(property: 'methode', type: 'string', example: 'bamboo_redirect'),
         new OA\Property(property: 'reference', type: 'string', nullable: true),
         new OA\Property(property: 'bamboo_reference', type: 'string', nullable: true),
@@ -244,11 +281,18 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'paiement_code', type: 'string', example: 'PAY-ABCDEFGH'),
         new OA\Property(property: 'statut', type: 'string', enum: ['en_attente', 'validé', 'échec', 'remboursé']),
         new OA\Property(property: 'bamboo_reference', type: 'string', nullable: true, example: 'TXN-2025-000381'),
+        new OA\Property(property: 'quantite', type: 'number', format: 'float', example: 2.5, description: 'Quantité couverte par ce paiement'),
+        new OA\Property(property: 'montant_sous_total', type: 'number', format: 'float', example: 75000),
+        new OA\Property(property: 'montant_commission_client', type: 'number', format: 'float', example: 3750),
+        new OA\Property(property: 'montant_total', type: 'number', format: 'float', example: 78750, description: 'Montant total de ce paiement'),
         new OA\Property(property: 'commande_code', type: 'string', example: 'CMD-ABCDEFGH'),
         new OA\Property(property: 'commande_statut', type: 'string', enum: ['en_attente', 'réservée', 'confirmée', 'annulée']),
         new OA\Property(property: 'quantite_reservee', type: 'number', format: 'float', nullable: true),
         new OA\Property(property: 'quantite_payee', type: 'number', format: 'float', nullable: true),
         new OA\Property(property: 'quantite_restante', type: 'number', format: 'float', nullable: true),
+        new OA\Property(property: 'commande_montant_sous_total', type: 'number', format: 'float', nullable: true, description: 'Cumul sous-total transport des paiements validés'),
+        new OA\Property(property: 'commande_montant_commission_client', type: 'number', format: 'float', nullable: true, description: 'Cumul commission VERGA des paiements validés'),
+        new OA\Property(property: 'commande_montant_total', type: 'number', format: 'float', nullable: true, description: 'Cumul total payé sur la commande'),
         new OA\Property(property: 'en_attente_bamboo', type: 'boolean', example: false),
     ]
 )]
@@ -271,7 +315,9 @@ use OpenApi\Attributes as OA;
                 new OA\Property(property: 'nb_colis', type: 'integer'),
                 new OA\Property(property: 'nb_colis_en_transit', type: 'integer'),
                 new OA\Property(property: 'nb_colis_arrives', type: 'integer'),
-                new OA\Property(property: 'total_depense', type: 'number', format: 'float'),
+                new OA\Property(property: 'total_depense', type: 'number', format: 'float', description: 'Total payé (transport + commission client)'),
+                new OA\Property(property: 'total_sous_total', type: 'number', format: 'float', description: 'Cumul sous-total transport'),
+                new OA\Property(property: 'total_commissions', type: 'number', format: 'float', description: 'Cumul commissions VERGA côté client'),
                 new OA\Property(property: 'nb_reclamations', type: 'integer'),
                 new OA\Property(property: 'nb_reclamations_ouvertes', type: 'integer'),
             ], type: 'object'),
@@ -300,9 +346,12 @@ use OpenApi\Attributes as OA;
                 new OA\Property(property: 'nb_commandes', type: 'integer'),
                 new OA\Property(property: 'nb_commandes_en_attente', type: 'integer'),
                 new OA\Property(property: 'nb_commandes_confirmees', type: 'integer'),
-                new OA\Property(property: 'total_paiements', type: 'number', format: 'float'),
-                new OA\Property(property: 'total_commissions', type: 'number', format: 'float'),
-                new OA\Property(property: 'revenu_net_estime', type: 'number', format: 'float'),
+                new OA\Property(property: 'total_paiements', type: 'number', format: 'float', description: 'Total payé par les clients'),
+                new OA\Property(property: 'total_sous_total', type: 'number', format: 'float', description: 'Cumul sous-total transport'),
+                new OA\Property(property: 'total_commissions_client', type: 'number', format: 'float', description: 'Commissions VERGA côté client'),
+                new OA\Property(property: 'total_commissions_agence', type: 'number', format: 'float', description: 'Commissions VERGA côté agence'),
+                new OA\Property(property: 'total_commissions', type: 'number', format: 'float', description: 'Alias de total_commissions_agence'),
+                new OA\Property(property: 'revenu_net_estime', type: 'number', format: 'float', description: 'Sous-total transport − commission agence'),
                 new OA\Property(property: 'reversements_en_attente', type: 'number', format: 'float'),
                 new OA\Property(property: 'nb_colis', type: 'integer'),
                 new OA\Property(property: 'nb_colis_en_transit', type: 'integer'),
