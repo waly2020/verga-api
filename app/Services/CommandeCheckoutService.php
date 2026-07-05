@@ -160,11 +160,18 @@ class CommandeCheckoutService
             'paiement_code' => $paiement->code,
             'statut' => $paiement->statut,
             'bamboo_reference' => $paiement->bamboo_reference,
+            'quantite' => (float) $paiement->quantite,
+            'montant_sous_total' => (float) $paiement->montant_sous_total,
+            'montant_commission_client' => (float) $paiement->montant_commission_client,
+            'montant_total' => (float) $paiement->montant,
             'commande_code' => $commande?->code,
             'commande_statut' => $commande?->statut,
             'quantite_reservee' => $commande ? (float) $commande->quantite : null,
             'quantite_payee' => $commande ? (float) $commande->quantite_payee : null,
             'quantite_restante' => $commande?->quantiteRestante(),
+            'commande_montant_sous_total' => $commande ? (float) $commande->montant_sous_total : null,
+            'commande_montant_commission_client' => $commande ? (float) $commande->montant_commission_client : null,
+            'commande_montant_total' => $commande ? (float) $commande->montant_total : null,
             'en_attente_bamboo' => $pending,
         ];
     }

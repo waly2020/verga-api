@@ -51,6 +51,7 @@ export type CommandeDetail = CommandeGuestContact & {
     agence: AgenceDetail | null;
     offre: OffreInfo | null;
     paiement: PaiementInfo | null;
+    paiements?: PaiementInfo[];
     commission: CommissionInfo | null;
     colis: ColisRow[];
     reclamations: ReclamationRow[];

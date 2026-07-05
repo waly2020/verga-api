@@ -4,7 +4,6 @@ namespace App\Services\Dashboard;
 
 use App\Models\Client;
 use App\Models\Colis;
-use App\Models\Paiement;
 use App\Support\PeriodeFilter;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -21,12 +20,13 @@ class ClientDashboardService
 
         $commandesQuery = $client->commandes()->whereBetween('created_at', [$debut, $fin]);
 
-        $totalDepense = (float) Paiement::query()
-            ->join('commandes', 'paiements.commande_id', '=', 'commandes.id')
-            ->where('commandes.client_id', $client->id)
-            ->where('paiements.statut', 'validé')
-            ->whereBetween('paiements.created_at', [$debut, $fin])
-            ->sum('paiements.montant');
+        $paiements = ValidatedPaiementStats::aggregate(
+            $debut,
+            $fin,
+            fn (Builder $query) => $query
+                ->join('commandes', 'paiements.commande_id', '=', 'commandes.id')
+                ->where('commandes.client_id', $client->id),
+        );
 
         $colisQuery = Colis::query()
             ->whereHas('commande', fn (Builder $query) => $query->where('client_id', $client->id))
@@ -50,7 +50,9 @@ class ClientDashboardService
                 'nb_colis' => (clone $colisQuery)->count(),
                 'nb_colis_en_transit' => (clone $colisQuery)->where('statut', 'en_transit')->count(),
                 'nb_colis_arrives' => (clone $colisQuery)->whereIn('statut', ['arrivé', 'récupéré'])->count(),
-                'total_depense' => $totalDepense,
+                'total_depense' => $paiements['total'],
+                'total_sous_total' => $paiements['sous_total'],
+                'total_commissions' => $paiements['commissions_client'],
                 'nb_reclamations' => (clone $reclamationsQuery)->count(),
                 'nb_reclamations_ouvertes' => (clone $reclamationsQuery)->whereIn('statut', ['ouverte', 'en_cours'])->count(),
             ],
@@ -97,10 +99,21 @@ class ClientDashboardService
             ->with(['agence:id,nom'])
             ->latest()
             ->limit(5)
-            ->get(['id', 'code', 'agence_id', 'montant_total', 'statut', 'created_at'])
+            ->get([
+                'id',
+                'code',
+                'agence_id',
+                'montant_sous_total',
+                'montant_commission_client',
+                'montant_total',
+                'statut',
+                'created_at',
+            ])
             ->map(fn ($commande) => [
                 'id' => $commande->id,
                 'code' => $commande->code,
+                'montant_sous_total' => $commande->montant_sous_total,
+                'montant_commission_client' => $commande->montant_commission_client,
                 'montant_total' => $commande->montant_total,
                 'statut' => $commande->statut,
                 'created_at' => $commande->created_at?->toIso8601String(),

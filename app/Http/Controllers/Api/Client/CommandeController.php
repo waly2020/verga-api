@@ -77,7 +77,7 @@ class CommandeController extends ClientApiController
     {
         $model = $this->client($request)
             ->commandes()
-            ->with(['agence:id,nom,email,ville', 'offre.typeOffre', 'paiement', 'colis'])
+            ->with(['agence:id,nom,email,ville', 'offre.typeOffre', 'paiement', 'colis.photos'])
             ->findOrFail($commande);
 
         return CommandeResource::make($model);

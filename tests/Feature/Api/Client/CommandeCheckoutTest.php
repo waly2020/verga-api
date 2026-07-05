@@ -372,6 +372,46 @@ class CommandeCheckoutTest extends ClientApiTestCase
         $this->assertDatabaseHas('commandes', ['statut' => 'confirmée']);
     }
 
+    public function test_payment_status_returns_financial_breakdown_after_validation(): void
+    {
+        $this->mockBambooRedirect();
+        ['offre' => $offre] = $this->createActiveOffre(100);
+
+        ConfigurationCommission::create([
+            'destinataire' => 'client',
+            'type' => 'pourcentage',
+            'valeur' => 5,
+            'actif' => true,
+        ]);
+
+        $create = $this->postJson('/api/v1/client/commandes', [
+            'offre_id' => $offre->id,
+            'quantite' => 10,
+            'nom' => 'Test',
+            'prenom' => 'User',
+            'telephone' => '0612345678',
+        ])->assertCreated();
+
+        $paiementCode = $create->json('paiement_code');
+
+        $this->postJson('/api/v1/payments/bamboo-pay/callback', [
+            'billingId' => $paiementCode,
+            'reference' => 'TXN-FIN-001',
+            'status' => 'completed',
+        ])->assertOk();
+
+        $this->getJson("/api/v1/client/paiements/{$paiementCode}/statut")
+            ->assertOk()
+            ->assertJsonPath('statut', 'validé')
+            ->assertJsonPath('quantite', 10)
+            ->assertJsonPath('montant_sous_total', 25000)
+            ->assertJsonPath('montant_commission_client', 1250)
+            ->assertJsonPath('montant_total', 26250)
+            ->assertJsonPath('commande_montant_sous_total', 25000)
+            ->assertJsonPath('commande_montant_commission_client', 1250)
+            ->assertJsonPath('commande_montant_total', 26250);
+    }
+
     public function test_callback_failed_does_not_decrement_offer(): void
     {
         $this->mockBambooRedirect();

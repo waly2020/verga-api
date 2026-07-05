@@ -39,7 +39,7 @@ class CommandeController extends AgenceApiController
     {
         $model = $this->agence($request)
             ->commandes()
-            ->with(['client:id,nom,prenom,email,telephone', 'offre.typeOffre', 'paiement', 'colis'])
+            ->with(['client:id,nom,prenom,email,telephone', 'offre.typeOffre', 'paiement', 'colis.photos'])
             ->findOrFail($commande);
 
         return CommandeResource::make($model);

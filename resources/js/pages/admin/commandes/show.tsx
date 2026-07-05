@@ -49,6 +49,11 @@ export default function CommandeShow({ commande }: Props) {
     const commissionClient = Number(commande.montant_commission_client ?? 0);
     const commissionMontant = commande.commission ? Number(commande.commission.montant) : 0;
     const montantAgence = montantSousTotal - commissionMontant;
+    const paiements = commande.paiements?.length
+        ? commande.paiements
+        : commande.paiement
+            ? [commande.paiement]
+            : [];
 
     return (
         <>
@@ -94,7 +99,7 @@ export default function CommandeShow({ commande }: Props) {
                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                             <SummaryItem label="Sous-total transport" value={fmtFcfa(montantSousTotal)} />
                             <SummaryItem
-                                label="Commission client"
+                                label="Commission client (VERGA)"
                                 value={commissionClient > 0 ? fmtFcfa(commissionClient) : '—'}
                             />
                             <SummaryItem label="Total payé" value={fmtFcfa(montantTotal)} />
@@ -106,14 +111,6 @@ export default function CommandeShow({ commande }: Props) {
                             <SummaryItem
                                 label="Part agence (estimée)"
                                 value={commande.commission ? fmtFcfa(montantAgence) : '—'}
-                            />
-                        </div>
-                        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
-                            <SummaryItem
-                                label="Paiement Bamboo"
-                                value={commande.paiement ? fmtFcfa(commande.paiement.montant) : '—'}
-                                hint={commande.paiement?.statut ? undefined : 'Aucun paiement enregistré'}
-                                badge={commande.paiement?.statut}
                             />
                         </div>
                     </CardContent>
@@ -229,37 +226,63 @@ export default function CommandeShow({ commande }: Props) {
                     </Card>
                 </div>
 
-                {/* Paiement + Commission */}
+                {/* Paiements + Commission */}
                 <div className="grid gap-4 lg:grid-cols-2">
                     <Card>
                         <CardHeader className="pb-3">
                             <CardTitle className="flex items-center gap-1.5 text-sm font-semibold">
                                 <CreditCard className="h-4 w-4 text-muted-foreground" />
-                                Paiement lié
+                                Paiements
+                                {paiements.length > 0 && (
+                                    <Badge variant="secondary">{paiements.length}</Badge>
+                                )}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            {commande.paiement ? (
-                                <div className="space-y-3">
-                                    <Row label="Montant">{fmtFcfa(commande.paiement.montant)}</Row>
-                                    <Row label="Méthode">{commande.paiement.methode}</Row>
-                                    <Row label="Code VERGA">
-                                        <span className="font-mono text-xs">
-                                            {commande.paiement.code ?? '—'}
-                                        </span>
-                                    </Row>
-                                    <Row label="Réf. Bamboo">
-                                        <span className="font-mono text-xs">
-                                            {commande.paiement.bamboo_reference ?? commande.paiement.reference ?? '—'}
-                                        </span>
-                                    </Row>
-                                    <Row label="Statut">
-                                        <StatusBadge status={commande.paiement.statut} />
-                                    </Row>
-                                    <Row label="Enregistré le">{fmtDate(commande.paiement.created_at, true)}</Row>
-                                </div>
-                            ) : (
+                            {paiements.length === 0 ? (
                                 <p className="text-sm text-muted-foreground">Aucun paiement enregistré pour cette commande.</p>
+                            ) : (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Code</TableHead>
+                                            <TableHead className="text-right">Qté</TableHead>
+                                            <TableHead className="text-right">Sous-total</TableHead>
+                                            <TableHead className="text-right">Commission</TableHead>
+                                            <TableHead className="text-right">Total</TableHead>
+                                            <TableHead>Statut</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {paiements.map((paiement) => (
+                                            <TableRow key={paiement.id}>
+                                                <TableCell className="font-mono text-xs">
+                                                    {paiement.code ?? '—'}
+                                                </TableCell>
+                                                <TableCell className="text-right tabular-nums">
+                                                    {paiement.quantite ?? '—'}
+                                                </TableCell>
+                                                <TableCell className="text-right tabular-nums">
+                                                    {paiement.montant_sous_total != null
+                                                        ? fmtFcfa(paiement.montant_sous_total)
+                                                        : '—'}
+                                                </TableCell>
+                                                <TableCell className="text-right tabular-nums">
+                                                    {paiement.montant_commission_client != null
+                                                        && Number(paiement.montant_commission_client) > 0
+                                                        ? fmtFcfa(paiement.montant_commission_client)
+                                                        : '—'}
+                                                </TableCell>
+                                                <TableCell className="text-right font-medium tabular-nums">
+                                                    {fmtFcfa(paiement.montant)}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <StatusBadge status={paiement.statut} />
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
                             )}
                         </CardContent>
                     </Card>

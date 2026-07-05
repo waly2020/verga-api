@@ -2,11 +2,9 @@ import { Head } from '@inertiajs/react';
 import { router } from '@inertiajs/react';
 import {
     AlertCircle,
-    Banknote,
     Building2,
     CreditCard,
     ShoppingCart,
-    TrendingUp,
 } from 'lucide-react';
 import { BarAgence, DoughnutStatut } from '@/components/admin/dashboard-charts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,8 +16,10 @@ import { dashboard } from '@/routes/admin';
 interface Stats {
     agences: number;
     commandes_total: number;
-    solde_commissions: number;
     solde_paiements: number;
+    solde_sous_total: number;
+    solde_commissions_client: number;
+    solde_commissions_agence: number;
     reclamations_ouvertes: number;
     reversements_attente: number;
 }
@@ -39,17 +39,82 @@ interface Props {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
-const fmt     = (n: number) => n.toLocaleString('fr-FR');
+const fmt = (n: number) => n.toLocaleString('fr-FR');
 const fmtFcfa = (n: number) => `${fmt(n)} FCFA`;
 
 const PERIODES = [
-    { value: 'mois',         label: 'Ce mois' },
+    { value: 'mois', label: 'Ce mois' },
     { value: 'mois_dernier', label: 'Mois dernier' },
-    { value: 'trimestre',    label: 'Ce trimestre' },
-    { value: 'semestre',     label: '6 derniers mois' },
-    { value: 'annee',        label: 'Cette année' },
-    { value: 'tout',         label: 'Tout' },
+    { value: 'trimestre', label: 'Ce trimestre' },
+    { value: 'semestre', label: '6 derniers mois' },
+    { value: 'annee', label: 'Cette année' },
+    { value: 'tout', label: 'Tout' },
 ];
+
+// ─── Sous-composants ──────────────────────────────────────────────────────
+
+function OperationalKpi({
+    title,
+    value,
+    description,
+    icon: Icon,
+    iconClass,
+}: {
+    title: string;
+    value: string;
+    description: string;
+    icon: React.ComponentType<{ className?: string }>;
+    iconClass: string;
+}) {
+    return (
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+                <Icon className={`h-4 w-4 shrink-0 ${iconClass}`} />
+            </CardHeader>
+            <CardContent>
+                <div className="text-3xl font-bold tabular-nums">{value}</div>
+                <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+            </CardContent>
+        </Card>
+    );
+}
+
+function FinancialLine({
+    label,
+    amount,
+    hint,
+    emphasis = false,
+    muted = false,
+}: {
+    label: string;
+    amount: number;
+    hint?: string;
+    emphasis?: boolean;
+    muted?: boolean;
+}) {
+    return (
+        <div
+            className={`flex flex-col gap-0.5 border-b border-border/60 py-3 last:border-0 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4 ${
+                muted ? 'opacity-80' : ''
+            }`}
+        >
+            <div className="min-w-0">
+                <p className={`text-sm ${emphasis ? 'font-semibold' : 'font-medium text-muted-foreground'}`}>
+                    {label}
+                </p>
+                {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+            </div>
+            <p
+                className={`shrink-0 text-right font-mono tabular-nums tracking-tight ${
+                    emphasis ? 'text-xl font-bold sm:text-2xl' : 'text-base font-semibold sm:text-lg'
+                }`}
+            >
+                {fmtFcfa(amount)}
+            </p>
+        </div>
+    );
+}
 
 // ─── Composant ────────────────────────────────────────────────────────────
 
@@ -64,51 +129,7 @@ export default function AdminDashboard({
         router.get(dashboard().url, { periode: v }, { preserveState: true, replace: true });
 
     const totalCommandes = Object.values(commandes_par_statut).reduce((a, b) => a + b, 0);
-
-    const kpis = [
-        {
-            title: 'Agences actives',
-            value: fmt(stats.agences),
-            description: 'Partenaires sur la plateforme',
-            icon: Building2,
-            color: 'text-blue-500',
-        },
-        {
-            title: 'Commandes',
-            value: fmt(stats.commandes_total),
-            description: 'Période sélectionnée',
-            icon: ShoppingCart,
-            color: 'text-violet-500',
-        },
-        {
-            title: 'Solde paiements',
-            value: fmtFcfa(stats.solde_paiements),
-            description: 'Paiements validés',
-            icon: CreditCard,
-            color: 'text-emerald-500',
-        },
-        {
-            title: 'Solde commissions',
-            value: fmtFcfa(stats.solde_commissions),
-            description: 'Commissions VERGA',
-            icon: TrendingUp,
-            color: 'text-amber-500',
-        },
-        {
-            title: 'Réclamations',
-            value: fmt(stats.reclamations_ouvertes),
-            description: 'En attente de traitement',
-            icon: AlertCircle,
-            color: 'text-red-500',
-        },
-        {
-            title: 'Reversements',
-            value: fmtFcfa(stats.reversements_attente),
-            description: 'En attente de versement',
-            icon: Banknote,
-            color: 'text-orange-500',
-        },
-    ];
+    const revenuVerga = stats.solde_commissions_client + stats.solde_commissions_agence;
 
     return (
         <>
@@ -136,54 +157,89 @@ export default function AdminDashboard({
                     </Select>
                 </div>
 
-                {/* KPI cards */}
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-                    {kpis.map((kpi) => (
-                        <Card key={kpi.title}>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-xs font-medium text-muted-foreground">
-                                    {kpi.title}
-                                </CardTitle>
-                                <kpi.icon className={`h-4 w-4 ${kpi.color}`} />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="truncate text-xl font-bold">{kpi.value}</div>
-                                <p className="mt-0.5 text-xs text-muted-foreground">{kpi.description}</p>
-                            </CardContent>
-                        </Card>
-                    ))}
+                {/* Activité — compteurs uniquement */}
+                <div className="grid gap-4 sm:grid-cols-3">
+                    <OperationalKpi
+                        title="Agences actives"
+                        value={fmt(stats.agences)}
+                        description="Partenaires sur la plateforme"
+                        icon={Building2}
+                        iconClass="text-blue-500"
+                    />
+                    <OperationalKpi
+                        title="Commandes"
+                        value={fmt(stats.commandes_total)}
+                        description="Sur la période sélectionnée"
+                        icon={ShoppingCart}
+                        iconClass="text-violet-500"
+                    />
+                    <OperationalKpi
+                        title="Réclamations ouvertes"
+                        value={fmt(stats.reclamations_ouvertes)}
+                        description="En attente de traitement"
+                        icon={AlertCircle}
+                        iconClass="text-red-500"
+                    />
                 </div>
 
-                {/* Solde récapitulatif */}
+                {/* Finances — une seule carte, montants en liste */}
                 <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-semibold">Récapitulatif financier</CardTitle>
+                    <CardHeader className="pb-2">
+                        <div className="flex items-center gap-2">
+                            <CreditCard className="h-4 w-4 text-muted-foreground" />
+                            <CardTitle className="text-sm font-semibold">Récapitulatif financier</CardTitle>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            Paiements validés sur la période
+                        </p>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid gap-4 sm:grid-cols-3">
-                            <div className="flex flex-col gap-1 rounded-lg bg-emerald-50 p-4 dark:bg-emerald-950/30">
-                                <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
-                                    Total paiements validés
-                                </span>
-                                <span className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">
-                                    {fmtFcfa(stats.solde_paiements)}
-                                </span>
+                        <div className="grid gap-6 lg:grid-cols-5">
+                            {/* Montant principal — occupe 2 colonnes */}
+                            <div className="flex flex-col justify-center rounded-xl bg-emerald-50 p-6 dark:bg-emerald-950/30 lg:col-span-2">
+                                <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+                                    Total encaissé
+                                </p>
+                                <p className="mt-2 break-words font-mono text-3xl font-bold tabular-nums tracking-tight text-emerald-700 sm:text-4xl dark:text-emerald-400">
+                                    {fmt(stats.solde_paiements)}
+                                </p>
+                                <p className="mt-1 text-sm font-medium text-emerald-600/80 dark:text-emerald-500/80">
+                                    FCFA
+                                </p>
+                                <p className="mt-3 text-xs text-emerald-700/70 dark:text-emerald-500/70">
+                                    Transport + commissions client
+                                </p>
                             </div>
-                            <div className="flex flex-col gap-1 rounded-lg bg-amber-50 p-4 dark:bg-amber-950/30">
-                                <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
-                                    Total commissions VERGA
-                                </span>
-                                <span className="text-2xl font-bold text-amber-700 dark:text-amber-400">
-                                    {fmtFcfa(stats.solde_commissions)}
-                                </span>
-                            </div>
-                            <div className="flex flex-col gap-1 rounded-lg bg-orange-50 p-4 dark:bg-orange-950/30">
-                                <span className="text-xs font-medium text-orange-700 dark:text-orange-400">
-                                    Reversements en attente
-                                </span>
-                                <span className="text-2xl font-bold text-orange-700 dark:text-orange-400">
-                                    {fmtFcfa(stats.reversements_attente)}
-                                </span>
+
+                            {/* Détail — 3 colonnes */}
+                            <div className="lg:col-span-3">
+                                <FinancialLine
+                                    label="Sous-total transport"
+                                    hint="Part agence (brut)"
+                                    amount={stats.solde_sous_total}
+                                />
+                                <FinancialLine
+                                    label="Commissions VERGA (client)"
+                                    hint="Prélevées sur le client"
+                                    amount={stats.solde_commissions_client}
+                                />
+                                <FinancialLine
+                                    label="Commissions agence"
+                                    hint="Prélevées sur le transport agence"
+                                    amount={stats.solde_commissions_agence}
+                                />
+                                <FinancialLine
+                                    label="Revenu VERGA total"
+                                    hint="Commissions client + agence"
+                                    amount={revenuVerga}
+                                    emphasis
+                                />
+                                <FinancialLine
+                                    label="Reversements en attente"
+                                    hint="À verser aux agences"
+                                    amount={stats.reversements_attente}
+                                    muted
+                                />
                             </div>
                         </div>
                     </CardContent>
@@ -231,8 +287,8 @@ export default function AdminDashboard({
                 {/* Commissions par agence */}
                 <Card>
                     <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-semibold">Commissions par agence</CardTitle>
-                        <p className="text-xs text-muted-foreground">Top 10 — commissions générées</p>
+                        <CardTitle className="text-sm font-semibold">Commissions VERGA par agence</CardTitle>
+                        <p className="text-xs text-muted-foreground">Top 10 — commissions client prélevées</p>
                     </CardHeader>
                     <CardContent>
                         <div style={{ height: Math.max(160, commissions_par_agence.length * 40) }}>

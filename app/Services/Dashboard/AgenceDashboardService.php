@@ -4,7 +4,6 @@ namespace App\Services\Dashboard;
 
 use App\Models\Agence;
 use App\Models\Commission;
-use App\Models\Paiement;
 use App\Support\PeriodeFilter;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -24,14 +23,15 @@ class AgenceDashboardService
         $colisQuery = $agence->colis()->whereBetween('created_at', [$debut, $fin]);
         $reclamationsQuery = $agence->reclamations()->whereBetween('created_at', [$debut, $fin]);
 
-        $totalPaiements = (float) Paiement::query()
-            ->join('commandes', 'paiements.commande_id', '=', 'commandes.id')
-            ->where('commandes.agence_id', $agence->id)
-            ->where('paiements.statut', 'validé')
-            ->whereBetween('paiements.created_at', [$debut, $fin])
-            ->sum('paiements.montant');
+        $paiements = ValidatedPaiementStats::aggregate(
+            $debut,
+            $fin,
+            fn (Builder $query) => $query
+                ->join('commandes', 'paiements.commande_id', '=', 'commandes.id')
+                ->where('commandes.agence_id', $agence->id),
+        );
 
-        $totalCommissions = (float) Commission::query()
+        $totalCommissionsAgence = (float) Commission::query()
             ->join('commandes', 'commissions.commande_id', '=', 'commandes.id')
             ->where('commandes.agence_id', $agence->id)
             ->whereBetween('commissions.created_at', [$debut, $fin])
@@ -53,9 +53,12 @@ class AgenceDashboardService
                 'nb_commandes' => (clone $commandesQuery)->count(),
                 'nb_commandes_en_attente' => (clone $commandesQuery)->where('statut', 'en_attente')->count(),
                 'nb_commandes_confirmees' => (clone $commandesQuery)->where('statut', 'confirmée')->count(),
-                'total_paiements' => $totalPaiements,
-                'total_commissions' => $totalCommissions,
-                'revenu_net_estime' => $totalPaiements - $totalCommissions,
+                'total_paiements' => $paiements['total'],
+                'total_sous_total' => $paiements['sous_total'],
+                'total_commissions_client' => $paiements['commissions_client'],
+                'total_commissions_agence' => $totalCommissionsAgence,
+                'total_commissions' => $totalCommissionsAgence,
+                'revenu_net_estime' => $paiements['sous_total'] - $totalCommissionsAgence,
                 'reversements_en_attente' => (float) $agence->reversements()->where('statut', 'en_attente')->sum('montant'),
                 'nb_colis' => (clone $colisQuery)->count(),
                 'nb_colis_en_transit' => (clone $colisQuery)->where('statut', 'en_transit')->count(),
@@ -117,10 +120,23 @@ class AgenceDashboardService
             ->with(['client:id,nom,prenom'])
             ->latest()
             ->limit(5)
-            ->get(['id', 'code', 'client_id', 'nom', 'prenom', 'montant_total', 'statut', 'created_at'])
+            ->get([
+                'id',
+                'code',
+                'client_id',
+                'nom',
+                'prenom',
+                'montant_sous_total',
+                'montant_commission_client',
+                'montant_total',
+                'statut',
+                'created_at',
+            ])
             ->map(fn ($commande) => [
                 'id' => $commande->id,
                 'code' => $commande->code,
+                'montant_sous_total' => $commande->montant_sous_total,
+                'montant_commission_client' => $commande->montant_commission_client,
                 'montant_total' => $commande->montant_total,
                 'statut' => $commande->statut,
                 'created_at' => $commande->created_at?->toIso8601String(),

@@ -34,8 +34,11 @@ class DashboardTest extends AgenceApiTestCase
             ->assertJsonPath('data.stats.nb_commandes', 2)
             ->assertJsonPath('data.stats.nb_commandes_en_attente', 1)
             ->assertJsonPath('data.stats.total_paiements', 50000)
+            ->assertJsonPath('data.stats.total_sous_total', 47500)
+            ->assertJsonPath('data.stats.total_commissions_client', 2500)
+            ->assertJsonPath('data.stats.total_commissions_agence', 2500)
             ->assertJsonPath('data.stats.total_commissions', 2500)
-            ->assertJsonPath('data.stats.revenu_net_estime', 47500)
+            ->assertJsonPath('data.stats.revenu_net_estime', 45000)
             ->assertJsonPath('data.stats.reversements_en_attente', 10000)
             ->assertJsonStructure([
                 'data' => [
@@ -51,6 +54,9 @@ class DashboardTest extends AgenceApiTestCase
                         'nb_commandes_en_attente',
                         'nb_commandes_confirmees',
                         'total_paiements',
+                        'total_sous_total',
+                        'total_commissions_client',
+                        'total_commissions_agence',
                         'total_commissions',
                         'revenu_net_estime',
                         'reversements_en_attente',
@@ -140,6 +146,8 @@ class DashboardTest extends AgenceApiTestCase
             'commande_id' => $commandeConfirmee->id,
             'code' => 'PAY-AG-DASH-001',
             'montant' => 50000,
+            'montant_sous_total' => 47500,
+            'montant_commission_client' => 2500,
             'methode' => 'bamboo_redirect',
             'statut' => 'validé',
         ]);

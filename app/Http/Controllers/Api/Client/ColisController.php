@@ -15,7 +15,7 @@ class ColisController extends ClientApiController
         $clientId = $this->client($request)->id;
 
         $query = Colis::query()
-            ->with(['commande:id,code,client_id', 'agence:id,nom'])
+            ->with(['commande:id,code,client_id', 'agence:id,nom', 'photos'])
             ->whereHas('commande', fn ($q) => $q->where('client_id', $clientId))
             ->latest();
 
@@ -41,6 +41,7 @@ class ColisController extends ClientApiController
             ->with([
                 'agence:id,nom',
                 'commande.offre:id,titre',
+                'photos',
                 'historique' => fn ($q) => $q->latest(),
             ])
             ->findOrFail($colis);
