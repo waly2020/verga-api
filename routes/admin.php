@@ -34,6 +34,8 @@ Route::middleware(['auth', 'verified', 'admin'])
 
         Route::get('offres', [OffreController::class, 'index'])->name('offres.index');
         Route::post('offres', [OffreController::class, 'store'])->name('offres.store');
+        Route::patch('offres/{offre}', [OffreController::class, 'update'])->name('offres.update');
+        Route::delete('offres/{offre}', [OffreController::class, 'destroy'])->name('offres.destroy');
 
         Route::get('types-offres', [TypeOffreController::class, 'index'])->name('types-offres.index');
         Route::post('types-offres', [TypeOffreController::class, 'store'])->name('types-offres.store');

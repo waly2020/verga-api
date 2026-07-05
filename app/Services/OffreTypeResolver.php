@@ -46,4 +46,17 @@ class OffreTypeResolver
             'type_offre_id' => ['Le type d\'offre est obligatoire.'],
         ]);
     }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public function resolveForUpdate(array $data): array
+    {
+        if (! empty($data['type_offre_id']) || ! empty($data['type'])) {
+            return $this->resolveForCreate($data);
+        }
+
+        return $data;
+    }
 }

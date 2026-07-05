@@ -251,6 +251,58 @@ class AgenceEndpoints
     )]
     public function showOffre(): void {}
 
+    #[OA\Patch(
+        path: '/agence/offres/{offre}',
+        operationId: 'agenceUpdateOffre',
+        summary: 'Modifier une offre',
+        tags: ['Agence - Offres'],
+        security: [['sanctum' => []]],
+        parameters: [
+            new OA\PathParameter(name: 'offre', description: 'UUID de l\'offre', schema: new OA\Schema(type: 'string', format: 'uuid')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['titre', 'prix', 'capacite_totale', 'origine', 'destination', 'statut'],
+                properties: [
+                    new OA\Property(property: 'titre', type: 'string', example: 'Forfait Particulier Chine → Libreville'),
+                    new OA\Property(property: 'type_offre_id', type: 'string', format: 'uuid'),
+                    new OA\Property(property: 'type', type: 'string', enum: ['particulier', 'metre_cube', 'conteneur']),
+                    new OA\Property(property: 'prix', type: 'number', format: 'float', example: 8750),
+                    new OA\Property(property: 'capacite_totale', type: 'number', format: 'float', example: 30000, description: 'Doit rester ≥ quantité déjà réservée sur l\'offre'),
+                    new OA\Property(property: 'origine', type: 'string', example: 'Chine'),
+                    new OA\Property(property: 'destination', type: 'string', example: 'Libreville'),
+                    new OA\Property(property: 'description', type: 'string', nullable: true),
+                    new OA\Property(property: 'statut', type: 'string', enum: ['active', 'inactive', 'archivée']),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Offre mise à jour'),
+            new OA\Response(response: 404, description: 'Offre introuvable ou autre agence'),
+            new OA\Response(response: 422, description: 'Validation échouée'),
+        ]
+    )]
+    public function updateOffre(): void {}
+
+    #[OA\Delete(
+        path: '/agence/offres/{offre}',
+        operationId: 'agenceDeleteOffre',
+        summary: 'Supprimer une offre',
+        description: 'Refusé si l\'offre est liée à au moins une commande.',
+        tags: ['Agence - Offres'],
+        security: [['sanctum' => []]],
+        parameters: [
+            new OA\PathParameter(name: 'offre', description: 'UUID de l\'offre', schema: new OA\Schema(type: 'string', format: 'uuid')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Offre supprimée', content: new OA\JsonContent(ref: '#/components/schemas/MessageResponse')),
+            new OA\Response(response: 404, description: 'Offre introuvable ou autre agence'),
+            new OA\Response(response: 422, description: 'Suppression impossible (commandes liées)', content: new OA\JsonContent(ref: '#/components/schemas/ValidationError')),
+        ]
+    )]
+    public function deleteOffre(): void {}
+
     #[OA\Get(
         path: '/agence/commandes',
         operationId: 'agenceListCommandes',

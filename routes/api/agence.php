@@ -38,6 +38,8 @@ Route::prefix('agence')->name('api.agence.')->group(function () {
         Route::get('offres', [OffreController::class, 'index'])->name('offres.index');
         Route::post('offres', [OffreController::class, 'store'])->name('offres.store');
         Route::get('offres/{offre}', [OffreController::class, 'show'])->name('offres.show');
+        Route::patch('offres/{offre}', [OffreController::class, 'update'])->name('offres.update');
+        Route::delete('offres/{offre}', [OffreController::class, 'destroy'])->name('offres.destroy');
 
         Route::get('commandes', [CommandeController::class, 'index'])->name('commandes.index');
         Route::get('commandes/{commande}', [CommandeController::class, 'show'])->name('commandes.show');
