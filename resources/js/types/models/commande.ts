@@ -1,3 +1,4 @@
+import type { ColisApi, ColisRow } from './colis';
 import type {
     AgenceDetail,
     AgenceSummary,
@@ -6,9 +7,8 @@ import type {
     CommandeGuestContact,
     CommandeStatut,
 } from './common';
-import type { ColisRow } from './colis';
 import type { OffreInfo } from './offre';
-import type { PaiementInfo } from './paiement';
+import type { PaiementApi, PaiementInfo } from './paiement';
 
 export type CommissionInfo = {
     id: string;
@@ -68,6 +68,6 @@ export type CommandeApi = {
     created_at: string | null;
     agence?: AgenceSummary | null;
     offre?: { id: string; titre: string; type: string } | null;
-    paiement?: import('./paiement').PaiementApi | null;
-    colis?: import('./colis').ColisApi[];
+    paiement?: PaiementApi | null;
+    colis?: ColisApi[];
 };
