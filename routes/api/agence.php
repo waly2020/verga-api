@@ -12,9 +12,14 @@ use App\Http\Controllers\Api\Agence\OffreController;
 use App\Http\Controllers\Api\Agence\PaiementController;
 use App\Http\Controllers\Api\Agence\PasswordController;
 use App\Http\Controllers\Api\Agence\ReclamationController;
+use App\Http\Controllers\Api\Agence\TypeAgenceController;
+use App\Http\Controllers\Api\TypeOffreController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('agence')->name('api.agence.')->group(function () {
+    Route::get('types-agences', [TypeAgenceController::class, 'index'])->name('types-agences.index');
+    Route::get('types-offres', [TypeOffreController::class, 'index'])->name('types-offres.index');
+
     Route::post('register', [AuthController::class, 'register'])
         ->middleware('throttle:api-agence-register')
         ->name('register');

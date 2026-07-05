@@ -6,6 +6,54 @@ use OpenApi\Attributes as OA;
 
 class AgenceEndpoints
 {
+    #[OA\Get(
+        path: '/agence/types-agences',
+        operationId: 'agenceListTypesAgences',
+        summary: 'Lister les types d\'agence',
+        description: 'Retourne la liste complète des types d\'agence disponibles (sans pagination). Utilisé notamment pour le formulaire d\'inscription (`type_agence_id`). Aucune authentification requise.',
+        tags: ['Agence - Référentiels'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Liste des types d\'agence',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(ref: '#/components/schemas/TypeAgenceResource')
+                        ),
+                    ]
+                )
+            ),
+        ]
+    )]
+    public function listTypesAgences(): void {}
+
+    #[OA\Get(
+        path: '/agence/types-offres',
+        operationId: 'agenceListTypesOffres',
+        summary: 'Lister les types d\'offre',
+        description: 'Retourne la liste complète des types d\'offre actifs (sans pagination). Utilisé pour les formulaires de création d\'offre (`type_offre_id`). Aucune authentification requise.',
+        tags: ['Agence - Référentiels'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Liste des types d\'offre',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(ref: '#/components/schemas/TypeOffreResource')
+                        ),
+                    ]
+                )
+            ),
+        ]
+    )]
+    public function listTypesOffres(): void {}
+
     #[OA\Post(
         path: '/agence/register',
         operationId: 'agenceRegister',
@@ -166,10 +214,11 @@ class AgenceEndpoints
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['titre', 'type', 'prix', 'capacite_totale', 'origine', 'destination'],
+                required: ['titre', 'prix', 'capacite_totale', 'origine', 'destination'],
                 properties: [
                     new OA\Property(property: 'titre', type: 'string', example: 'Forfait Particulier Chine → Libreville'),
-                    new OA\Property(property: 'type', type: 'string', enum: ['particulier', 'metre_cube', 'conteneur']),
+                    new OA\Property(property: 'type_offre_id', type: 'string', format: 'uuid', description: 'Type d\'offre (recommandé)'),
+                    new OA\Property(property: 'type', type: 'string', enum: ['particulier', 'metre_cube', 'conteneur'], description: 'Legacy — requis si type_offre_id absent'),
                     new OA\Property(property: 'prix', type: 'number', format: 'float', example: 8750, description: 'Prix unitaire (FCFA/kg, FCFA/m³ ou FCFA/conteneur)'),
                     new OA\Property(property: 'capacite_totale', type: 'number', format: 'float', example: 30000, description: 'Stock total (kg, m³ ou nombre de conteneurs)'),
                     new OA\Property(property: 'origine', type: 'string', example: 'Chine'),
@@ -298,8 +347,16 @@ class AgenceEndpoints
     #[OA\Patch(
         path: '/agence/colis/{colis}/statut',
         operationId: 'agenceUpdateColisStatut',
-        summary: 'Avancer le statut d\'un colis',
-        description: 'Flux : déposé → en_transit → arrivé → récupéré.',
+        summary: 'Faire avancer le statut d\'un colis (suivi logistique)',
+        description: 'Fait passer le colis à l\'étape suivante du flux logistique et enregistre une entrée dans l\'historique.
+
+**Flux autorisé** : `déposé` → `en_transit` → `arrivé` → `récupéré`
+
+- Sans body : avance automatiquement au statut suivant
+- Avec `statut` : doit correspondre exactement au prochain statut attendu (utile pour le front)
+- `commentaire` optionnel : note visible dans l\'historique
+
+Réponse : détail du colis mis à jour + `next_statut` (prochaine étape ou `null` si terminé).',
         tags: ['Agence - Colis'],
         security: [['sanctum' => []]],
         parameters: [
@@ -308,13 +365,24 @@ class AgenceEndpoints
         requestBody: new OA\RequestBody(
             content: new OA\JsonContent(
                 properties: [
-                    new OA\Property(property: 'commentaire', type: 'string', maxLength: 500, nullable: true),
+                    new OA\Property(property: 'statut', type: 'string', enum: ['en_transit', 'arrivé', 'récupéré'], nullable: true, description: 'Prochain statut attendu (optionnel si avance automatique)'),
+                    new OA\Property(property: 'commentaire', type: 'string', maxLength: 500, nullable: true, example: 'Colis embarqué à Libreville'),
                 ]
             )
         ),
         responses: [
-            new OA\Response(response: 200, description: 'Statut avancé'),
-            new OA\Response(response: 422, description: 'Statut final déjà atteint'),
+            new OA\Response(
+                response: 200,
+                description: 'Statut mis à jour',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/AgenceColisDetailResource'),
+                        new OA\Property(property: 'next_statut', type: 'string', nullable: true, enum: ['en_transit', 'arrivé', 'récupéré'], example: 'arrivé'),
+                    ]
+                )
+            ),
+            new OA\Response(response: 404, description: 'Colis introuvable ou autre agence'),
+            new OA\Response(response: 422, description: 'Statut final ou transition invalide', content: new OA\JsonContent(ref: '#/components/schemas/ValidationError')),
         ]
     )]
     public function updateColisStatut(): void {}

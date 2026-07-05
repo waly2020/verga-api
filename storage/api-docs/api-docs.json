@@ -16,6 +16,66 @@
         }
     ],
     "paths": {
+        "/agence/types-agences": {
+            "get": {
+                "tags": [
+                    "Agence - Référentiels"
+                ],
+                "summary": "Lister les types d'agence",
+                "description": "Retourne la liste complète des types d'agence disponibles (sans pagination). Utilisé notamment pour le formulaire d'inscription (`type_agence_id`). Aucune authentification requise.",
+                "operationId": "agenceListTypesAgences",
+                "responses": {
+                    "200": {
+                        "description": "Liste des types d'agence",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/TypeAgenceResource"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/agence/types-offres": {
+            "get": {
+                "tags": [
+                    "Agence - Référentiels"
+                ],
+                "summary": "Lister les types d'offre",
+                "description": "Retourne la liste complète des types d'offre actifs (sans pagination). Utilisé pour les formulaires de création d'offre (`type_offre_id`). Aucune authentification requise.",
+                "operationId": "agenceListTypesOffres",
+                "responses": {
+                    "200": {
+                        "description": "Liste des types d'offre",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/TypeOffreResource"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/agence/register": {
             "post": {
                 "tags": [
@@ -449,7 +509,6 @@
                             "schema": {
                                 "required": [
                                     "titre",
-                                    "type",
                                     "prix",
                                     "capacite_totale",
                                     "origine",
@@ -460,7 +519,13 @@
                                         "type": "string",
                                         "example": "Forfait Particulier Chine → Libreville"
                                     },
+                                    "type_offre_id": {
+                                        "description": "Type d'offre (recommandé)",
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
                                     "type": {
+                                        "description": "Legacy — requis si type_offre_id absent",
                                         "type": "string",
                                         "enum": [
                                             "particulier",
@@ -791,8 +856,8 @@
                 "tags": [
                     "Agence - Colis"
                 ],
-                "summary": "Avancer le statut d'un colis",
-                "description": "Flux : déposé → en_transit → arrivé → récupéré.",
+                "summary": "Faire avancer le statut d'un colis (suivi logistique)",
+                "description": "Fait passer le colis à l'étape suivante du flux logistique et enregistre une entrée dans l'historique.\n\n**Flux autorisé** : `déposé` → `en_transit` → `arrivé` → `récupéré`\n\n- Sans body : avance automatiquement au statut suivant\n- Avec `statut` : doit correspondre exactement au prochain statut attendu (utile pour le front)\n- `commentaire` optionnel : note visible dans l'historique\n\nRéponse : détail du colis mis à jour + `next_statut` (prochaine étape ou `null` si terminé).",
                 "operationId": "agenceUpdateColisStatut",
                 "parameters": [
                     {
@@ -810,8 +875,19 @@
                         "application/json": {
                             "schema": {
                                 "properties": {
+                                    "statut": {
+                                        "description": "Prochain statut attendu (optionnel si avance automatique)",
+                                        "type": "string",
+                                        "nullable": true,
+                                        "enum": [
+                                            "en_transit",
+                                            "arrivé",
+                                            "récupéré"
+                                        ]
+                                    },
                                     "commentaire": {
                                         "type": "string",
+                                        "example": "Colis embarqué à Libreville",
                                         "nullable": true,
                                         "maxLength": 500
                                     }
@@ -823,10 +899,42 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Statut avancé"
+                        "description": "Statut mis à jour",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/AgenceColisDetailResource"
+                                        },
+                                        "next_statut": {
+                                            "type": "string",
+                                            "example": "arrivé",
+                                            "nullable": true,
+                                            "enum": [
+                                                "en_transit",
+                                                "arrivé",
+                                                "récupéré"
+                                            ]
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Colis introuvable ou autre agence"
                     },
                     "422": {
-                        "description": "Statut final déjà atteint"
+                        "description": "Statut final ou transition invalide",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -1101,7 +1209,7 @@
                     "Client - Offres"
                 ],
                 "summary": "Lister les offres disponibles (paginé)",
-                "description": "Catalogue public des offres actives avec capacité disponible > 0. Aucune authentification requise.\n\nFiltres disponibles :\n- `search` : titre, origine, destination, description\n- `destination` : filtre sur la destination (partiel)\n- `type` : particulier, metre_cube, conteneur\n- `date_debut` / `date_fin` : plage de dates de publication (`created_at`, format `YYYY-MM-DD`)\n- `page` / `per_page` : pagination (défaut 15, max 100)",
+                "description": "Catalogue public des offres actives avec capacité disponible > 0. Aucune authentification requise.\n\nFiltres disponibles :\n- `search` : titre, origine, destination, description\n- `destination` : filtre sur la destination (partiel)\n- `type` : particulier, metre_cube, conteneur (legacy)\n- `type_offre_id` : UUID du type d'offre (recommandé)\n- `date_debut` / `date_fin` : plage de dates de publication (`created_at`, format `YYYY-MM-DD`)\n- `page` / `per_page` : pagination (défaut 15, max 100)",
                 "operationId": "clientListOffres",
                 "parameters": [
                     {
@@ -1132,6 +1240,15 @@
                                 "metre_cube",
                                 "conteneur"
                             ]
+                        }
+                    },
+                    {
+                        "name": "type_offre_id",
+                        "in": "query",
+                        "description": "Filtre par type d'offre (UUID)",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
                         }
                     },
                     {
@@ -1203,6 +1320,36 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/client/types-offres": {
+            "get": {
+                "tags": [
+                    "Client - Offres"
+                ],
+                "summary": "Lister les types d'offre",
+                "description": "Retourne la liste complète des types d'offre actifs (sans pagination). Aucune authentification requise.",
+                "operationId": "clientListTypesOffres",
+                "responses": {
+                    "200": {
+                        "description": "Liste des types d'offre",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/TypeOffreResource"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
                                 }
                             }
                         }
@@ -2477,6 +2624,158 @@
                 },
                 "type": "object"
             },
+            "HistoriqueColisResource": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "statut": {
+                        "type": "string",
+                        "enum": [
+                            "déposé",
+                            "en_transit",
+                            "arrivé",
+                            "récupéré"
+                        ]
+                    },
+                    "commentaire": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "user": {
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "AgenceColisDetailResource": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "reference": {
+                        "type": "string",
+                        "example": "COL-ABCDEFGH"
+                    },
+                    "poids": {
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true
+                    },
+                    "volume": {
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true
+                    },
+                    "statut": {
+                        "type": "string",
+                        "enum": [
+                            "déposé",
+                            "en_transit",
+                            "arrivé",
+                            "récupéré"
+                        ]
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "commande": {
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "historique": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/HistoriqueColisResource"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "TypeOffreResource": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "slug": {
+                        "type": "string",
+                        "example": "particulier",
+                        "enum": [
+                            "particulier",
+                            "metre_cube",
+                            "conteneur"
+                        ]
+                    },
+                    "nom": {
+                        "type": "string",
+                        "example": "Particulier (au kg)"
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "unite": {
+                        "type": "string",
+                        "example": "kg"
+                    },
+                    "unite_label": {
+                        "type": "string",
+                        "example": "au kg"
+                    },
+                    "quantite_entier": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "quantite_min": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 0.001
+                    }
+                },
+                "type": "object"
+            },
+            "TypeAgenceResource": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "nom": {
+                        "type": "string",
+                        "example": "Transitaire"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "Agence de transit et groupage",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
             "ClientOffreResource": {
                 "properties": {
                     "id": {
@@ -2492,12 +2791,26 @@
                         "nullable": true
                     },
                     "type": {
+                        "description": "Legacy — conservé pour compatibilité",
                         "type": "string",
                         "enum": [
                             "particulier",
                             "metre_cube",
                             "conteneur"
                         ]
+                    },
+                    "type_offre_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "type_offre": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/TypeOffreResource"
+                            }
+                        ],
+                        "nullable": true
                     },
                     "prix": {
                         "type": "number",
@@ -3141,6 +3454,10 @@
         {
             "name": "Agence - Auth",
             "description": "Connexion et session agence"
+        },
+        {
+            "name": "Agence - Référentiels",
+            "description": "Données de référence pour l'inscription et les formulaires agence"
         },
         {
             "name": "Agence - Offres",

@@ -26,6 +26,7 @@ use OpenApi\Attributes as OA;
     bearerFormat: 'Sanctum'
 )]
 #[OA\Tag(name: 'Agence - Auth', description: 'Connexion et session agence')]
+#[OA\Tag(name: 'Agence - Référentiels', description: 'Données de référence pour l\'inscription et les formulaires agence')]
 #[OA\Tag(name: 'Agence - Offres', description: 'Gestion des offres de transport')]
 #[OA\Tag(name: 'Agence - Commandes', description: 'Commandes reçues par l\'agence')]
 #[OA\Tag(name: 'Agence - Colis', description: 'Suivi logistique des colis')]
@@ -79,12 +80,66 @@ use OpenApi\Attributes as OA;
     ]
 )]
 #[OA\Schema(
+    schema: 'HistoriqueColisResource',
+    properties: [
+        new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+        new OA\Property(property: 'statut', type: 'string', enum: ['déposé', 'en_transit', 'arrivé', 'récupéré']),
+        new OA\Property(property: 'commentaire', type: 'string', nullable: true),
+        new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'user', type: 'object', nullable: true, properties: [
+            new OA\Property(property: 'id', type: 'integer'),
+            new OA\Property(property: 'name', type: 'string'),
+        ]),
+    ]
+)]
+#[OA\Schema(
+    schema: 'AgenceColisDetailResource',
+    properties: [
+        new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+        new OA\Property(property: 'reference', type: 'string', example: 'COL-ABCDEFGH'),
+        new OA\Property(property: 'poids', type: 'number', format: 'float', nullable: true),
+        new OA\Property(property: 'volume', type: 'number', format: 'float', nullable: true),
+        new OA\Property(property: 'statut', type: 'string', enum: ['déposé', 'en_transit', 'arrivé', 'récupéré']),
+        new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'commande', type: 'object', nullable: true),
+        new OA\Property(
+            property: 'historique',
+            type: 'array',
+            items: new OA\Items(ref: '#/components/schemas/HistoriqueColisResource')
+        ),
+    ]
+)]
+#[OA\Schema(
+    schema: 'TypeOffreResource',
+    properties: [
+        new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+        new OA\Property(property: 'slug', type: 'string', enum: ['particulier', 'metre_cube', 'conteneur'], example: 'particulier'),
+        new OA\Property(property: 'nom', type: 'string', example: 'Particulier (au kg)'),
+        new OA\Property(property: 'description', type: 'string', nullable: true),
+        new OA\Property(property: 'unite', type: 'string', example: 'kg'),
+        new OA\Property(property: 'unite_label', type: 'string', example: 'au kg'),
+        new OA\Property(property: 'quantite_entier', type: 'boolean', example: false),
+        new OA\Property(property: 'quantite_min', type: 'number', format: 'float', example: 0.001),
+    ]
+)]
+#[OA\Schema(
+    schema: 'TypeAgenceResource',
+    properties: [
+        new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+        new OA\Property(property: 'nom', type: 'string', example: 'Transitaire'),
+        new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Agence de transit et groupage'),
+    ]
+)]
+#[OA\Schema(
     schema: 'ClientOffreResource',
     properties: [
         new OA\Property(property: 'id', type: 'string', format: 'uuid'),
         new OA\Property(property: 'titre', type: 'string', example: 'Groupage Paris'),
         new OA\Property(property: 'description', type: 'string', nullable: true),
-        new OA\Property(property: 'type', type: 'string', enum: ['particulier', 'metre_cube', 'conteneur']),
+        new OA\Property(property: 'type', type: 'string', enum: ['particulier', 'metre_cube', 'conteneur'], description: 'Legacy — conservé pour compatibilité'),
+        new OA\Property(property: 'type_offre_id', type: 'string', format: 'uuid', nullable: true),
+        new OA\Property(property: 'type_offre', ref: '#/components/schemas/TypeOffreResource', nullable: true),
         new OA\Property(property: 'prix', type: 'number', format: 'float', example: 2500),
         new OA\Property(property: 'capacite_totale', type: 'number', format: 'float', example: 1000),
         new OA\Property(property: 'capacite_disponible', type: 'number', format: 'float', example: 750),

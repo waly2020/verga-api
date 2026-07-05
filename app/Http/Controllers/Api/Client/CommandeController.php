@@ -57,7 +57,7 @@ class CommandeController extends ClientApiController
     {
         $query = $this->client($request)
             ->commandes()
-            ->with(['agence:id,nom', 'offre:id,titre,type'])
+            ->with(['agence:id,nom', 'offre.typeOffre'])
             ->latest();
 
         if ($search = $request->get('search')) {
@@ -77,7 +77,7 @@ class CommandeController extends ClientApiController
     {
         $model = $this->client($request)
             ->commandes()
-            ->with(['agence:id,nom,email,ville', 'offre', 'paiement', 'colis'])
+            ->with(['agence:id,nom,email,ville', 'offre.typeOffre', 'paiement', 'colis'])
             ->findOrFail($commande);
 
         return CommandeResource::make($model);

@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\PaiementController;
 use App\Http\Controllers\Admin\ReclamationController;
 use App\Http\Controllers\Admin\ReversementController;
 use App\Http\Controllers\Admin\TypeAgenceController;
+use App\Http\Controllers\Admin\TypeOffreController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified', 'admin'])
@@ -33,6 +34,12 @@ Route::middleware(['auth', 'verified', 'admin'])
 
         Route::get('offres', [OffreController::class, 'index'])->name('offres.index');
         Route::post('offres', [OffreController::class, 'store'])->name('offres.store');
+
+        Route::get('types-offres', [TypeOffreController::class, 'index'])->name('types-offres.index');
+        Route::post('types-offres', [TypeOffreController::class, 'store'])->name('types-offres.store');
+        Route::patch('types-offres/{typeOffre}', [TypeOffreController::class, 'update'])->name('types-offres.update');
+        Route::delete('types-offres/{typeOffre}', [TypeOffreController::class, 'destroy'])->name('types-offres.destroy');
+
         Route::get('commandes', [CommandeController::class, 'index'])->name('commandes.index');
         Route::get('commandes/{commande}', [CommandeController::class, 'show'])->name('commandes.show');
         Route::get('colis', [ColisController::class, 'index'])->name('colis.index');

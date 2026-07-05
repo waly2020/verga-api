@@ -7,3 +7,4 @@ export type * from './dashboard';
 export type * from './offre';
 export type * from './paiement';
 export type * from './pricing';
+export type * from './type-offre';

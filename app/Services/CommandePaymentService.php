@@ -13,6 +13,7 @@ class CommandePaymentService
     public function __construct(
         private readonly BambooPayService $bambooPay,
         private readonly OrderPricingService $pricing,
+        private readonly OffreQuantityRules $quantityRules,
     ) {}
 
     /**
@@ -98,16 +99,6 @@ class CommandePaymentService
 
     private function validateQuantiteChunk(Offre $offre, float $quantite): void
     {
-        if ($quantite <= 0) {
-            throw ValidationException::withMessages([
-                'quantite' => ['La quantité doit être supérieure à zéro.'],
-            ]);
-        }
-
-        if ($offre->type === 'conteneur' && floor($quantite) !== $quantite) {
-            throw ValidationException::withMessages([
-                'quantite' => ['La quantité doit être un nombre entier pour une offre conteneur.'],
-            ]);
-        }
+        $this->quantityRules->validate($offre, $quantite);
     }
 }

@@ -20,7 +20,8 @@ class StoreOffreRequest extends FormRequest
     {
         return [
             'titre' => ['required', 'string', 'max:255'],
-            'type' => ['required', Rule::in(['particulier', 'metre_cube', 'conteneur'])],
+            'type_offre_id' => ['required_without:type', 'uuid', 'exists:types_offres,id'],
+            'type' => ['required_without:type_offre_id', Rule::in(['particulier', 'metre_cube', 'conteneur'])],
             'prix' => ['required', 'numeric', 'min:0'],
             'capacite_totale' => ['required', 'numeric', 'min:0.001'],
             'origine' => ['required', 'string', 'max:255'],
@@ -37,7 +38,8 @@ class StoreOffreRequest extends FormRequest
     {
         return [
             'titre.required' => 'Le titre est obligatoire.',
-            'type.required' => 'Le type est obligatoire.',
+            'type_offre_id.required_without' => 'Le type d\'offre est obligatoire.',
+            'type.required_without' => 'Le type est obligatoire.',
             'prix.required' => 'Le prix est obligatoire.',
             'prix.min' => 'Le prix ne peut pas être négatif.',
             'origine.required' => "L'origine est obligatoire.",

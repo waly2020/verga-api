@@ -7,6 +7,7 @@ use App\Models\Colis;
 use App\Models\Commande;
 use App\Models\Offre;
 use App\Models\Paiement;
+use App\Models\TypeOffre;
 use App\Models\User;
 
 class AgenceResourcesTest extends AgenceApiTestCase
@@ -30,7 +31,24 @@ class AgenceResourcesTest extends AgenceApiTestCase
         $this->withAgenceToken($token)
             ->getJson('/api/v1/agence/offres')
             ->assertOk()
-            ->assertJsonCount(1, 'data');
+            ->assertJsonCount(1, 'data')
+            ->assertJsonStructure([
+                'data' => [[
+                    'id',
+                    'titre',
+                    'description',
+                    'type',
+                    'type_offre_id',
+                    'prix',
+                    'capacite_totale',
+                    'capacite_disponible',
+                    'origine',
+                    'destination',
+                    'statut',
+                    'created_at',
+                    'updated_at',
+                ]],
+            ]);
 
         $this->withAgenceToken($token)
             ->postJson('/api/v1/agence/offres', [
@@ -43,11 +61,41 @@ class AgenceResourcesTest extends AgenceApiTestCase
                 'description' => 'Conteneur complet',
             ])
             ->assertCreated()
-            ->assertJsonPath('data.titre', 'Nouvelle offre');
+            ->assertJsonPath('data.titre', 'Nouvelle offre')
+            ->assertJsonPath('data.type', 'conteneur')
+            ->assertJsonStructure(['data' => ['type_offre_id', 'type_offre']]);
 
         $this->assertDatabaseHas('offres', [
             'agence_id' => $agence->id,
             'titre' => 'Nouvelle offre',
+            'type' => 'conteneur',
+        ]);
+    }
+
+    public function test_agence_can_create_offre_with_type_offre_id(): void
+    {
+        ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
+
+        $typeOffre = TypeOffre::query()->where('slug', 'metre_cube')->firstOrFail();
+
+        $this->withAgenceToken($token)
+            ->postJson('/api/v1/agence/offres', [
+                'titre' => 'Offre m³',
+                'type_offre_id' => $typeOffre->id,
+                'prix' => 15000,
+                'capacite_totale' => 50,
+                'origine' => 'Libreville',
+                'destination' => 'Paris',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.type', 'metre_cube')
+            ->assertJsonPath('data.type_offre_id', $typeOffre->id);
+
+        $this->assertDatabaseHas('offres', [
+            'agence_id' => $agence->id,
+            'titre' => 'Offre m³',
+            'type' => 'metre_cube',
+            'type_offre_id' => $typeOffre->id,
         ]);
     }
 
@@ -111,14 +159,18 @@ class AgenceResourcesTest extends AgenceApiTestCase
         $this->withAgenceToken($token)
             ->getJson('/api/v1/agence/commandes')
             ->assertOk()
-            ->assertJsonPath('data.0.code', 'CMD-TEST-001');
+            ->assertJsonPath('data.0.code', 'CMD-TEST-001')
+            ->assertJsonPath('data.0.offre.capacite_totale', 1000)
+            ->assertJsonPath('data.0.offre.capacite_disponible', 1000);
 
         $this->withAgenceToken($token)
             ->patchJson("/api/v1/agence/commandes/{$commande->id}/statut", [
                 'statut' => 'confirmée',
             ])
             ->assertOk()
-            ->assertJsonPath('data.statut', 'confirmée');
+            ->assertJsonPath('data.statut', 'confirmée')
+            ->assertJsonPath('data.offre.capacite_totale', 1000)
+            ->assertJsonPath('data.offre.capacite_disponible', 1000);
     }
 
     public function test_agence_can_list_colis_and_advance_statut(): void

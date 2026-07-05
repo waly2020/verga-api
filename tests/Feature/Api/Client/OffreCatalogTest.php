@@ -48,7 +48,21 @@ class OffreCatalogTest extends ClientApiTestCase
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonStructure([
-                'data' => [['id', 'titre', 'destination', 'prix', 'capacite_disponible', 'created_at', 'agence']],
+                'data' => [[
+                    'id',
+                    'titre',
+                    'description',
+                    'type',
+                    'type_offre_id',
+                    'prix',
+                    'capacite_totale',
+                    'capacite_disponible',
+                    'origine',
+                    'destination',
+                    'statut',
+                    'created_at',
+                    'agence',
+                ]],
                 'links',
                 'meta' => ['current_page', 'last_page', 'per_page', 'total'],
             ]);

@@ -19,27 +19,24 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import admin from '@/routes/admin';
-import type { AgenceSummary, CreateOffreFormData } from '@/types';
+import type { AgenceSummary, CreateOffreFormData, TypeOffreApi } from '@/types';
 
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     agences: AgenceSummary[];
+    typesOffres: TypeOffreApi[];
 }
 
 type FormData = CreateOffreFormData;
 
-const TYPE_OPTIONS = [
-    { value: 'particulier',  label: 'Au kg (particulier)' },
-    { value: 'metre_cube',   label: 'Au m³ (mètre cube)' },
-    { value: 'conteneur',    label: 'Par conteneur' },
-];
+export function CreateOffreDialog({ open, onOpenChange, agences, typesOffres }: Props) {
+    const defaultTypeId = typesOffres[0]?.id ?? '';
 
-export function CreateOffreDialog({ open, onOpenChange, agences }: Props) {
     const { data, setData, post, processing, errors, reset } = useForm<FormData>({
         agence_id:   '',
         titre:       '',
-        type:        'particulier',
+        type_offre_id: defaultTypeId,
         prix:        '',
         capacite_totale: '',
         origine:     '',
@@ -48,10 +45,12 @@ export function CreateOffreDialog({ open, onOpenChange, agences }: Props) {
         statut:      'active',
     });
 
+    const selectedType = typesOffres.find((t) => t.id === data.type_offre_id);
+
     const handleOpenChange = (value: boolean) => {
         if (!value) {
-reset();
-}
+            reset();
+        }
 
         onOpenChange(value);
     };
@@ -121,17 +120,24 @@ reset();
                             <Label htmlFor="offre-type">
                                 Type <span className="text-destructive">*</span>
                             </Label>
-                            <Select value={data.type} onValueChange={(v) => setData('type', v)}>
+                            <Select
+                                value={data.type_offre_id}
+                                onValueChange={(v) => setData('type_offre_id', v)}
+                            >
                                 <SelectTrigger id="offre-type">
-                                    <SelectValue />
+                                    <SelectValue placeholder="Choisir un type" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {TYPE_OPTIONS.map((t) => (
-                                        <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                                    {typesOffres.map((t) => (
+                                        <SelectItem key={t.id} value={t.id}>{t.nom}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
-                            {errors.type && <p className="text-xs text-destructive">{errors.type}</p>}
+                            {(errors.type_offre_id || errors.type) && (
+                                <p className="text-xs text-destructive">
+                                    {errors.type_offre_id ?? errors.type}
+                                </p>
+                            )}
                         </div>
 
                         <div className="space-y-1.5">
@@ -148,11 +154,11 @@ reset();
                                 placeholder="Ex : 5000"
                             />
                             {errors.prix && <p className="text-xs text-destructive">{errors.prix}</p>}
-                            <p className="text-xs text-muted-foreground">
-                                {data.type === 'particulier' && 'Prix par kg'}
-                                {data.type === 'metre_cube'  && 'Prix par m³'}
-                                {data.type === 'conteneur'   && 'Prix par conteneur'}
-                            </p>
+                            {selectedType && (
+                                <p className="text-xs text-muted-foreground">
+                                    Prix {selectedType.unite_label}
+                                </p>
+                            )}
                         </div>
 
                         <div className="space-y-1.5 sm:col-span-2">
@@ -166,7 +172,11 @@ reset();
                                 step="any"
                                 value={data.capacite_totale}
                                 onChange={(e) => setData('capacite_totale', e.target.value)}
-                                placeholder="Ex : 30000 kg, 6 conteneurs..."
+                                placeholder={
+                                    selectedType
+                                        ? `Ex : stock en ${selectedType.unite}`
+                                        : 'Ex : 30000 kg, 6 conteneurs...'
+                                }
                             />
                             {errors.capacite_totale && (
                                 <p className="text-xs text-destructive">{errors.capacite_totale}</p>
