@@ -4,6 +4,7 @@ namespace App\Http\Resources\Api\Client;
 
 use App\Http\Resources\Api\PaiementResource;
 use App\Models\Commande;
+use App\Support\CommandeClientPresenter;
 use App\Support\QuantiteFormatter;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -33,6 +34,7 @@ class CommandeResource extends JsonResource
             'nom' => $this->nom,
             'prenom' => $this->prenom,
             'telephone' => $this->telephone,
+            'client' => CommandeClientPresenter::for($this->resource),
             'created_at' => $this->created_at?->toIso8601String(),
             'agence' => $this->whenLoaded('agence', fn () => [
                 'id' => $this->agence?->id,

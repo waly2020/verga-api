@@ -12,7 +12,7 @@ class TypeOffreController extends Controller
     public function index(): AnonymousResourceCollection
     {
         return TypeOffreResource::collection(
-            TypeOffre::query()->actif()->orderBy('nom')->get()
+            TypeOffre::query()->platform()->actif()->orderBy('nom')->get()
         );
     }
 }

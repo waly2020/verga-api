@@ -85,6 +85,7 @@ Objectif : disposer d'un schéma fiable, documenté et migrable avant tout déve
 
 - [ ] `roles` — rôles et permissions (admin, agence, client, agent)
 - [ ] `types_agences` — typologie des agences
+- [x] `types_offres` — types d'offre plateforme + `agence_id` nullable (types personnalisés par agence)
 - [ ] Adapter / étendre `users` pour le multi-rôle VERGA
 
 ### 1.3 Migrations — cœur métier
@@ -154,7 +155,7 @@ Objectif : construire l'interface admin (structure, navigation, pages) — d'abo
 ### 2.4 Composants UI réutilisables
 
 - [x] Tableau de données (tri, pagination UI)
-- [x] Filtres et barre de recherche (UI)
+- [x] Filtres et barre de recherche (UI + recherche serveur fonctionnelle sur agences, clients, commandes, colis)
 - [x] Modales de confirmation (suppression, blocage)
 - [x] Badges de statut (commande, colis, paiement)
 - [x] Empty states et messages d'erreur
@@ -184,7 +185,7 @@ Objectif : connecter chaque écran aux modèles, controllers et règles métier 
 - [x] Fiche détail agence (infos, gérant, stats, offres, commandes récentes)
 - [x] Bloquer / débloquer un compte agence (PATCH + toast confirmation)
 - [x] Supprimer un compte agence (DELETE + redirect + toast)
-- [x] Filtres (statut, recherche serveur avec debounce 350ms)
+- [x] Filtres (statut, recherche serveur avec debounce 350ms) — correction `paginationMeta` + `DataTable` (recherche fonctionnelle)
 - [x] Flash toasts (success/error) via HandleInertiaRequests + useFlashToast
 
 ### 3.3 Consultation offres et colis
@@ -197,11 +198,12 @@ Objectif : connecter chaque écran aux modèles, controllers et règles métier 
 
 ### 3.4 Commandes et paiements
 
-- [x] Liste des achats clients (paginée, recherche code, filtre statut)
+- [x] Liste des achats clients (paginée, recherche code / client / agence, filtre statut)
 - [~] Détail commande (client, offre, montant, statut) — **en attente de validation**
 - [x] Liste des paiements (paginée, recherche référence, filtre statut)
 - [x] Action admin : vérifier le statut d'un paiement via Bamboo Pay (réf. Bamboo ou code VERGA)
 - [~] Lien commande ↔ paiement ↔ commission — **en attente de validation**
+- [x] Page retour paiement Bamboo (`/paiement/{code}/retour`) — récap Inertia + facture PDF + URL dynamique + middleware normalisation paramètres Bamboo
 
 ### 3.5 Reversements et gains
 
@@ -260,12 +262,20 @@ Objectif : connecter chaque écran aux modèles, controllers et règles métier 
 
 - [~] **Auth agence** (inscription, connexion, profil, déconnexion, mot de passe) — **en attente de validation**
 - [~] **Métier agence** (offres, commandes, colis, réclamations, paiements) — **en attente de validation**
+- [x] **Types d'offre agence** — CRUD types personnalisés (`agence_id` sur `types_offres`, API + Swagger + tests)
 - [~] **Clients** — table `clients`, admin consultation (web), API inscription/métier (app externe) — **en attente de validation**
 - [ ] Endpoints client avancés (avis, recherche offres, commande)
-- [~] Service Bamboo Pay (redirect, instant, statut GET, callback) — **en attente de validation**
+- [~] Service Bamboo Pay (redirect, instant, statut GET, callback, page retour marchand) — **en attente de validation**
 - [ ] Branchement paiement commande + commissions sur callback Bamboo Pay
 - [ ] Endpoints admin (si nécessaire côté API)
 - [ ] Documentation et tests API (autres modules)
+
+### 2.3 Implémentation — Client API
+
+- [x] Quantités formatées avec unité type d'offre (`quantite_label`, `QuantiteFormatter`, checkout, statut paiement)
+- [x] Liste paiements simplifiée (code, montant net, date, `bamboo_reference`, `commande_code` — sans commission)
+- [x] Colis : photos renvoyées en liste et détail (`photos[]` avec `url`)
+- [x] Commandes : client invité exposé via `CommandeClientPresenter` (plus de `client: null`)
 
 ---
 
@@ -332,7 +342,7 @@ Fonctionnalités validées en conception mais **non planifiées pour l’implém
 
 ## Journal de suivi
 
-> **Dernière session** : 2026-07-07 — poste de développement **PPVTSGA006** (`C:\Users\Jean-Bosco\Desktop\verga-api`)
+> **Dernière session** : 2026-07-07 — poste **PPVTSGA006** — quantités unité, retour Bamboo, API paiements, recherches admin, client invité, CRUD types d'offre agence
 
 | Date | Poste | Module | Action | Statut |
 |------|-------|--------|--------|--------|
@@ -354,6 +364,12 @@ Fonctionnalités validées en conception mais **non planifiées pour l’implém
 | 2026-07-07 | **PPVTSGA006** | Admin | Page paiements : bouton « Vérifier » (Bamboo Pay via `bamboo_reference` ou code VERGA) + route `PATCH /admin/paiements/{paiement}/verifier-statut` | `[x]` |
 | 2026-07-07 | **PPVTSGA006** | API Client | Vérification statut paiement : lookup Bamboo avec `bamboo_reference` sinon `code` VERGA (`CommandeCheckoutService`) | `[x]` |
 | 2026-07-07 | **PPVTSGA006** | Colis | Nouveau statut `chez_client` (colis encore chez le client) — migration, checkout API, flux admin/API agence, UI liste + fiche détail (5 étapes) | `[x]` |
+| 2026-07-07 | **PPVTSGA006** | API | Quantités avec libellé unité (`quantite_label`, type d'offre) — client, agence, checkout, OpenAPI v1.2 | `[x]` |
+| 2026-07-07 | **PPVTSGA006** | Paiements | URL retour Bamboo dynamique (`PaiementReturnUrl`), page récap `/paiement/{code}/retour`, facture PDF, middleware `NormalizeBambooPayReturnUrl` | `[x]` |
+| 2026-07-07 | **PPVTSGA006** | API | Liste paiements client/agence allégée (montant net, références uniquement — sans commission) | `[x]` |
+| 2026-07-07 | **PPVTSGA006** | Admin | Barres de recherche fonctionnelles — agences, clients, commandes, colis (`paginationMeta` + fix `DataTable`) | `[x]` |
+| 2026-07-07 | **PPVTSGA006** | API | Commandes : `client` renseigné pour commandes invité (`CommandeClientPresenter`) | `[x]` |
+| 2026-07-07 | **PPVTSGA006** | API Agence | CRUD types d'offre personnalisés — migration `agence_id`, 5 endpoints, Swagger, `OffreTypeResolver` | `[x]` |
 
 ---
 
@@ -366,10 +382,14 @@ Fonctionnalités validées en conception mais **non planifiées pour l’implém
 - **API auth** : Sanctum Bearer token, préfixe `/api/v1/agence`, login via email du gérant (`users.email`).
 - **Colis — flux logistique** : `chez_client` (création à la commande API) → `déposé` (dépôt agence) → `en_transit` → `arrivé` → `récupéré`. Le paiement validé ne fait pas avancer le statut colis automatiquement.
 - **Paiements admin** : vérification manuelle Bamboo Pay possible depuis `/admin/paiements` (paiements `en_attente`).
+- **Retour Bamboo Pay** : URL envoyée à Bamboo = `{APP_URL}/paiement/{code}/retour?ref={code}` ; middleware corrige les redirections mal formées (`&status=...` sans `?`).
+- **API paiements (listes)** : champs `code`, `montant` (net transport), `created_at`, `bamboo_reference`, `commande_code` uniquement.
+- **Types d'offre** : types plateforme (`agence_id` null) + types créés par chaque agence (slug unique par agence) ; CRUD API `/api/v1/agence/types-offres`.
+- **Commandes invité** : objet `client` rempli depuis `nom` / `prenom` / `telephone` de la commande si pas de `client_id`.
 - **Références** : `CONTEXTE/DOCUMENT_DESCRIPTIF_DE_VERGA.pdf`, `CONTEXTE/Documentation_BDD_VERGA.pdf`.
 
 ---
 
 ## Prochaine action suggérée
 
-**Déployer sur le serveur** : `composer install`, `php artisan migrate` (statut `chez_client`), `npm run build`, puis **valider l'API auth agence** (§ 2.2) et les **endpoints métier agence** (offres, commandes, colis).
+**Déployer sur le serveur** : `composer install`, `php artisan migrate` (migrations `chez_client`, `bamboo_message`, `agence_id` sur `types_offres`), `php artisan l5-swagger:generate`, `npm run build`, puis **valider l'API agence** (types d'offre CRUD, offres avec type perso, listes paiements) et les **recherches admin**.

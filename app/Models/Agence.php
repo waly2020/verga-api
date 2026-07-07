@@ -38,6 +38,11 @@ class Agence extends Model
         return $this->hasMany(Offre::class);
     }
 
+    public function typesOffres(): HasMany
+    {
+        return $this->hasMany(TypeOffre::class);
+    }
+
     public function commandes(): HasMany
     {
         return $this->hasMany(Commande::class);

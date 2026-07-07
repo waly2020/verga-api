@@ -38,6 +38,7 @@ class TypeOffreController extends Controller
     public function store(StoreTypeOffreRequest $request): RedirectResponse
     {
         $validated = $request->validated();
+        $validated['agence_id'] = null;
         $validated['quantite_entier'] = $request->boolean('quantite_entier');
         $validated['actif'] = $request->boolean('actif', true);
 

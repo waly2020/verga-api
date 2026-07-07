@@ -4,6 +4,7 @@ namespace App\Services\Dashboard;
 
 use App\Models\Agence;
 use App\Models\Commission;
+use App\Support\CommandeClientPresenter;
 use App\Support\PeriodeFilter;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -126,6 +127,7 @@ class AgenceDashboardService
                 'client_id',
                 'nom',
                 'prenom',
+                'telephone',
                 'montant_sous_total',
                 'montant_commission_client',
                 'montant_total',
@@ -140,15 +142,7 @@ class AgenceDashboardService
                 'montant_total' => $commande->montant_total,
                 'statut' => $commande->statut,
                 'created_at' => $commande->created_at?->toIso8601String(),
-                'client' => $commande->client ? [
-                    'id' => $commande->client->id,
-                    'nom' => $commande->client->nom,
-                    'prenom' => $commande->client->prenom,
-                ] : ($commande->nom && $commande->prenom ? [
-                    'nom' => $commande->nom,
-                    'prenom' => $commande->prenom,
-                    'invite' => true,
-                ] : null),
+                'client' => CommandeClientPresenter::for($commande),
             ])
             ->values()
             ->all();

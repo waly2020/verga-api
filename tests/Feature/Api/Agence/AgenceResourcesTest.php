@@ -303,6 +303,50 @@ class AgenceResourcesTest extends AgenceApiTestCase
             ->assertJsonPath('data.offre.capacite_disponible', 1000);
     }
 
+    public function test_agence_commandes_return_guest_client_from_commande_fields(): void
+    {
+        ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
+
+        $offre = Offre::create([
+            'agence_id' => $agence->id,
+            'titre' => 'Offre invité',
+            'type' => 'particulier',
+            'prix' => 5000,
+            'capacite_totale' => 100,
+            'capacite_disponible' => 100,
+            'origine' => 'Paris',
+            'destination' => 'Libreville',
+            'statut' => 'active',
+        ]);
+
+        $commande = Commande::create([
+            'client_id' => null,
+            'offre_id' => $offre->id,
+            'agence_id' => $agence->id,
+            'code' => 'CMD-GUEST-001',
+            'nom' => 'Obame',
+            'prenom' => 'Sarah',
+            'telephone' => '0612345678',
+            'quantite' => 2,
+            'montant_total' => 10000,
+            'statut' => 'en_attente',
+        ]);
+
+        $this->withAgenceToken($token)
+            ->getJson('/api/v1/agence/commandes')
+            ->assertOk()
+            ->assertJsonPath('data.0.client.id', null)
+            ->assertJsonPath('data.0.client.nom', 'Obame')
+            ->assertJsonPath('data.0.client.prenom', 'Sarah')
+            ->assertJsonPath('data.0.client.telephone', '0612345678');
+
+        $this->withAgenceToken($token)
+            ->getJson("/api/v1/agence/commandes/{$commande->id}")
+            ->assertOk()
+            ->assertJsonPath('data.client.nom', 'Obame')
+            ->assertJsonPath('data.client.prenom', 'Sarah');
+    }
+
     public function test_agence_can_list_colis_and_advance_statut(): void
     {
         ['agence' => $agence, 'user' => $user, 'token' => $token] = $this->createAuthenticatedAgence();

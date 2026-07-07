@@ -13,12 +13,14 @@ use App\Http\Controllers\Api\Agence\PaiementController;
 use App\Http\Controllers\Api\Agence\PasswordController;
 use App\Http\Controllers\Api\Agence\ReclamationController;
 use App\Http\Controllers\Api\Agence\TypeAgenceController;
-use App\Http\Controllers\Api\TypeOffreController;
+use App\Http\Controllers\Api\Agence\TypeOffreController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('agence')->name('api.agence.')->group(function () {
     Route::get('types-agences', [TypeAgenceController::class, 'index'])->name('types-agences.index');
-    Route::get('types-offres', [TypeOffreController::class, 'index'])->name('types-offres.index');
+    Route::get('types-offres', [TypeOffreController::class, 'index'])
+        ->middleware('optional.sanctum')
+        ->name('types-offres.index');
 
     Route::post('register', [AuthController::class, 'register'])
         ->middleware('throttle:api-agence-register')
@@ -34,6 +36,11 @@ Route::prefix('agence')->name('api.agence.')->group(function () {
         Route::put('password', [PasswordController::class, 'update'])->name('password.update');
 
         Route::get('dashboard', DashboardController::class)->name('dashboard');
+
+        Route::post('types-offres', [TypeOffreController::class, 'store'])->name('types-offres.store');
+        Route::get('types-offres/{typeOffre}', [TypeOffreController::class, 'show'])->name('types-offres.show');
+        Route::patch('types-offres/{typeOffre}', [TypeOffreController::class, 'update'])->name('types-offres.update');
+        Route::delete('types-offres/{typeOffre}', [TypeOffreController::class, 'destroy'])->name('types-offres.destroy');
 
         Route::get('offres', [OffreController::class, 'index'])->name('offres.index');
         Route::post('offres', [OffreController::class, 'store'])->name('offres.store');

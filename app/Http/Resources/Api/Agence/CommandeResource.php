@@ -4,6 +4,7 @@ namespace App\Http\Resources\Api\Agence;
 
 use App\Http\Resources\Api\PaiementResource;
 use App\Models\Commande;
+use App\Support\CommandeClientPresenter;
 use App\Support\QuantiteFormatter;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -31,12 +32,7 @@ class CommandeResource extends JsonResource
             'montant_total' => $this->montant_total,
             'statut' => $this->statut,
             'created_at' => $this->created_at?->toIso8601String(),
-            'client' => $this->whenLoaded('client', fn () => [
-                'id' => $this->client?->id,
-                'nom' => $this->client?->nom,
-                'prenom' => $this->client?->prenom,
-                'email' => $this->client?->email,
-            ]),
+            'client' => CommandeClientPresenter::for($this->resource),
             'offre' => OffreResource::make($this->whenLoaded('offre')),
             'paiement' => $this->whenLoaded('paiement', function () {
                 $this->paiement->setRelation('commande', $this->resource);

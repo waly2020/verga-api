@@ -1,6 +1,8 @@
 <?php
 
-namespace App\Http\Requests\Admin;
+declare(strict_types=1);
+
+namespace App\Http\Requests\Api\Agence;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -10,7 +12,7 @@ class StoreTypeOffreRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->isAdmin() ?? false;
+        return true;
     }
 
     /**
@@ -18,8 +20,16 @@ class StoreTypeOffreRequest extends FormRequest
      */
     public function rules(): array
     {
+        $agenceId = $this->user()?->agence?->id;
+
         return [
-            'slug' => ['required', 'string', 'max:50', 'regex:/^[a-z][a-z0-9_]*$/', Rule::unique('types_offres', 'slug')->whereNull('agence_id')],
+            'slug' => [
+                'required',
+                'string',
+                'max:50',
+                'regex:/^[a-z][a-z0-9_]*$/',
+                Rule::unique('types_offres', 'slug')->where('agence_id', $agenceId),
+            ],
             'nom' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:500'],
             'unite' => ['required', 'string', 'max:50'],
@@ -38,7 +48,7 @@ class StoreTypeOffreRequest extends FormRequest
         return [
             'slug.required' => 'Le code (slug) est obligatoire.',
             'slug.regex' => 'Le code doit commencer par une lettre et ne contenir que des minuscules, chiffres et underscores.',
-            'slug.unique' => 'Ce code est déjà utilisé.',
+            'slug.unique' => 'Ce code est déjà utilisé pour votre agence.',
             'nom.required' => 'Le nom est obligatoire.',
             'unite.required' => "L'unité est obligatoire.",
             'unite_label.required' => "Le libellé d'unité est obligatoire.",

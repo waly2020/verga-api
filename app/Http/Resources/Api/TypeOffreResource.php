@@ -16,6 +16,8 @@ class TypeOffreResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'agence_id' => $this->agence_id,
+            'is_platform' => $this->isPlatform(),
             'slug' => $this->slug,
             'nom' => $this->nom,
             'description' => $this->description,
@@ -23,6 +25,7 @@ class TypeOffreResource extends JsonResource
             'unite_label' => $this->unite_label,
             'quantite_entier' => $this->quantite_entier,
             'quantite_min' => (float) $this->quantite_min,
+            'actif' => $this->actif,
         ];
     }
 }

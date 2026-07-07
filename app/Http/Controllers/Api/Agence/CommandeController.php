@@ -19,7 +19,7 @@ class CommandeController extends AgenceApiController
     {
         $query = $this->agence($request)
             ->commandes()
-            ->with(['client:id,nom,prenom,email', 'offre.typeOffre'])
+            ->with(['client:id,nom,prenom,email,telephone', 'offre.typeOffre'])
             ->latest();
 
         if ($search = $request->get('search')) {
