@@ -7,6 +7,7 @@ import { ExportButtons } from '@/components/admin/export-buttons';
 import { StatusBadge } from '@/components/admin/status-badge';
 import { Button } from '@/components/ui/button';
 import admin from '@/routes/admin';
+import { formatQuantite } from '@/lib/format-quantite';
 import type { CommandeRow, Paginated } from '@/types';
 
 interface Props {
@@ -30,7 +31,7 @@ const columns: Column<CommandeRow>[] = [
     { key: 'code', label: 'Code', render: (r) => <span className="font-mono text-xs font-medium">{r.code}</span> },
     { key: 'client', label: 'Client', render: (r) => clientLabel(r) },
     { key: 'agence', label: 'Agence', render: (r) => r.agence?.nom ?? '—' },
-    { key: 'quantite', label: 'Quantité' },
+    { key: 'quantite', label: 'Quantité', render: (r) => formatQuantite(r.quantite, r.offre?.type_offre) },
     {
         key: 'montant_total',
         label: 'Montant',

@@ -10,7 +10,7 @@ export type TypeOffreApi = {
     actif?: boolean;
 };
 
-export type TypeOffreSummary = Pick<TypeOffreApi, 'id' | 'slug' | 'nom' | 'unite_label'>;
+export type TypeOffreSummary = Pick<TypeOffreApi, 'id' | 'slug' | 'nom' | 'unite' | 'unite_label' | 'quantite_entier'>;
 
 export type TypeOffreRow = TypeOffreApi & {
     actif: boolean;

@@ -7,7 +7,8 @@ import type {
     CommandeGuestContact,
     CommandeStatut,
 } from './common';
-import type { OffreInfo } from './offre';
+import type { OffreInfo, OffreSummary } from './offre';
+import type { QuantiteTypeOffre } from '@/lib/format-quantite';
 import type { PaiementApi, PaiementInfo } from './paiement';
 
 export type CommissionInfo = {
@@ -24,11 +25,16 @@ export type ReclamationRow = {
     created_at: string;
 };
 
+export type CommandeOffreEmbed = OffreSummary & {
+    type_offre?: QuantiteTypeOffre | null;
+};
+
 export type CommandeRow = CommandeGuestContact & {
     id: string;
     code: string;
     client: ClientSummary | null;
     agence: AgenceSummary | null;
+    offre?: CommandeOffreEmbed | null;
     quantite: string;
     montant_sous_total?: string | null;
     montant_commission_client?: string | null;

@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import admin from '@/routes/admin';
+import { formatQuantite } from '@/lib/format-quantite';
 import type { CommandeDetail } from '@/types';
 
 interface Props {
@@ -217,7 +218,9 @@ export default function CommandeShow({ commande }: Props) {
                                     <Row label="Statut offre">
                                         <StatusBadge status={commande.offre.statut} />
                                     </Row>
-                                    <Row label="Quantité commandée">{commande.quantite}</Row>
+                                    <Row label="Quantité commandée">
+                                        {formatQuantite(commande.quantite, commande.offre?.type_offre)}
+                                    </Row>
                                 </div>
                             ) : (
                                 <p className="text-sm text-muted-foreground">Aucune offre associée.</p>
@@ -260,7 +263,9 @@ export default function CommandeShow({ commande }: Props) {
                                                     {paiement.code ?? '—'}
                                                 </TableCell>
                                                 <TableCell className="text-right tabular-nums">
-                                                    {paiement.quantite ?? '—'}
+                                                    {paiement.quantite != null
+                                                        ? formatQuantite(paiement.quantite, commande.offre?.type_offre)
+                                                        : '—'}
                                                 </TableCell>
                                                 <TableCell className="text-right tabular-nums">
                                                     {paiement.montant_sous_total != null

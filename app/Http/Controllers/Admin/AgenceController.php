@@ -110,10 +110,14 @@ class AgenceController extends Controller
             ->get(['id', 'titre', 'type', 'prix', 'statut', 'origine', 'destination']);
 
         $commandes = $agence->commandes()
-            ->with('client:id,nom,prenom')
+            ->with([
+                'client:id,nom,prenom',
+                'offre:id,type_offre_id',
+                'offre.typeOffre:id,unite,quantite_entier',
+            ])
             ->latest()
             ->limit(10)
-            ->get(['id', 'code', 'client_id', 'quantite', 'montant_total', 'statut', 'created_at']);
+            ->get(['id', 'code', 'client_id', 'offre_id', 'quantite', 'montant_total', 'statut', 'created_at']);
 
         return Inertia::render('admin/agences/show', [
             'agence' => $agence,
