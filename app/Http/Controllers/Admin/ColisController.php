@@ -22,7 +22,9 @@ class ColisController extends Controller
     public function index(Request $request): Response
     {
         $query = Colis::with([
-            'commande:id,code',
+            'commande:id,code,quantite,offre_id',
+            'commande.offre:id,type_offre_id',
+            'commande.offre.typeOffre:id,unite,quantite_entier',
             'agence:id,nom',
         ]);
 
@@ -44,7 +46,9 @@ class ColisController extends Controller
     {
         $colis->load([
             'agence:id,nom,email,ville',
-            'commande:id,code,client_id,nom,prenom,telephone,montant_total,statut',
+            'commande:id,code,client_id,offre_id,quantite,nom,prenom,telephone,montant_total,statut',
+            'commande.offre:id,type_offre_id',
+            'commande.offre.typeOffre:id,unite,quantite_entier',
             'commande.client:id,nom,prenom,email',
             'photos:id,colis_id,chemin,ordre',
             'historique' => fn ($q) => $q->with('user:id,name')->latest(),

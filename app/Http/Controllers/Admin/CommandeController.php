@@ -15,6 +15,8 @@ class CommandeController extends Controller
         $query = Commande::with([
             'client:id,nom,prenom,email',
             'agence:id,nom',
+            'offre:id,type_offre_id',
+            'offre.typeOffre:id,unite,quantite_entier',
         ]);
 
         if ($search = $request->get('search')) {
@@ -36,7 +38,8 @@ class CommandeController extends Controller
         $commande->load([
             'client:id,nom,prenom,email,telephone',
             'agence:id,nom,email,ville',
-            'offre:id,titre,type,prix,origine,destination,statut,capacite_totale,capacite_disponible',
+            'offre:id,titre,type,type_offre_id,prix,origine,destination,statut,capacite_totale,capacite_disponible',
+            'offre.typeOffre:id,unite,unite_label,quantite_entier',
             'paiement:id,commande_id,code,quantite,reference,bamboo_reference,montant,montant_sous_total,montant_commission_client,methode,statut,created_at',
             'paiements' => fn ($q) => $q
                 ->select('id', 'commande_id', 'code', 'quantite', 'reference', 'bamboo_reference', 'montant', 'montant_sous_total', 'montant_commission_client', 'methode', 'statut', 'created_at')

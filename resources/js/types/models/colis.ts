@@ -1,3 +1,4 @@
+import type { QuantiteTypeOffre } from '@/lib/format-quantite';
 import type { AgenceDetail, AgenceSummary, ClientEmbed, ColisStatut } from './common';
 
 export type ColisPhoto = {
@@ -7,11 +8,18 @@ export type ColisPhoto = {
     ordre: number;
 };
 
+export type ColisCommandeRowEmbed = {
+    id: string;
+    code: string;
+    quantite?: string;
+    offre?: { type_offre?: QuantiteTypeOffre | null } | null;
+};
+
 export type ColisRow = {
     id: string;
     reference: string;
     description?: string | null;
-    commande: { id: string; code: string } | null;
+    commande: ColisCommandeRowEmbed | null;
     agence?: AgenceSummary | null;
     poids?: string | null;
     volume?: string | null;
@@ -31,11 +39,13 @@ export type HistoriqueColisItem = {
 export type ColisCommandeEmbed = {
     id: string;
     code: string;
+    quantite?: string;
     montant_total: string;
     statut: string;
     nom?: string | null;
     prenom?: string | null;
     telephone?: string | null;
+    offre?: { type_offre?: QuantiteTypeOffre | null } | null;
     client: ClientEmbed | null;
 };
 

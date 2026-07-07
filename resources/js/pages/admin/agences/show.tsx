@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import admin from '@/routes/admin';
+import { formatQuantite } from '@/lib/format-quantite';
 import type { CommandeRow, OffreAgenceRow } from '@/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────
@@ -303,7 +304,9 @@ export default function AgenceShow({ agence, stats, offres, commandes }: Props) 
                                                       ? `${cmd.prenom} ${cmd.nom} (invité)`
                                                       : '—'}
                                             </TableCell>
-                                            <TableCell>{cmd.quantite}</TableCell>
+                                            <TableCell>
+                                                {formatQuantite(cmd.quantite, cmd.offre?.type_offre)}
+                                            </TableCell>
                                             <TableCell className="font-medium tabular-nums">
                                                 {Number(cmd.montant_total).toLocaleString('fr-FR')} FCFA
                                             </TableCell>

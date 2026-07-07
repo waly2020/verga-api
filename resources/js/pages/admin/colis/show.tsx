@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import admin from '@/routes/admin';
+import { formatQuantite } from '@/lib/format-quantite';
 import type { ColisDetail } from '@/types';
 
 interface Props {
@@ -174,8 +175,18 @@ export default function ColisShow({ colis, next_statut }: Props) {
                                 <span className="font-mono text-sm font-medium">{colis.reference}</span>
                             </Row>
                             {colis.description && <Row label="Description">{colis.description}</Row>}
-                            {colis.poids && <Row label="Poids">{colis.poids} kg</Row>}
+                            {colis.poids && (
+                                <Row label="Poids">{Number(colis.poids).toLocaleString('fr-FR')} kg</Row>
+                            )}
                             {colis.volume && <Row label="Volume">{colis.volume} m³</Row>}
+                            {!colis.poids && colis.commande?.quantite && (
+                                <Row label="Quantité">
+                                    {formatQuantite(
+                                        colis.commande.quantite,
+                                        colis.commande.offre?.type_offre,
+                                    )}
+                                </Row>
+                            )}
                             <Row label="Agence">
                                 {colis.agence ? (
                                     <span className="font-medium">{colis.agence.nom}</span>
@@ -210,6 +221,14 @@ export default function ColisShow({ colis, next_statut }: Props) {
                                             {Number(colis.commande.montant_total).toLocaleString('fr-FR')} FCFA
                                         </span>
                                     </Row>
+                                    {colis.commande.quantite && (
+                                        <Row label="Quantité commandée">
+                                            {formatQuantite(
+                                                colis.commande.quantite,
+                                                colis.commande.offre?.type_offre,
+                                            )}
+                                        </Row>
+                                    )}
                                     <Row label="Statut commande">
                                         <StatusBadge status={colis.commande.statut} />
                                     </Row>

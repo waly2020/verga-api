@@ -7,6 +7,7 @@ import type {Column} from '@/components/admin/data-table';
 import { StatusBadge } from '@/components/admin/status-badge';
 import { Button } from '@/components/ui/button';
 import admin from '@/routes/admin';
+import { formatQuantite } from '@/lib/format-quantite';
 import type { ColisRow, Paginated } from '@/types';
 
 interface Props {
@@ -21,6 +22,14 @@ const NEXT_ACTION: Record<string, { label: string; confirm: string }> = {
     'arrivé':      { label: 'Marquer récupéré',   confirm: 'Marquer ce colis comme récupéré par le client ?' },
 };
 
+function colisQuantiteLabel(row: ColisRow): string {
+    if (row.poids) {
+        return `${Number(row.poids).toLocaleString('fr-FR')} kg`;
+    }
+
+    return formatQuantite(row.commande?.quantite, row.commande?.offre?.type_offre);
+}
+
 const columns: Column<ColisRow>[] = [
     { key: 'reference', label: 'Référence', render: (r) => <span className="font-mono text-xs font-medium">{r.reference}</span> },
     { key: 'commande',  label: 'Commande',  render: (r) => <span className="font-mono text-xs">{r.commande?.code ?? '—'}</span> },
@@ -34,7 +43,7 @@ const columns: Column<ColisRow>[] = [
         ),
     },
     { key: 'agence',    label: 'Agence',    render: (r) => r.agence?.nom ?? '—' },
-    { key: 'poids',     label: 'Poids',     render: (r) => r.poids ? `${r.poids} kg` : '—' },
+    { key: 'quantite', label: 'Quantité', render: (r) => colisQuantiteLabel(r) },
     { key: 'statut',    label: 'Statut',    render: (r) => <StatusBadge status={r.statut} /> },
 ];
 
