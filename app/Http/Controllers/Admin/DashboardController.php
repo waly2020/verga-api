@@ -8,6 +8,7 @@ use App\Models\Commande;
 use App\Models\Commission;
 use App\Models\Reclamation;
 use App\Models\Reversement;
+use App\Services\Dashboard\AgenceFinanceViewStats;
 use App\Services\Dashboard\ValidatedPaiementStats;
 use App\Support\PeriodeFilter;
 use Illuminate\Http\Request;
@@ -35,6 +36,7 @@ class DashboardController extends Controller
             'solde_commissions_agence' => $soldeCommissionsAgence,
             'reclamations_ouvertes' => Reclamation::where('statut', 'ouverte')->count(),
             'reversements_attente' => (float) Reversement::where('statut', 'en_attente')->sum('montant'),
+            'soldes_agences_total' => AgenceFinanceViewStats::totalSoldes(),
         ];
 
         $commandesParStatut = Commande::whereBetween('created_at', [$debut, $fin])
@@ -46,20 +48,19 @@ class DashboardController extends Controller
         $parAgence = ValidatedPaiementStats::byAgence($debut, $fin);
 
         $paiementsParAgence = array_map(
-            fn (array $row) => ['nom' => $row['nom'], 'total' => $row['total']],
+            fn (array $row) => ['nom' => $row['nom'], 'total' => $row['sous_total']],
             $parAgence,
         );
 
-        $commissionsParAgence = array_map(
-            fn (array $row) => ['nom' => $row['nom'], 'total' => $row['commissions_client']],
-            $parAgence,
-        );
+        $soldesParAgence = AgenceFinanceViewStats::topSoldes();
+        $reversementsParAgence = AgenceFinanceViewStats::topReversements();
 
         return Inertia::render('admin/dashboard', [
             'stats' => $stats,
             'commandes_par_statut' => $commandesParStatut,
             'paiements_par_agence' => $paiementsParAgence,
-            'commissions_par_agence' => $commissionsParAgence,
+            'soldes_par_agence' => $soldesParAgence,
+            'reversements_par_agence' => $reversementsParAgence,
             'periode' => $periode,
         ]);
     }

@@ -12,6 +12,8 @@ use App\Http\Controllers\Api\Agence\OffreController;
 use App\Http\Controllers\Api\Agence\PaiementController;
 use App\Http\Controllers\Api\Agence\PasswordController;
 use App\Http\Controllers\Api\Agence\ReclamationController;
+use App\Http\Controllers\Api\Agence\ReversementController;
+use App\Http\Controllers\Api\Agence\SoldeController;
 use App\Http\Controllers\Api\Agence\TypeAgenceController;
 use App\Http\Controllers\Api\Agence\TypeOffreController;
 use Illuminate\Support\Facades\Route;
@@ -36,6 +38,7 @@ Route::prefix('agence')->name('api.agence.')->group(function () {
         Route::put('password', [PasswordController::class, 'update'])->name('password.update');
 
         Route::get('dashboard', DashboardController::class)->name('dashboard');
+        Route::get('solde', SoldeController::class)->name('solde');
 
         Route::post('types-offres', [TypeOffreController::class, 'store'])->name('types-offres.store');
         Route::get('types-offres/{typeOffre}', [TypeOffreController::class, 'show'])->name('types-offres.show');
@@ -62,5 +65,6 @@ Route::prefix('agence')->name('api.agence.')->group(function () {
         Route::patch('reclamations/{reclamation}/statut', [ReclamationController::class, 'updateStatut'])->name('reclamations.statut');
 
         Route::get('paiements', [PaiementController::class, 'index'])->name('paiements.index');
+        Route::get('reversements', [ReversementController::class, 'index'])->name('reversements.index');
     });
 });

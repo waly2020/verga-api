@@ -5,9 +5,13 @@ namespace App\OpenApi;
 use OpenApi\Attributes as OA;
 
 #[OA\Info(
-    version: '1.2.0',
+    version: '1.3.0',
     title: 'VERGA API',
     description: 'API REST pour les applications externes VERGA (back-office agence Angular, application client mobile/web). Authentification Bearer Sanctum.
+
+**Finance agence**
+- `GET /agence/solde` — solde courant, reversements effectués/en attente, montant disponible
+- `GET /agence/reversements` — historique des reversements (lecture seule)
 
 **Réservations et paiements multiples**
 - `quantite_reservee` : quantité bloquée sur l\'offre (ex. 50 kg)
@@ -48,6 +52,7 @@ use OpenApi\Attributes as OA;
 #[OA\Tag(name: 'Client - Dashboard', description: 'Statistiques tableau de bord client')]
 #[OA\Tag(name: 'Paiement - Bamboo Pay', description: 'Webhooks et intégration Bamboo Pay')]
 #[OA\Tag(name: 'Agence - Dashboard', description: 'Statistiques tableau de bord agence')]
+#[OA\Tag(name: 'Agence - Finance', description: 'Solde et reversements agence')]
 #[OA\Schema(
     schema: 'MessageResponse',
     properties: [
@@ -514,6 +519,29 @@ use OpenApi\Attributes as OA;
             new OA\Property(property: 'top_offres', type: 'array', items: new OA\Items(type: 'object')),
             new OA\Property(property: 'dernieres_commandes', type: 'array', items: new OA\Items(type: 'object')),
         ], type: 'object'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'AgenceSoldeResponse',
+    properties: [
+        new OA\Property(property: 'data', properties: [
+            new OA\Property(property: 'montant_paiements_valides', type: 'number', format: 'float', description: 'Cumul des paiements validés (part agence)'),
+            new OA\Property(property: 'montant_reversements', type: 'number', format: 'float', description: 'Cumul des reversements effectués'),
+            new OA\Property(property: 'montant_solde', type: 'number', format: 'float', description: 'Paiements perçus − reversements effectués'),
+            new OA\Property(property: 'montant_reversements_en_attente', type: 'number', format: 'float', description: 'Reversements en attente de validation'),
+            new OA\Property(property: 'montant_disponible', type: 'number', format: 'float', description: 'Solde disponible pour un nouveau reversement'),
+        ], type: 'object'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'AgenceReversementResource',
+    properties: [
+        new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+        new OA\Property(property: 'montant', type: 'number', format: 'float', example: 15000),
+        new OA\Property(property: 'periode', type: 'string', example: '2026-07', description: 'Période au format AAAA-MM'),
+        new OA\Property(property: 'statut', type: 'string', enum: ['en_attente', 'effectué']),
+        new OA\Property(property: 'effectue_le', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
     ]
 )]
 class OpenApiSpec {}
