@@ -63,7 +63,7 @@ class Commande extends Model
 
     public function paiement(): HasOne
     {
-        return $this->hasOne(Paiement::class)->latestOfMany('created_at');
+        return $this->hasOne(Paiement::class);
     }
 
     public function commission(): HasOne
