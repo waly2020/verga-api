@@ -2,12 +2,12 @@
     "openapi": "3.0.0",
     "info": {
         "title": "VERGA API",
-        "description": "API REST pour les applications externes VERGA (back-office agence Angular, application client mobile/web). Authentification Bearer Sanctum.\n\n**Réservations et paiements multiples**\n- `quantite_reservee` : quantité bloquée sur l'offre (ex. 50 kg)\n- `quantite` : quantité payée lors du versement en cours (ex. 30 kg)\n- Après validation du 1er paiement partiel : statut commande `réservée`, stock bloqué sur la quantité réservée\n- Solde via `POST /client/commandes/{commande}/paiements` (auth requise)\n- Commission client recalculée à chaque versement sur la quantité payée",
+        "description": "API REST pour les applications externes VERGA (back-office agence Angular, application client mobile/web). Authentification Bearer Sanctum.\n\n**Finance agence**\n- `GET /agence/solde` — solde courant, reversements effectués/en attente, montant disponible\n- `GET /agence/reversements` — historique des reversements (lecture seule)\n\n**Réservations et paiements multiples**\n- `quantite_reservee` : quantité bloquée sur l'offre (ex. 50 kg)\n- `quantite` : quantité payée lors du versement en cours (ex. 30 kg)\n- Après validation du 1er paiement partiel : statut commande `réservée`, stock bloqué sur la quantité réservée\n- Solde via `POST /client/commandes/{commande}/paiements` (auth requise)\n- Commission client recalculée à chaque versement sur la quantité payée",
         "contact": {
             "name": "VERGA",
             "email": "contact@verga.test"
         },
-        "version": "1.1.0"
+        "version": "1.3.0"
     },
     "servers": [
         {
@@ -2612,6 +2612,122 @@
                 ]
             }
         },
+        "/agence/solde": {
+            "get": {
+                "tags": [
+                    "Agence - Finance"
+                ],
+                "summary": "Solde financier de l'agence",
+                "description": "Retourne le cumul des paiements perçus, des reversements effectués et le solde disponible de l'agence connectée.",
+                "operationId": "agenceSolde",
+                "responses": {
+                    "200": {
+                        "description": "Solde agence",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AgenceSoldeResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    },
+                    "403": {
+                        "description": "Accès réservé aux agences"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/agence/reversements": {
+            "get": {
+                "tags": [
+                    "Agence - Finance"
+                ],
+                "summary": "Lister les reversements de l'agence",
+                "description": "Historique des reversements enregistrés pour l'agence connectée (lecture seule).",
+                "operationId": "agenceListReversements",
+                "parameters": [
+                    {
+                        "name": "statut",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "en_attente",
+                                "effectué"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "periode",
+                        "in": "query",
+                        "description": "Filtrer par période (AAAA-MM)",
+                        "schema": {
+                            "type": "string",
+                            "example": "2026-07"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste paginée des reversements",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/AgenceReversementResource"
+                                            }
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        },
+                                        "links": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    },
+                    "403": {
+                        "description": "Accès réservé aux agences"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/payments/bamboo-pay/callback": {
             "post": {
                 "tags": [
@@ -3591,6 +3707,76 @@
                     }
                 },
                 "type": "object"
+            },
+            "AgenceSoldeResponse": {
+                "properties": {
+                    "data": {
+                        "properties": {
+                            "montant_paiements_valides": {
+                                "description": "Cumul des paiements validés (part agence)",
+                                "type": "number",
+                                "format": "float"
+                            },
+                            "montant_reversements": {
+                                "description": "Cumul des reversements effectués",
+                                "type": "number",
+                                "format": "float"
+                            },
+                            "montant_solde": {
+                                "description": "Paiements perçus − reversements effectués",
+                                "type": "number",
+                                "format": "float"
+                            },
+                            "montant_reversements_en_attente": {
+                                "description": "Reversements en attente de validation",
+                                "type": "number",
+                                "format": "float"
+                            },
+                            "montant_disponible": {
+                                "description": "Solde disponible pour un nouveau reversement",
+                                "type": "number",
+                                "format": "float"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "AgenceReversementResource": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "montant": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 15000
+                    },
+                    "periode": {
+                        "description": "Période au format AAAA-MM",
+                        "type": "string",
+                        "example": "2026-07"
+                    },
+                    "statut": {
+                        "type": "string",
+                        "enum": [
+                            "en_attente",
+                            "effectué"
+                        ]
+                    },
+                    "effectue_le": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
             }
         },
         "securitySchemes": {
@@ -3670,6 +3856,10 @@
         {
             "name": "Agence - Dashboard",
             "description": "Statistiques tableau de bord agence"
+        },
+        {
+            "name": "Agence - Finance",
+            "description": "Solde et reversements agence"
         }
     ]
 }

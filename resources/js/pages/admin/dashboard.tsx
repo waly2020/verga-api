@@ -22,6 +22,7 @@ interface Stats {
     solde_commissions_agence: number;
     reclamations_ouvertes: number;
     reversements_attente: number;
+    soldes_agences_total: number;
 }
 
 interface AgenceRow {
@@ -33,7 +34,8 @@ interface Props {
     stats: Stats;
     commandes_par_statut: Record<string, number>;
     paiements_par_agence: AgenceRow[];
-    commissions_par_agence: AgenceRow[];
+    soldes_par_agence: AgenceRow[];
+    reversements_par_agence: AgenceRow[];
     periode: string;
 }
 
@@ -122,7 +124,8 @@ export default function AdminDashboard({
     stats,
     commandes_par_statut,
     paiements_par_agence,
-    commissions_par_agence,
+    soldes_par_agence,
+    reversements_par_agence,
     periode,
 }: Props) {
     const setPeriode = (v: string) =>
@@ -214,8 +217,8 @@ export default function AdminDashboard({
                             {/* Détail — 3 colonnes */}
                             <div className="lg:col-span-3">
                                 <FinancialLine
-                                    label="Sous-total transport"
-                                    hint="Part agence (brut)"
+                                    label="Paiements perçus (agences)"
+                                    hint="Part agence — paiements validés sur la période"
                                     amount={stats.solde_sous_total}
                                 />
                                 <FinancialLine
@@ -229,9 +232,14 @@ export default function AdminDashboard({
                                     amount={stats.solde_commissions_agence}
                                 />
                                 <FinancialLine
-                                    label="Revenu VERGA total"
+                                    label="Revenu VERGA (période)"
                                     hint="Commissions client + agence"
                                     amount={revenuVerga}
+                                />
+                                <FinancialLine
+                                    label="Soldes agences (total)"
+                                    hint="Cumul : paiements perçus − reversements effectués"
+                                    amount={stats.soldes_agences_total}
                                     emphasis
                                 />
                                 <FinancialLine
@@ -248,11 +256,11 @@ export default function AdminDashboard({
                 {/* Charts row 1 */}
                 <div className="grid gap-4 lg:grid-cols-5">
 
-                    {/* Paiements par agence */}
+                    {/* Paiements perçus par agence */}
                     <Card className="lg:col-span-3">
                         <CardHeader className="pb-3">
-                            <CardTitle className="text-sm font-semibold">Paiements par agence</CardTitle>
-                            <p className="text-xs text-muted-foreground">Top 10 — montants validés</p>
+                            <CardTitle className="text-sm font-semibold">Paiements perçus par agence</CardTitle>
+                            <p className="text-xs text-muted-foreground">Top 10 — part agence sur la période</p>
                         </CardHeader>
                         <CardContent>
                             <div style={{ height: Math.max(160, paiements_par_agence.length * 40) }}>
@@ -284,22 +292,40 @@ export default function AdminDashboard({
                     </Card>
                 </div>
 
-                {/* Commissions par agence */}
-                <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-semibold">Commissions VERGA par agence</CardTitle>
-                        <p className="text-xs text-muted-foreground">Top 10 — commissions client prélevées</p>
-                    </CardHeader>
-                    <CardContent>
-                        <div style={{ height: Math.max(160, commissions_par_agence.length * 40) }}>
-                            <BarAgence
-                                data={commissions_par_agence}
-                                color="#22c55e"
-                                emptyLabel="Aucune commission sur cette période"
-                            />
-                        </div>
-                    </CardContent>
-                </Card>
+                {/* Finances par agence — cumul */}
+                <div className="grid gap-4 lg:grid-cols-2">
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm font-semibold">Soldes restants par agence</CardTitle>
+                            <p className="text-xs text-muted-foreground">Top 10 — cumul (paiements perçus − reversé)</p>
+                        </CardHeader>
+                        <CardContent>
+                            <div style={{ height: Math.max(160, soldes_par_agence.length * 40) }}>
+                                <BarAgence
+                                    data={soldes_par_agence}
+                                    color="#8b5cf6"
+                                    emptyLabel="Aucun solde agence disponible"
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm font-semibold">Reversements effectués par agence</CardTitle>
+                            <p className="text-xs text-muted-foreground">Top 10 — cumul des montants reversés</p>
+                        </CardHeader>
+                        <CardContent>
+                            <div style={{ height: Math.max(160, reversements_par_agence.length * 40) }}>
+                                <BarAgence
+                                    data={reversements_par_agence}
+                                    color="#f59e0b"
+                                    emptyLabel="Aucun reversement effectué"
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
 
             </div>
         </>

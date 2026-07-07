@@ -747,4 +747,40 @@ Réponse : détail du colis mis à jour + `next_statut` (prochaine étape ou `nu
         ]
     )]
     public function listPaiements(): void {}
+
+    #[OA\Get(
+        path: '/agence/reversements',
+        operationId: 'agenceListReversements',
+        summary: 'Lister les reversements de l\'agence',
+        description: 'Historique des reversements enregistrés pour l\'agence connectée (lecture seule).',
+        tags: ['Agence - Finance'],
+        security: [['sanctum' => []]],
+        parameters: [
+            new OA\QueryParameter(name: 'statut', schema: new OA\Schema(type: 'string', enum: ['en_attente', 'effectué'])),
+            new OA\QueryParameter(name: 'periode', description: 'Filtrer par période (AAAA-MM)', schema: new OA\Schema(type: 'string', example: '2026-07')),
+            new OA\QueryParameter(name: 'page', schema: new OA\Schema(type: 'integer')),
+            new OA\QueryParameter(name: 'per_page', schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Liste paginée des reversements',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(ref: '#/components/schemas/AgenceReversementResource')
+                        ),
+                        new OA\Property(property: 'meta', ref: '#/components/schemas/PaginationMeta'),
+                        new OA\Property(property: 'links', type: 'object'),
+                    ],
+                    type: 'object'
+                )
+            ),
+            new OA\Response(response: 401, description: 'Non authentifié'),
+            new OA\Response(response: 403, description: 'Accès réservé aux agences'),
+        ]
+    )]
+    public function listReversements(): void {}
 }

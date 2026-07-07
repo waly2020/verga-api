@@ -49,4 +49,19 @@ class DashboardEndpoints
         ]
     )]
     public function agenceDashboard(): void {}
+
+    #[OA\Get(
+        path: '/agence/solde',
+        operationId: 'agenceSolde',
+        summary: 'Solde financier de l\'agence',
+        description: 'Retourne le cumul des paiements perçus, des reversements effectués et le solde disponible de l\'agence connectée.',
+        tags: ['Agence - Finance'],
+        security: [['sanctum' => []]],
+        responses: [
+            new OA\Response(response: 200, description: 'Solde agence', content: new OA\JsonContent(ref: '#/components/schemas/AgenceSoldeResponse')),
+            new OA\Response(response: 401, description: 'Non authentifié'),
+            new OA\Response(response: 403, description: 'Accès réservé aux agences'),
+        ]
+    )]
+    public function agenceSolde(): void {}
 }

@@ -54,6 +54,7 @@ Route::middleware(['auth', 'verified', 'admin'])
             ->whereIn('destinataire', ['client', 'agence'])
             ->name('commissions.update');
         Route::get('reversements', [ReversementController::class, 'index'])->name('reversements.index');
+        Route::post('reversements', [ReversementController::class, 'store'])->name('reversements.store');
         Route::patch('reversements/{reversement}/effectuer', [ReversementController::class, 'effectuer'])->name('reversements.effectuer');
         Route::get('reclamations', [ReclamationController::class, 'index'])->name('reclamations.index');
         Route::get('reclamations/{reclamation}', [ReclamationController::class, 'show'])->name('reclamations.show');

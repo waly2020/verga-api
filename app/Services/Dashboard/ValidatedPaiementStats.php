@@ -47,7 +47,7 @@ class ValidatedPaiementStats
             ->selectRaw('COALESCE(SUM(paiements.montant_sous_total), 0) as sous_total')
             ->selectRaw('COALESCE(SUM(paiements.montant_commission_client), 0) as commissions_client')
             ->groupBy('agences.id', 'agences.nom')
-            ->orderByDesc('total')
+            ->orderByDesc('sous_total')
             ->limit($limit)
             ->get()
             ->map(fn ($row) => [

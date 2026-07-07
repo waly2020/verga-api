@@ -4,6 +4,7 @@ export type * from './colis';
 export type * from './commande';
 export type * from './common';
 export type * from './dashboard';
+export type * from './finance';
 export type * from './offre';
 export type * from './paiement';
 export type * from './pricing';

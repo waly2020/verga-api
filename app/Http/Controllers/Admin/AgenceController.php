@@ -4,8 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Agence;
-use App\Models\Commission;
-use App\Models\Paiement;
 use App\Models\TypeAgence;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -93,16 +91,16 @@ class AgenceController extends Controller
     {
         $agence->load(['user:id,name,email', 'typeAgence:id,nom']);
 
+        $finance = DB::table('vue_agences_soldes')
+            ->where('agence_id', $agence->id)
+            ->first();
+
         $stats = [
             'nb_offres' => $agence->offres()->count(),
             'nb_commandes' => $agence->commandes()->count(),
-            'total_paiements' => (float) Paiement::join('commandes', 'paiements.commande_id', '=', 'commandes.id')
-                ->where('commandes.agence_id', $agence->id)
-                ->where('paiements.statut', 'validé')
-                ->sum('paiements.montant'),
-            'total_commissions' => (float) Commission::join('commandes', 'commissions.commande_id', '=', 'commandes.id')
-                ->where('commandes.agence_id', $agence->id)
-                ->sum('commissions.montant'),
+            'montant_paiements_valides' => (float) ($finance->montant_paiements_valides ?? 0),
+            'montant_reversements' => (float) ($finance->montant_reversements ?? 0),
+            'montant_solde' => (float) ($finance->montant_solde ?? 0),
         ];
 
         $offres = $agence->offres()

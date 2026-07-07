@@ -2,6 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import { router } from '@inertiajs/react';
 import {
     ArrowLeft,
+    ArrowDownRight,
     Ban,
     Building2,
     CreditCard,
@@ -11,8 +12,8 @@ import {
     Phone,
     ShoppingCart,
     Trash2,
-    TrendingUp,
     User,
+    Wallet,
 } from 'lucide-react';
 import { ConfirmDialog } from '@/components/admin/confirm-dialog';
 import { StatusBadge } from '@/components/admin/status-badge';
@@ -43,8 +44,9 @@ type Agence = {
 interface Stats {
     nb_offres: number;
     nb_commandes: number;
-    total_paiements: number;
-    total_commissions: number;
+    montant_paiements_valides: number;
+    montant_reversements: number;
+    montant_solde: number;
 }
 
 interface Props {
@@ -196,13 +198,11 @@ export default function AgenceShow({ agence, stats, offres, commandes }: Props) 
                     </Card>
                 </div>
 
-                {/* Stats */}
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {/* Activité */}
+                <div className="grid gap-4 sm:grid-cols-2">
                     {[
                         { label: 'Offres publiées', value: fmt(stats.nb_offres), icon: Package, color: 'text-blue-500' },
                         { label: 'Commandes reçues', value: fmt(stats.nb_commandes), icon: ShoppingCart, color: 'text-violet-500' },
-                        { label: 'Total paiements', value: fmtFcfa(stats.total_paiements), icon: CreditCard, color: 'text-emerald-500' },
-                        { label: 'Commissions générées', value: fmtFcfa(stats.total_commissions), icon: TrendingUp, color: 'text-amber-500' },
                     ].map((s) => (
                         <Card key={s.label}>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -211,6 +211,44 @@ export default function AgenceShow({ agence, stats, offres, commandes }: Props) 
                             </CardHeader>
                             <CardContent>
                                 <div className="truncate text-xl font-bold">{s.value}</div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+
+                {/* Finance */}
+                <div className="grid gap-4 sm:grid-cols-3">
+                    {[
+                        {
+                            label: 'Paiements perçus',
+                            value: fmtFcfa(stats.montant_paiements_valides),
+                            description: 'Somme des paiements validés (part agence)',
+                            icon: CreditCard,
+                            color: 'text-emerald-500',
+                        },
+                        {
+                            label: 'Montant reversé',
+                            value: fmtFcfa(stats.montant_reversements),
+                            description: 'Reversements effectués vers l\'agence',
+                            icon: ArrowDownRight,
+                            color: 'text-amber-500',
+                        },
+                        {
+                            label: 'Solde restant',
+                            value: fmtFcfa(stats.montant_solde),
+                            description: 'Paiements perçus − montant reversé',
+                            icon: Wallet,
+                            color: 'text-primary',
+                        },
+                    ].map((s) => (
+                        <Card key={s.label}>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-xs font-medium text-muted-foreground">{s.label}</CardTitle>
+                                <s.icon className={`h-4 w-4 ${s.color}`} />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="truncate text-xl font-bold tabular-nums">{s.value}</div>
+                                <p className="mt-1 text-xs text-muted-foreground">{s.description}</p>
                             </CardContent>
                         </Card>
                     ))}
