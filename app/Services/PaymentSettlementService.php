@@ -12,9 +12,12 @@ class PaymentSettlementService
     /**
      * Applique un statut Bamboo final de manière idempotente.
      */
-    public function settleFromBambooStatus(Paiement $paiement, string $bambooStatus): Paiement
-    {
-        return DB::transaction(function () use ($paiement, $bambooStatus) {
+    public function settleFromBambooStatus(
+        Paiement $paiement,
+        string $bambooStatus,
+        ?string $bambooMessage = null,
+    ): Paiement {
+        return DB::transaction(function () use ($paiement, $bambooStatus, $bambooMessage) {
             /** @var Paiement $locked */
             $locked = Paiement::query()
                 ->whereKey($paiement->id)
@@ -26,11 +29,14 @@ class PaymentSettlementService
             }
 
             $normalized = strtolower($bambooStatus);
+            $message = self::normalizeMessage($bambooMessage);
 
             if ($normalized === 'completed') {
-                $this->markCompleted($locked);
+                $this->markCompleted($locked, $message);
             } elseif ($normalized === 'failed') {
-                $this->markFailed($locked);
+                $this->markFailed($locked, $message);
+            } elseif ($message !== null) {
+                $locked->update(['bamboo_message' => $message]);
             }
 
             return $locked->fresh(['commande']);
@@ -63,12 +69,54 @@ class PaymentSettlementService
             $paiement->update(['bamboo_reference' => $reference]);
         }
 
-        return $this->settleFromBambooStatus($paiement, (string) $status);
+        return $this->settleFromBambooStatus(
+            $paiement,
+            (string) $status,
+            self::messageFromCallbackPayload($payload),
+        );
     }
 
-    private function markCompleted(Paiement $paiement): void
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    public static function messageFromCallbackPayload(array $payload): ?string
     {
-        $paiement->update(['statut' => 'validé']);
+        $observation = $payload['observation'] ?? null;
+
+        return self::normalizeMessage(is_string($observation) ? $observation : null);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    public static function messageFromCheckStatusResponse(array $payload): ?string
+    {
+        $transaction = $payload['transaction'] ?? null;
+        $message = is_array($transaction)
+            ? ($transaction['message'] ?? null)
+            : null;
+
+        if (! is_string($message) || $message === '') {
+            $message = $payload['message'] ?? null;
+        }
+
+        return self::normalizeMessage(is_string($message) ? $message : null);
+    }
+
+    private static function normalizeMessage(?string $message): ?string
+    {
+        if ($message === null) {
+            return null;
+        }
+
+        $message = trim($message);
+
+        return $message !== '' ? $message : null;
+    }
+
+    private function markCompleted(Paiement $paiement, ?string $bambooMessage = null): void
+    {
+        $this->updatePaiementStatut($paiement, 'validé', $bambooMessage);
 
         /** @var Commande $commande */
         $commande = Commande::query()
@@ -99,9 +147,9 @@ class PaymentSettlementService
         ]);
     }
 
-    private function markFailed(Paiement $paiement): void
+    private function markFailed(Paiement $paiement, ?string $bambooMessage = null): void
     {
-        $paiement->update(['statut' => 'échec']);
+        $this->updatePaiementStatut($paiement, 'échec', $bambooMessage);
 
         $commande = Commande::query()
             ->whereKey($paiement->commande_id)
@@ -119,6 +167,17 @@ class PaymentSettlementService
         if (! $hasValidatedPayment) {
             $commande->update(['statut' => 'annulée']);
         }
+    }
+
+    private function updatePaiementStatut(Paiement $paiement, string $statut, ?string $bambooMessage = null): void
+    {
+        $attributes = ['statut' => $statut];
+
+        if ($bambooMessage !== null) {
+            $attributes['bamboo_message'] = $bambooMessage;
+        }
+
+        $paiement->update($attributes);
     }
 
     private function blockOfferCapacity(Commande $commande): void

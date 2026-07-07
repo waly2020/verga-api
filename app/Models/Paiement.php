@@ -20,6 +20,7 @@ class Paiement extends Model
         'methode',
         'reference',
         'bamboo_reference',
+        'bamboo_message',
         'statut',
     ];
 

@@ -428,12 +428,16 @@ class CommandeCheckoutTest extends ClientApiTestCase
         $this->postJson('/api/v1/payments/bamboo-pay/callback', [
             'billingId' => $create->json('paiement_code'),
             'status' => 'failed',
+            'observation' => 'Paiement annulé par le client',
         ])->assertOk();
 
         $offre->refresh();
         $this->assertEquals(100, (float) $offre->capacite_disponible);
         $this->assertDatabaseHas('commandes', ['statut' => 'annulée']);
-        $this->assertDatabaseHas('paiements', ['statut' => 'échec']);
+        $this->assertDatabaseHas('paiements', [
+            'statut' => 'échec',
+            'bamboo_message' => 'Paiement annulé par le client',
+        ]);
     }
 
     public function test_verify_status_is_idempotent_with_callback(): void
