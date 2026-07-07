@@ -83,14 +83,32 @@ class PaiementRetourTest extends TestCase
         return compact('commande', 'paiement');
     }
 
-    public function test_return_url_is_built_from_paiement_code(): void
+    public function test_return_url_includes_query_anchor_for_bamboo_params(): void
     {
         $paiement = Paiement::make(['code' => 'PAY-2025-AA']);
 
         $this->assertSame(
-            url('/paiement/PAY-2025-AA/retour'),
+            url('/paiement/PAY-2025-AA/retour?ref=PAY-2025-AA'),
             PaiementReturnUrl::for($paiement),
         );
+    }
+
+    public function test_paiement_return_page_accepts_bamboo_query_params(): void
+    {
+        ['paiement' => $paiement] = $this->createPaiementScenario();
+
+        $this->get("/paiement/{$paiement->code}/retour?ref={$paiement->code}&status=failed&ref={$paiement->code}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->component('paiement/retour'));
+    }
+
+    public function test_paiement_return_page_accepts_malformed_bamboo_url(): void
+    {
+        ['paiement' => $paiement] = $this->createPaiementScenario();
+
+        $this->get("/paiement/{$paiement->code}/retour&status=failed&ref={$paiement->code}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->component('paiement/retour'));
     }
 
     public function test_paiement_return_page_renders_recap(): void

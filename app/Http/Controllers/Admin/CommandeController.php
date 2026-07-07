@@ -20,7 +20,16 @@ class CommandeController extends Controller
         ]);
 
         if ($search = $request->get('search')) {
-            $query->where('code', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search) {
+                $q->where('code', 'like', "%{$search}%")
+                    ->orWhere('nom', 'like', "%{$search}%")
+                    ->orWhere('prenom', 'like', "%{$search}%")
+                    ->orWhereHas('client', fn ($q) => $q
+                        ->where('nom', 'like', "%{$search}%")
+                        ->orWhere('prenom', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%"))
+                    ->orWhereHas('agence', fn ($q) => $q->where('nom', 'like', "%{$search}%"));
+            });
         }
 
         if ($statut = $request->get('statut')) {

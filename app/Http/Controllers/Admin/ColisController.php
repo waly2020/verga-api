@@ -29,7 +29,12 @@ class ColisController extends Controller
         ]);
 
         if ($search = $request->get('search')) {
-            $query->where('reference', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search) {
+                $q->where('reference', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhereHas('commande', fn ($q) => $q->where('code', 'like', "%{$search}%"))
+                    ->orWhereHas('agence', fn ($q) => $q->where('nom', 'like', "%{$search}%"));
+            });
         }
 
         if ($statut = $request->get('statut')) {
