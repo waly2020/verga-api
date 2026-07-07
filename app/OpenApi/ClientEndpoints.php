@@ -55,7 +55,7 @@ Filtres disponibles :
         path: '/client/types-offres',
         operationId: 'clientListTypesOffres',
         summary: 'Lister les types d\'offre',
-        description: 'Retourne la liste complète des types d\'offre actifs (sans pagination). Aucune authentification requise.',
+        description: 'Retourne les types d\'offre plateforme VERGA actifs (sans pagination). Les types personnalisés d\'une agence apparaissent via `offre.type_offre`. Aucune authentification requise.',
         tags: ['Client - Offres'],
         responses: [
             new OA\Response(

@@ -32,6 +32,7 @@ use OpenApi\Attributes as OA;
 )]
 #[OA\Tag(name: 'Agence - Auth', description: 'Connexion et session agence')]
 #[OA\Tag(name: 'Agence - Référentiels', description: 'Données de référence pour l\'inscription et les formulaires agence')]
+#[OA\Tag(name: 'Agence - Types d\'offre', description: 'Types d\'offre plateforme et personnalisés par agence')]
 #[OA\Tag(name: 'Agence - Offres', description: 'Gestion des offres de transport')]
 #[OA\Tag(name: 'Agence - Commandes', description: 'Commandes reçues par l\'agence')]
 #[OA\Tag(name: 'Agence - Colis', description: 'Suivi logistique des colis')]
@@ -217,13 +218,16 @@ use OpenApi\Attributes as OA;
     schema: 'TypeOffreResource',
     properties: [
         new OA\Property(property: 'id', type: 'string', format: 'uuid'),
-        new OA\Property(property: 'slug', type: 'string', enum: ['particulier', 'metre_cube', 'conteneur'], example: 'particulier'),
+        new OA\Property(property: 'agence_id', type: 'string', format: 'uuid', nullable: true, description: 'Null pour un type plateforme VERGA'),
+        new OA\Property(property: 'is_platform', type: 'boolean', example: true, description: 'True si type global VERGA'),
+        new OA\Property(property: 'slug', type: 'string', example: 'particulier'),
         new OA\Property(property: 'nom', type: 'string', example: 'Particulier (au kg)'),
         new OA\Property(property: 'description', type: 'string', nullable: true),
         new OA\Property(property: 'unite', type: 'string', example: 'kg'),
         new OA\Property(property: 'unite_label', type: 'string', example: 'au kg'),
         new OA\Property(property: 'quantite_entier', type: 'boolean', example: false),
         new OA\Property(property: 'quantite_min', type: 'number', format: 'float', example: 0.001),
+        new OA\Property(property: 'actif', type: 'boolean', example: true),
     ]
 )]
 #[OA\Schema(
@@ -346,10 +350,11 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'statut', type: 'string', enum: ['en_attente', 'réservée', 'confirmée', 'annulée']),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'client', type: 'object', nullable: true, properties: [
-            new OA\Property(property: 'id', type: 'string', format: 'uuid'),
-            new OA\Property(property: 'nom', type: 'string'),
-            new OA\Property(property: 'prenom', type: 'string'),
+            new OA\Property(property: 'id', type: 'string', format: 'uuid', nullable: true, description: 'Null pour une commande invité'),
+            new OA\Property(property: 'nom', type: 'string', nullable: true),
+            new OA\Property(property: 'prenom', type: 'string', nullable: true),
             new OA\Property(property: 'email', type: 'string', nullable: true),
+            new OA\Property(property: 'telephone', type: 'string', nullable: true),
         ]),
         new OA\Property(property: 'offre', ref: '#/components/schemas/AgenceOffreResource', nullable: true),
         new OA\Property(property: 'paiement', ref: '#/components/schemas/AgencePaiementResource', nullable: true, description: 'Dernier paiement initié'),
@@ -392,6 +397,13 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'nom', type: 'string', nullable: true),
         new OA\Property(property: 'prenom', type: 'string', nullable: true),
         new OA\Property(property: 'telephone', type: 'string', nullable: true),
+        new OA\Property(property: 'client', type: 'object', nullable: true, properties: [
+            new OA\Property(property: 'id', type: 'string', format: 'uuid', nullable: true),
+            new OA\Property(property: 'nom', type: 'string', nullable: true),
+            new OA\Property(property: 'prenom', type: 'string', nullable: true),
+            new OA\Property(property: 'email', type: 'string', nullable: true),
+            new OA\Property(property: 'telephone', type: 'string', nullable: true),
+        ]),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'agence', type: 'object', nullable: true, properties: [
             new OA\Property(property: 'id', type: 'string', format: 'uuid'),

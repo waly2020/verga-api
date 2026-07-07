@@ -21,7 +21,7 @@ class UpdateOffreRequest extends FormRequest
         return [
             'titre' => ['required', 'string', 'max:255'],
             'type_offre_id' => ['required_without:type', 'uuid', 'exists:types_offres,id'],
-            'type' => ['required_without:type_offre_id', Rule::in(['particulier', 'metre_cube', 'conteneur'])],
+            'type' => ['required_without:type_offre_id', 'string', 'max:50'],
             'prix' => ['required', 'numeric', 'min:0'],
             'capacite_totale' => ['required', 'numeric', 'min:0.001'],
             'origine' => ['required', 'string', 'max:255'],

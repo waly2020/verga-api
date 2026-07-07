@@ -33,9 +33,10 @@ class AgenceEndpoints
     #[OA\Get(
         path: '/agence/types-offres',
         operationId: 'agenceListTypesOffres',
-        summary: 'Lister les types d\'offre',
-        description: 'Retourne la liste complète des types d\'offre actifs (sans pagination). Utilisé pour les formulaires de création d\'offre (`type_offre_id`). Aucune authentification requise.',
-        tags: ['Agence - Référentiels'],
+        summary: 'Lister les types d\'offre disponibles',
+        description: 'Retourne les types d\'offre plateforme actifs. Si l\'agence est authentifiée, inclut aussi ses types personnalisés (actifs ou non). Sans pagination.',
+        tags: ['Agence - Types d\'offre'],
+        security: [],
         responses: [
             new OA\Response(
                 response: 200,
@@ -53,6 +54,137 @@ class AgenceEndpoints
         ]
     )]
     public function listTypesOffres(): void {}
+
+    #[OA\Post(
+        path: '/agence/types-offres',
+        operationId: 'agenceCreateTypeOffre',
+        summary: 'Créer un type d\'offre personnalisé',
+        description: 'Crée un type d\'offre propre à l\'agence connectée. Les types plateforme (`agence_id` null) ne peuvent pas être créés via cette route.',
+        tags: ['Agence - Types d\'offre'],
+        security: [['sanctum' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['slug', 'nom', 'unite', 'unite_label', 'quantite_min'],
+                properties: [
+                    new OA\Property(property: 'slug', type: 'string', example: 'palette'),
+                    new OA\Property(property: 'nom', type: 'string', example: 'Palette standard'),
+                    new OA\Property(property: 'description', type: 'string', nullable: true),
+                    new OA\Property(property: 'unite', type: 'string', example: 'palette'),
+                    new OA\Property(property: 'unite_label', type: 'string', example: 'par palette'),
+                    new OA\Property(property: 'quantite_entier', type: 'boolean', example: true),
+                    new OA\Property(property: 'quantite_min', type: 'number', format: 'float', example: 1),
+                    new OA\Property(property: 'actif', type: 'boolean', example: true),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: 'Type d\'offre créé',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/TypeOffreResource'),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Non authentifié'),
+            new OA\Response(response: 422, description: 'Erreur de validation'),
+        ]
+    )]
+    public function createTypeOffre(): void {}
+
+    #[OA\Get(
+        path: '/agence/types-offres/{typeOffre}',
+        operationId: 'agenceShowTypeOffre',
+        summary: 'Détail d\'un type d\'offre',
+        description: 'Consulte un type plateforme ou un type personnalisé appartenant à l\'agence connectée.',
+        tags: ['Agence - Types d\'offre'],
+        security: [['sanctum' => []]],
+        parameters: [
+            new OA\Parameter(name: 'typeOffre', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Détail du type d\'offre',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/TypeOffreResource'),
+                    ]
+                )
+            ),
+            new OA\Response(response: 403, description: 'Type d\'une autre agence'),
+            new OA\Response(response: 404, description: 'Type introuvable'),
+        ]
+    )]
+    public function showTypeOffre(): void {}
+
+    #[OA\Patch(
+        path: '/agence/types-offres/{typeOffre}',
+        operationId: 'agenceUpdateTypeOffre',
+        summary: 'Modifier un type d\'offre personnalisé',
+        description: 'Met à jour un type créé par l\'agence. Les types plateforme ne sont pas modifiables.',
+        tags: ['Agence - Types d\'offre'],
+        security: [['sanctum' => []]],
+        parameters: [
+            new OA\Parameter(name: 'typeOffre', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: 'nom', type: 'string'),
+                    new OA\Property(property: 'description', type: 'string', nullable: true),
+                    new OA\Property(property: 'unite', type: 'string'),
+                    new OA\Property(property: 'unite_label', type: 'string'),
+                    new OA\Property(property: 'quantite_entier', type: 'boolean'),
+                    new OA\Property(property: 'quantite_min', type: 'number', format: 'float'),
+                    new OA\Property(property: 'actif', type: 'boolean'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Type d\'offre mis à jour',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/TypeOffreResource'),
+                    ]
+                )
+            ),
+            new OA\Response(response: 403, description: 'Type plateforme ou autre agence'),
+            new OA\Response(response: 422, description: 'Erreur de validation'),
+        ]
+    )]
+    public function updateTypeOffre(): void {}
+
+    #[OA\Delete(
+        path: '/agence/types-offres/{typeOffre}',
+        operationId: 'agenceDeleteTypeOffre',
+        summary: 'Supprimer un type d\'offre personnalisé',
+        description: 'Supprime un type créé par l\'agence s\'il n\'est lié à aucune offre.',
+        tags: ['Agence - Types d\'offre'],
+        security: [['sanctum' => []]],
+        parameters: [
+            new OA\Parameter(name: 'typeOffre', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Type supprimé',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'message', type: 'string', example: 'Type d\'offre supprimé avec succès.'),
+                    ]
+                )
+            ),
+            new OA\Response(response: 403, description: 'Type plateforme ou autre agence'),
+            new OA\Response(response: 422, description: 'Type utilisé par des offres'),
+        ]
+    )]
+    public function deleteTypeOffre(): void {}
 
     #[OA\Post(
         path: '/agence/register',
