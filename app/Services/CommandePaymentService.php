@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\Commande;
 use App\Models\Offre;
 use App\Models\Paiement;
+use App\Support\PaiementReturnUrl;
+use App\Support\QuantiteFormatter;
 use App\Support\ReferenceGenerator;
 use Illuminate\Validation\ValidationException;
 
@@ -63,9 +65,16 @@ class CommandePaymentService
             'billingId' => $paiement->code,
             'transactionAmount' => (string) $pricing['montant_total'],
             'phone' => $commande->telephone,
+            'return_url' => PaiementReturnUrl::for($paiement),
         ]);
 
-        return $this->paymentPayload($commande, $paiement, $pricing, $bambooResponse['redirect_url'] ?? null);
+        return $this->paymentPayload(
+            $commande,
+            $paiement,
+            $pricing,
+            $bambooResponse['redirect_url'] ?? null,
+            $offre,
+        );
     }
 
     /**
@@ -76,19 +85,27 @@ class CommandePaymentService
         Paiement $paiement,
         array $pricing,
         ?string $redirectUrl,
+        ?Offre $offre = null,
     ): array {
+        $offre ??= $commande->load('offre.typeOffre')->offre;
+        $offre?->loadMissing('typeOffre');
+        $typeOffre = $offre?->typeOffre;
+
         return [
             'commande_id' => $commande->id,
             'code' => $commande->code,
             'commande_statut' => $commande->statut,
-            'quantite_reservee' => (float) $commande->quantite,
-            'quantite_payee' => (float) $commande->quantite_payee,
-            'quantite_a_payer' => (float) $paiement->quantite,
-            'quantite_restante' => $commande->quantiteRestante(),
+            ...QuantiteFormatter::withLabels([
+                'quantite_reservee' => (float) $commande->quantite,
+                'quantite_payee' => (float) $commande->quantite_payee,
+                'quantite_a_payer' => (float) $paiement->quantite,
+                'quantite_restante' => $commande->quantiteRestante(),
+            ], $typeOffre),
             'montant_sous_total' => $pricing['montant_sous_total'],
             'montant_commission_client' => $pricing['montant_commission_client'],
             'montant_total' => $pricing['montant_total'],
             'paiement_code' => $paiement->code,
+            'retour_url' => PaiementReturnUrl::for($paiement),
             'redirect_url' => $redirectUrl,
             'verification_url' => url("/api/v1/client/paiements/{$paiement->code}/statut"),
             'mode' => ((float) $commande->quantite_payee + (float) $paiement->quantite) < (float) $commande->quantite - 0.0001

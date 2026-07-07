@@ -69,10 +69,12 @@ export type ColisApi = {
     reference: string;
     description?: string | null;
     poids: string | null;
+    poids_label?: string | null;
     volume: string | null;
+    quantite_label?: string | null;
     statut: string;
     created_at: string | null;
-    commande?: { id: string; code: string } | null;
+    commande?: { id: string; code: string; quantite?: string; quantite_label?: string | null } | null;
     agence?: AgenceSummary | null;
     photos?: ColisPhoto[];
 };

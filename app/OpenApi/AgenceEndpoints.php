@@ -316,7 +316,22 @@ class AgenceEndpoints
             new OA\QueryParameter(name: 'per_page', schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'Liste paginée'),
+            new OA\Response(
+                response: 200,
+                description: 'Liste paginée des commandes (quantités avec `*_label` et `offre.type_offre`)',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(ref: '#/components/schemas/AgenceCommandeResource')
+                        ),
+                        new OA\Property(property: 'meta', ref: '#/components/schemas/PaginationMeta'),
+                        new OA\Property(property: 'links', type: 'object'),
+                    ],
+                    type: 'object'
+                )
+            ),
         ]
     )]
     public function listCommandes(): void {}
@@ -331,7 +346,16 @@ class AgenceEndpoints
             new OA\PathParameter(name: 'commande', schema: new OA\Schema(type: 'string', format: 'uuid')),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'Détail avec client, offre, paiement, colis'),
+            new OA\Response(
+                response: 200,
+                description: 'Détail avec client, offre, paiement, colis (quantités formatées)',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/AgenceCommandeResource'),
+                    ],
+                    type: 'object'
+                )
+            ),
             new OA\Response(response: 404, description: 'Commande introuvable'),
         ]
     )]
@@ -357,7 +381,16 @@ class AgenceEndpoints
             )
         ),
         responses: [
-            new OA\Response(response: 200, description: 'Statut mis à jour'),
+            new OA\Response(
+                response: 200,
+                description: 'Statut mis à jour',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/AgenceCommandeResource'),
+                    ],
+                    type: 'object'
+                )
+            ),
             new OA\Response(response: 422, description: 'Transition non autorisée'),
         ]
     )]
@@ -376,7 +409,22 @@ class AgenceEndpoints
             new OA\QueryParameter(name: 'per_page', schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'Liste paginée'),
+            new OA\Response(
+                response: 200,
+                description: 'Liste paginée des colis (`quantite_label`, `poids_label`)',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(ref: '#/components/schemas/AgenceColisResource')
+                        ),
+                        new OA\Property(property: 'meta', ref: '#/components/schemas/PaginationMeta'),
+                        new OA\Property(property: 'links', type: 'object'),
+                    ],
+                    type: 'object'
+                )
+            ),
         ]
     )]
     public function listColis(): void {}
@@ -391,7 +439,17 @@ class AgenceEndpoints
             new OA\PathParameter(name: 'colis', schema: new OA\Schema(type: 'string', format: 'uuid')),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'Détail avec historique et next_statut'),
+            new OA\Response(
+                response: 200,
+                description: 'Détail avec commande, historique et `next_statut`',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/AgenceColisDetailResource'),
+                        new OA\Property(property: 'next_statut', type: 'string', nullable: true, enum: ['déposé', 'en_transit', 'arrivé', 'récupéré']),
+                    ],
+                    type: 'object'
+                )
+            ),
         ]
     )]
     public function showColis(): void {}
@@ -538,7 +596,22 @@ Réponse : détail du colis mis à jour + `next_statut` (prochaine étape ou `nu
             new OA\QueryParameter(name: 'per_page', schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'Liste paginée'),
+            new OA\Response(
+                response: 200,
+                description: 'Liste paginée des paiements (`quantite_label`)',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(ref: '#/components/schemas/AgencePaiementResource')
+                        ),
+                        new OA\Property(property: 'meta', ref: '#/components/schemas/PaginationMeta'),
+                        new OA\Property(property: 'links', type: 'object'),
+                    ],
+                    type: 'object'
+                )
+            ),
         ]
     )]
     public function listPaiements(): void {}

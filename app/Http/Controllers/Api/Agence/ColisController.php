@@ -20,7 +20,12 @@ class ColisController extends AgenceApiController
     {
         $query = $this->agence($request)
             ->colis()
-            ->with(['commande:id,code', 'photos'])
+            ->with([
+                'commande:id,code,quantite,offre_id',
+                'commande.offre:id,type_offre_id',
+                'commande.offre.typeOffre:id,unite,quantite_entier',
+                'photos',
+            ])
             ->latest();
 
         if ($search = $request->get('search')) {
@@ -58,7 +63,7 @@ class ColisController extends AgenceApiController
 
         $updated->load([
             'commande.client:id,nom,prenom,email',
-            'commande.offre:id,titre',
+            'commande.offre.typeOffre',
             'photos',
             'historique' => fn ($q) => $q->with('user:id,name')->latest(),
         ]);
@@ -74,7 +79,7 @@ class ColisController extends AgenceApiController
             ->colis()
             ->with([
                 'commande.client:id,nom,prenom,email',
-                'commande.offre:id,titre',
+                'commande.offre.typeOffre',
                 'photos',
                 'historique' => fn ($q) => $q->with('user:id,name')->latest(),
             ])

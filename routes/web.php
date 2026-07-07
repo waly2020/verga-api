@@ -13,6 +13,7 @@
 |
 */
 
+use App\Http\Controllers\PaiementRetourController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
@@ -35,6 +36,11 @@ if (app()->isLocal()) {
 
 Route::redirect('/', '/admin/dashboard')->name('home');
 Route::redirect('/dashboard', '/admin/dashboard')->name('dashboard');
+
+Route::get('/paiement/{paiement}/retour', [PaiementRetourController::class, 'show'])
+    ->name('paiement.retour');
+Route::get('/paiement/{paiement}/facture', [PaiementRetourController::class, 'facture'])
+    ->name('paiement.facture');
 
 require __DIR__.'/settings.php';
 require __DIR__.'/admin.php';

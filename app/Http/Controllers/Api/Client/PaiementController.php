@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\Client;
 
-use App\Http\Resources\Api\Client\PaiementResource;
+use App\Http\Resources\Api\PaiementResource;
 use App\Models\Paiement;
 use App\Services\CommandeCheckoutService;
 use Illuminate\Http\JsonResponse;

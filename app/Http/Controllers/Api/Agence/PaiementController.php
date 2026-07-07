@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\Agence;
 
-use App\Http\Resources\Api\Agence\PaiementResource;
+use App\Http\Resources\Api\PaiementResource;
 use App\Models\Paiement;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
