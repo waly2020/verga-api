@@ -32,7 +32,6 @@ class CommandeCheckoutTest extends ClientApiTestCase
             'bamboopay.merchant_id' => 'merchant-test',
             'bamboopay.username' => 'merchant-user',
             'bamboopay.password' => 'merchant-pass',
-            'bamboopay.return_url' => 'https://verga.test/paiement/retour',
             'bamboopay.callback_url' => 'https://verga.test/api/v1/payments/bamboo-pay/callback',
         ]);
     }

@@ -10,8 +10,6 @@ return [
 
     'password' => env('BAMBOO_PAY_PASSWORD'),
 
-    'return_url' => env('BAMBOO_PAY_RETURN_URL'),
-
     'callback_url' => env('BAMBOO_PAY_CALLBACK_URL'),
 
 ];

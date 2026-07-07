@@ -7,6 +7,7 @@ use App\Models\ColisPhoto;
 use App\Models\Commande;
 use App\Models\Offre;
 use App\Models\Paiement;
+use App\Support\QuantiteFormatter;
 use App\Support\ReferenceGenerator;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -96,7 +97,7 @@ class CommandeCheckoutService
     public function verifyPaymentStatus(string $paymentCode): array
     {
         $paiement = Paiement::query()
-            ->with(['commande.offre'])
+            ->with(['commande.offre.typeOffre'])
             ->where('code', $paymentCode)
             ->firstOrFail();
 
@@ -116,7 +117,7 @@ class CommandeCheckoutService
 
         $paiement = $this->settlement->settleFromBambooStatus($paiement, $transactionStatus, $bambooMessage);
 
-        return $this->statusPayload($paiement->fresh(['commande']));
+        return $this->statusPayload($paiement->fresh(['commande.offre.typeOffre']));
     }
 
     private function validateReservation(Offre $offre, float $quantiteReservee, float $quantiteAPayer): void
@@ -158,21 +159,25 @@ class CommandeCheckoutService
     private function statusPayload(Paiement $paiement, bool $pending = false): array
     {
         $commande = $paiement->commande;
+        $commande?->loadMissing('offre.typeOffre');
+        $typeOffre = $commande?->offre?->typeOffre;
 
         return [
             'paiement_code' => $paiement->code,
             'statut' => $paiement->statut,
             'bamboo_reference' => $paiement->bamboo_reference,
             'bamboo_message' => $paiement->bamboo_message,
-            'quantite' => (float) $paiement->quantite,
+            ...QuantiteFormatter::withLabels([
+                'quantite' => (float) $paiement->quantite,
+                'quantite_reservee' => $commande ? (float) $commande->quantite : null,
+                'quantite_payee' => $commande ? (float) $commande->quantite_payee : null,
+                'quantite_restante' => $commande?->quantiteRestante(),
+            ], $typeOffre),
             'montant_sous_total' => (float) $paiement->montant_sous_total,
             'montant_commission_client' => (float) $paiement->montant_commission_client,
             'montant_total' => (float) $paiement->montant,
             'commande_code' => $commande?->code,
             'commande_statut' => $commande?->statut,
-            'quantite_reservee' => $commande ? (float) $commande->quantite : null,
-            'quantite_payee' => $commande ? (float) $commande->quantite_payee : null,
-            'quantite_restante' => $commande?->quantiteRestante(),
             'commande_montant_sous_total' => $commande ? (float) $commande->montant_sous_total : null,
             'commande_montant_commission_client' => $commande ? (float) $commande->montant_commission_client : null,
             'commande_montant_total' => $commande ? (float) $commande->montant_total : null,

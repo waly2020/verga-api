@@ -16,10 +16,21 @@ export type PaiementRow = {
     created_at: string;
 };
 
+/** Réponse API client / agence — liste paiements */
+export type PaiementApi = {
+    code: string;
+    montant: number;
+    created_at: string | null;
+    bamboo_reference: string | null;
+    commande_code?: string | null;
+};
+
+/** Détail paiement admin (back-office) */
 export type PaiementInfo = {
     id: string;
     code: string | null;
     quantite?: string | null;
+    quantite_label?: string | null;
     montant_sous_total?: string | null;
     montant_commission_client?: string | null;
     montant: string;
@@ -29,8 +40,4 @@ export type PaiementInfo = {
     bamboo_message?: string | null;
     statut: PaiementStatut | string;
     created_at: string;
-};
-
-export type PaiementApi = PaiementInfo & {
-    commande?: { id: string; code: string } | null;
 };

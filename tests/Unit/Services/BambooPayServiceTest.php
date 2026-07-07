@@ -22,7 +22,6 @@ class BambooPayServiceTest extends TestCase
             'bamboopay.merchant_id' => 'merchant-test',
             'bamboopay.username' => 'merchant-user',
             'bamboopay.password' => 'merchant-pass',
-            'bamboopay.return_url' => 'https://verga.test/paiement/retour',
             'bamboopay.callback_url' => 'https://verga.test/api/v1/payments/bamboo-pay/callback',
         ]);
     }
@@ -45,6 +44,7 @@ class BambooPayServiceTest extends TestCase
             'billingId' => 'CMD-001',
             'transactionAmount' => '10000',
             'phone' => '0612345678',
+            'return_url' => 'https://verga.test/paiement/PAY-TEST-001/retour',
         ]);
 
         $this->assertSame('https://devfront-bamboopay.ventis.group/pay/abc', $result['redirect_url']);

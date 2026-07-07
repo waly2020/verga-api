@@ -348,8 +348,13 @@ Retourne aussi `quantite_reservee`, `quantite_payee` et `quantite_restante` pour
         responses: [
             new OA\Response(
                 response: 200,
-                description: 'Détail avec agence, offre, dernier paiement, colis',
-                content: new OA\JsonContent(ref: '#/components/schemas/ClientCommandeResource')
+                description: 'Détail avec agence, offre, dernier paiement, colis (quantités formatées)',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/ClientCommandeResource'),
+                    ],
+                    type: 'object'
+                )
             ),
             new OA\Response(response: 404, description: 'Commande introuvable'),
         ]
@@ -398,7 +403,22 @@ Retourne aussi `quantite_reservee`, `quantite_payee` et `quantite_restante` pour
             new OA\QueryParameter(name: 'per_page', schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'Liste paginée'),
+            new OA\Response(
+                response: 200,
+                description: 'Liste paginée des colis (`quantite_label`, `poids_label`)',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(ref: '#/components/schemas/ClientColisResource')
+                        ),
+                        new OA\Property(property: 'meta', ref: '#/components/schemas/PaginationMeta'),
+                        new OA\Property(property: 'links', type: 'object'),
+                    ],
+                    type: 'object'
+                )
+            ),
         ]
     )]
     public function listColis(): void {}
@@ -413,7 +433,16 @@ Retourne aussi `quantite_reservee`, `quantite_payee` et `quantite_restante` pour
             new OA\PathParameter(name: 'colis', schema: new OA\Schema(type: 'string', format: 'uuid')),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'Détail avec historique'),
+            new OA\Response(
+                response: 200,
+                description: 'Détail avec commande, photos et historique',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/ClientColisDetailResource'),
+                    ],
+                    type: 'object'
+                )
+            ),
         ]
     )]
     public function showColis(): void {}
@@ -431,7 +460,22 @@ Retourne aussi `quantite_reservee`, `quantite_payee` et `quantite_restante` pour
             new OA\QueryParameter(name: 'per_page', schema: new OA\Schema(type: 'integer')),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'Liste paginée'),
+            new OA\Response(
+                response: 200,
+                description: 'Liste paginée des paiements (`quantite_label`)',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(ref: '#/components/schemas/ClientPaiementResource')
+                        ),
+                        new OA\Property(property: 'meta', ref: '#/components/schemas/PaginationMeta'),
+                        new OA\Property(property: 'links', type: 'object'),
+                    ],
+                    type: 'object'
+                )
+            ),
         ]
     )]
     public function listPaiements(): void {}

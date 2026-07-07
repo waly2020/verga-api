@@ -67,6 +67,11 @@ export type CommandeApi = {
     id: string;
     code: string;
     quantite: string | number;
+    quantite_label?: string | null;
+    quantite_payee?: string | number | null;
+    quantite_payee_label?: string | null;
+    quantite_restante?: number | null;
+    quantite_restante_label?: string | null;
     montant_total: string | number;
     statut: string;
     nom?: string | null;

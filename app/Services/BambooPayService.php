@@ -27,7 +27,6 @@ class BambooPayService
     {
         return $this->send(new RedirectPaymentRequest(
             $this->mergeDefaults($data, [
-                'return_url' => config('bamboopay.return_url'),
                 'update_status_url' => config('bamboopay.callback_url'),
             ])
         ))->json();

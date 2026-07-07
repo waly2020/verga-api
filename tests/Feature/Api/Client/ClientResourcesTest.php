@@ -92,6 +92,8 @@ class ClientResourcesTest extends ClientApiTestCase
 
         Paiement::create([
             'commande_id' => $commande->id,
+            'code' => 'PAY-CLIENT-001',
+            'montant_sous_total' => 17500,
             'montant' => 17500,
             'methode' => 'mobile_money',
             'reference' => 'PAY-CLIENT-001',
@@ -105,7 +107,14 @@ class ClientResourcesTest extends ClientApiTestCase
             ->assertJsonPath('data.0.offre.capacite_totale', 1000)
             ->assertJsonPath('data.0.offre.capacite_disponible', 1000);
         $this->withClientToken($token)->getJson('/api/v1/client/colis')->assertOk()->assertJsonPath('data.0.reference', 'COL-CLIENT-001');
-        $this->withClientToken($token)->getJson('/api/v1/client/paiements')->assertOk()->assertJsonPath('data.0.reference', 'PAY-CLIENT-001');
+        $this->withClientToken($token)
+            ->getJson('/api/v1/client/paiements')
+            ->assertOk()
+            ->assertJsonPath('data.0.code', 'PAY-CLIENT-001')
+            ->assertJsonPath('data.0.montant', 17500)
+            ->assertJsonPath('data.0.commande_code', 'CMD-CLIENT-001')
+            ->assertJsonMissingPath('data.0.montant_commission_client')
+            ->assertJsonMissingPath('data.0.montant_sous_total');
     }
 
     public function test_client_can_create_reclamation(): void
