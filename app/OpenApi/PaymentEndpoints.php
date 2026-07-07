@@ -26,6 +26,7 @@ class PaymentEndpoints
                     new OA\Property(property: 'status', type: 'string', enum: ['pending', 'completed', 'failed'], example: 'completed'),
                     new OA\Property(property: 'billingId', type: 'string', description: 'Code paiement VERGA (`PAY-...`)', example: 'PAY-ABCDEFGH'),
                     new OA\Property(property: 'reference', type: 'string', description: 'Référence Bamboo Pay', example: 'TXN-2025-000381'),
+                    new OA\Property(property: 'observation', type: 'string', nullable: true, description: 'Message ou motif Bamboo Pay (échec, info)', example: 'Solde insuffisant'),
                     new OA\Property(property: 'paymentType', type: 'string', nullable: true),
                     new OA\Property(property: 'merchantName', type: 'string', nullable: true),
                     new OA\Property(property: 'callbackUrl', type: 'string', nullable: true),

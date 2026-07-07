@@ -146,4 +146,34 @@ class PaiementTest extends TestCase
             return $request->resolveEndpoint() === '/api/check-status/PAY-TEST-001';
         });
     }
+
+    public function test_admin_verify_stores_bamboo_message_on_failure(): void
+    {
+        ['paiement' => $paiement] = $this->createPendingPayment('TXN-BP-FAIL');
+
+        $connector = new BambooPayConnector;
+        $connector->withMockClient(new MockClient([
+            CheckStatusRequest::class => MockResponse::make([
+                'transaction' => [
+                    'status' => 'failed',
+                    'message' => 'Fonds insuffisants',
+                ],
+            ], 200),
+        ]));
+
+        $this->app->forgetInstance(BambooPayService::class);
+        $this->app->forgetInstance(CommandeCheckoutService::class);
+        $this->app->instance(BambooPayConnector::class, $connector);
+
+        $this->actingAs($this->adminUser())
+            ->patch("/admin/paiements/{$paiement->id}/verifier-statut")
+            ->assertRedirect()
+            ->assertSessionHas('error', 'Le paiement a échoué : Fonds insuffisants');
+
+        $this->assertDatabaseHas('paiements', [
+            'id' => $paiement->id,
+            'statut' => 'échec',
+            'bamboo_message' => 'Fonds insuffisants',
+        ]);
+    }
 }

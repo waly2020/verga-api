@@ -5,6 +5,7 @@ export type PaiementRow = {
     code: string | null;
     reference: string | null;
     bamboo_reference: string | null;
+    bamboo_message?: string | null;
     commande: { id: string; code: string } | null;
     quantite?: string | null;
     montant_sous_total?: string | null;
@@ -25,6 +26,7 @@ export type PaiementInfo = {
     methode: string;
     reference: string | null;
     bamboo_reference: string | null;
+    bamboo_message?: string | null;
     statut: PaiementStatut | string;
     created_at: string;
 };

@@ -112,8 +112,9 @@ class CommandeCheckoutService
 
         $bambooStatus = $this->bambooPay->checkStatus($transactionId);
         $transactionStatus = (string) ($bambooStatus['transaction']['status'] ?? $bambooStatus['status'] ?? 'pending');
+        $bambooMessage = PaymentSettlementService::messageFromCheckStatusResponse($bambooStatus);
 
-        $paiement = $this->settlement->settleFromBambooStatus($paiement, $transactionStatus);
+        $paiement = $this->settlement->settleFromBambooStatus($paiement, $transactionStatus, $bambooMessage);
 
         return $this->statusPayload($paiement->fresh(['commande']));
     }
@@ -162,6 +163,7 @@ class CommandeCheckoutService
             'paiement_code' => $paiement->code,
             'statut' => $paiement->statut,
             'bamboo_reference' => $paiement->bamboo_reference,
+            'bamboo_message' => $paiement->bamboo_message,
             'quantite' => (float) $paiement->quantite,
             'montant_sous_total' => (float) $paiement->montant_sous_total,
             'montant_commission_client' => (float) $paiement->montant_commission_client,

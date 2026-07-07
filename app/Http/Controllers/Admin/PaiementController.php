@@ -58,9 +58,13 @@ class PaiementController extends Controller
 
         [$flashKey, $message] = match ($result['statut']) {
             'validé' => ['success', 'Paiement validé avec succès.'],
-            'échec' => ['error', 'Le paiement a échoué côté Bamboo Pay.'],
+            'échec' => ['error', filled($result['bamboo_message'] ?? null)
+                ? 'Le paiement a échoué : '.$result['bamboo_message']
+                : 'Le paiement a échoué côté Bamboo Pay.'],
             'remboursé' => ['error', 'Ce paiement a été remboursé.'],
-            default => ['success', 'Statut vérifié : le paiement est toujours en attente.'],
+            default => ['success', filled($result['bamboo_message'] ?? null)
+                ? 'Statut vérifié : '.$result['bamboo_message']
+                : 'Statut vérifié : le paiement est toujours en attente.'],
         };
 
         return back()->with($flashKey, $message);

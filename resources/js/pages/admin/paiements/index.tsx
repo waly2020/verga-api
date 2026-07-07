@@ -60,6 +60,15 @@ const columns: Column<PaiementRow>[] = [
     { key: 'methode', label: 'Méthode' },
     { key: 'statut', label: 'Statut', render: (r) => <StatusBadge status={r.statut} /> },
     {
+        key: 'bamboo_message',
+        label: 'Message Bamboo',
+        render: (r) => (
+            <span className="max-w-[220px] truncate text-xs text-muted-foreground" title={r.bamboo_message ?? undefined}>
+                {r.bamboo_message ?? '—'}
+            </span>
+        ),
+    },
+    {
         key: 'created_at',
         label: 'Date',
         render: (r) => new Date(String(r.created_at)).toLocaleDateString('fr-FR'),

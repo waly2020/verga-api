@@ -24,6 +24,7 @@ class PaiementResource extends JsonResource
             'methode' => $this->methode,
             'reference' => $this->reference,
             'bamboo_reference' => $this->bamboo_reference,
+            'bamboo_message' => $this->bamboo_message,
             'statut' => $this->statut,
             'created_at' => $this->created_at?->toIso8601String(),
             'commande' => $this->whenLoaded('commande', fn () => [
