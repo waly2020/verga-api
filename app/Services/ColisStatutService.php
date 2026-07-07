@@ -12,6 +12,7 @@ class ColisStatutService
 {
     /** @var array<string, string> */
     public const FLUX = [
+        'chez_client' => 'déposé',
         'déposé' => 'en_transit',
         'en_transit' => 'arrivé',
         'arrivé' => 'récupéré',

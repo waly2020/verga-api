@@ -193,12 +193,14 @@ Objectif : connecter chaque écran aux modèles, controllers et règles métier 
 - [x] Liste des colis expédiés par agence (paginée, recherche, filtre statut)
 - [x] Vérification / confirmation d'arrivée d'un colis (PATCH statut + HistoriqueColis)
 - [x] Historique colis sur la fiche commande (page show + timeline)
+- [x] Statut initial colis `chez_client` à la commande (API checkout) + flux `chez_client` → `déposé` → … (admin, API agence, fiche détail)
 
 ### 3.4 Commandes et paiements
 
 - [x] Liste des achats clients (paginée, recherche code, filtre statut)
 - [~] Détail commande (client, offre, montant, statut) — **en attente de validation**
 - [x] Liste des paiements (paginée, recherche référence, filtre statut)
+- [x] Action admin : vérifier le statut d'un paiement via Bamboo Pay (réf. Bamboo ou code VERGA)
 - [~] Lien commande ↔ paiement ↔ commission — **en attente de validation**
 
 ### 3.5 Reversements et gains
@@ -330,22 +332,28 @@ Fonctionnalités validées en conception mais **non planifiées pour l’implém
 
 ## Journal de suivi
 
-| Date | Module | Action | Statut |
-|------|--------|--------|--------|
-| 2026-06-13 | — | Création du document de suivi | `[x]` |
-| 2026-06-13 | BDD | Migrations + modèles (13 tables métier + extension users) | `[x]` |
-| 2026-06-13 | Admin | §2.1 Fondations back-office (routes, middleware, layout, nav, dashboard) | `[x]` |
-| 2026-06-13 | Admin | §2.2 Auth Fortify + redirection `/admin/dashboard` + URL dev auto-login | `[x]` |
-| 2026-06-13 | Admin | §2.4 Composants UI réutilisables (DataTable, StatusBadge, EmptyState, ConfirmDialog) | `[x]` |
-| 2026-06-13 | Admin | §2.3 8 pages modules admin avec données mock (agences → collaborateurs) | `[x]` |
-| 2026-06-13 | Admin | §2.5 Boutons export Excel/PDF (UI placeholder, disabled) sur 5 modules | `[x]` |
-| 2026-06-13 | Admin | §3.4 Détail commande + liens paiement/commission/colis (show + bouton Voir) | `[~]` validation |
-| 2026-06-21 | API | Auth agence Sanctum : login, me, logout, password (9 tests) | `[~]` validation |
-| 2026-06-22 | Clients | Table clients + admin lecture seule + API register/profile/métier (20 tests) | `[~]` validation |
-| 2026-06-22 | API | Swagger (L5-Swagger) + doc OpenAPI agence + client (28 endpoints) | `[x]` |
-| 2026-06-23 | Admin | Configuration commissions globales (page /admin/commissions, 6 tests) | `[~]` validation |
-| 2026-06-24 | API Client | Checkout commande (invité/connecté) + settlement Bamboo + capacité offres (7 tests) | `[~]` validation |
-| 2026-07-05 | Backlog | Profilage multi-utilisateurs agence (`agence_membres`, profils, permissions) — conception documentée | `[ ]` backlog |
+> **Dernière session** : 2026-07-07 — poste de développement **PPVTSGA006** (`C:\Users\Jean-Bosco\Desktop\verga-api`)
+
+| Date | Poste | Module | Action | Statut |
+|------|-------|--------|--------|--------|
+| 2026-06-13 | — | — | Création du document de suivi | `[x]` |
+| 2026-06-13 | — | BDD | Migrations + modèles (13 tables métier + extension users) | `[x]` |
+| 2026-06-13 | — | Admin | §2.1 Fondations back-office (routes, middleware, layout, nav, dashboard) | `[x]` |
+| 2026-06-13 | — | Admin | §2.2 Auth Fortify + redirection `/admin/dashboard` + URL dev auto-login | `[x]` |
+| 2026-06-13 | — | Admin | §2.4 Composants UI réutilisables (DataTable, StatusBadge, EmptyState, ConfirmDialog) | `[x]` |
+| 2026-06-13 | — | Admin | §2.3 8 pages modules admin avec données mock (agences → collaborateurs) | `[x]` |
+| 2026-06-13 | — | Admin | §2.5 Boutons export Excel/PDF (UI placeholder, disabled) sur 5 modules | `[x]` |
+| 2026-06-13 | — | Admin | §3.4 Détail commande + liens paiement/commission/colis (show + bouton Voir) | `[~]` validation |
+| 2026-06-21 | — | API | Auth agence Sanctum : login, me, logout, password (9 tests) | `[~]` validation |
+| 2026-06-22 | — | Clients | Table clients + admin lecture seule + API register/profile/métier (20 tests) | `[~]` validation |
+| 2026-06-22 | — | API | Swagger (L5-Swagger) + doc OpenAPI agence + client (28 endpoints) | `[x]` |
+| 2026-06-23 | — | Admin | Configuration commissions globales (page /admin/commissions, 6 tests) | `[~]` validation |
+| 2026-06-24 | — | API Client | Checkout commande (invité/connecté) + settlement Bamboo + capacité offres (7 tests) | `[~]` validation |
+| 2026-07-05 | — | Backlog | Profilage multi-utilisateurs agence (`agence_membres`, profils, permissions) — conception documentée | `[ ]` backlog |
+| 2026-07-07 | **PPVTSGA006** | Ops / Prod | Diagnostic erreur 500 API checkout : package Saloon absent (`composer install` requis sur le serveur) | `[x]` |
+| 2026-07-07 | **PPVTSGA006** | Admin | Page paiements : bouton « Vérifier » (Bamboo Pay via `bamboo_reference` ou code VERGA) + route `PATCH /admin/paiements/{paiement}/verifier-statut` | `[x]` |
+| 2026-07-07 | **PPVTSGA006** | API Client | Vérification statut paiement : lookup Bamboo avec `bamboo_reference` sinon `code` VERGA (`CommandeCheckoutService`) | `[x]` |
+| 2026-07-07 | **PPVTSGA006** | Colis | Nouveau statut `chez_client` (colis encore chez le client) — migration, checkout API, flux admin/API agence, UI liste + fiche détail (5 étapes) | `[x]` |
 
 ---
 
@@ -356,10 +364,12 @@ Fonctionnalités validées en conception mais **non planifiées pour l’implém
 - **Découpage** : ne pas livrer un module entier d'un bloc ; cocher les sous-tâches une par une.
 - **Validation** : chaque fonctionnalité doit être validée par le client avant de passer à la suivante.
 - **API auth** : Sanctum Bearer token, préfixe `/api/v1/agence`, login via email du gérant (`users.email`).
+- **Colis — flux logistique** : `chez_client` (création à la commande API) → `déposé` (dépôt agence) → `en_transit` → `arrivé` → `récupéré`. Le paiement validé ne fait pas avancer le statut colis automatiquement.
+- **Paiements admin** : vérification manuelle Bamboo Pay possible depuis `/admin/paiements` (paiements `en_attente`).
 - **Références** : `CONTEXTE/DOCUMENT_DESCRIPTIF_DE_VERGA.pdf`, `CONTEXTE/Documentation_BDD_VERGA.pdf`.
 
 ---
 
 ## Prochaine action suggérée
 
-**Valider l'API auth agence** (§ 2.2), puis enchaîner sur les **endpoints agence métier** (offres, commandes, colis).
+**Déployer sur le serveur** : `composer install`, `php artisan migrate` (statut `chez_client`), `npm run build`, puis **valider l'API auth agence** (§ 2.2) et les **endpoints métier agence** (offres, commandes, colis).

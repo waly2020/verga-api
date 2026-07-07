@@ -48,6 +48,7 @@ Route::middleware(['auth', 'verified', 'admin'])
         Route::get('colis/{colis}', [ColisController::class, 'show'])->name('colis.show');
         Route::patch('colis/{colis}/statut', [ColisController::class, 'updateStatut'])->name('colis.statut');
         Route::get('paiements', [PaiementController::class, 'index'])->name('paiements.index');
+        Route::patch('paiements/{paiement}/verifier-statut', [PaiementController::class, 'verifierStatut'])->name('paiements.verifier-statut');
         Route::get('commissions', [ConfigurationCommissionController::class, 'index'])->name('commissions.index');
         Route::patch('commissions/{destinataire}', [ConfigurationCommissionController::class, 'update'])
             ->whereIn('destinataire', ['client', 'agence'])

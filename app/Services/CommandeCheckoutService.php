@@ -61,7 +61,7 @@ class CommandeCheckoutService
                 'agence_id' => $offre->agence_id,
                 'reference' => ReferenceGenerator::colis(),
                 'description' => $data['description'] ?? null,
-                'statut' => 'déposé',
+                'statut' => 'chez_client',
             ]);
 
             $this->storePhotos($colis, $photos);
@@ -104,11 +104,13 @@ class CommandeCheckoutService
             return $this->statusPayload($paiement);
         }
 
-        if (! $paiement->bamboo_reference) {
+        $transactionId = $paiement->bamboo_reference ?: $paiement->code;
+
+        if (! $transactionId) {
             return $this->statusPayload($paiement, pending: true);
         }
 
-        $bambooStatus = app(BambooPayService::class)->checkStatus($paiement->bamboo_reference);
+        $bambooStatus = $this->bambooPay->checkStatus($transactionId);
         $transactionStatus = (string) ($bambooStatus['transaction']['status'] ?? $bambooStatus['status'] ?? 'pending');
 
         $paiement = $this->settlement->settleFromBambooStatus($paiement, $transactionStatus);

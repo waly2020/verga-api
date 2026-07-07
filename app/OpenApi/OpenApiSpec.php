@@ -92,7 +92,7 @@ use OpenApi\Attributes as OA;
     schema: 'HistoriqueColisResource',
     properties: [
         new OA\Property(property: 'id', type: 'string', format: 'uuid'),
-        new OA\Property(property: 'statut', type: 'string', enum: ['déposé', 'en_transit', 'arrivé', 'récupéré']),
+        new OA\Property(property: 'statut', type: 'string', enum: ['chez_client', 'déposé', 'en_transit', 'arrivé', 'récupéré']),
         new OA\Property(property: 'commentaire', type: 'string', nullable: true),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'user', type: 'object', nullable: true, properties: [
@@ -109,7 +109,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Vêtements et accessoires'),
         new OA\Property(property: 'poids', type: 'number', format: 'float', nullable: true),
         new OA\Property(property: 'volume', type: 'number', format: 'float', nullable: true),
-        new OA\Property(property: 'statut', type: 'string', enum: ['déposé', 'en_transit', 'arrivé', 'récupéré']),
+        new OA\Property(property: 'statut', type: 'string', enum: ['chez_client', 'déposé', 'en_transit', 'arrivé', 'récupéré']),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'commande', type: 'object', nullable: true),
@@ -133,7 +133,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'description', type: 'string', nullable: true),
         new OA\Property(property: 'poids', type: 'number', format: 'float', nullable: true),
         new OA\Property(property: 'volume', type: 'number', format: 'float', nullable: true),
-        new OA\Property(property: 'statut', type: 'string', enum: ['déposé', 'en_transit', 'arrivé', 'récupéré']),
+        new OA\Property(property: 'statut', type: 'string', enum: ['chez_client', 'déposé', 'en_transit', 'arrivé', 'récupéré']),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'commande', type: 'object', nullable: true),
         new OA\Property(property: 'agence', type: 'object', nullable: true),

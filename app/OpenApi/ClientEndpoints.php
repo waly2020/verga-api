@@ -393,7 +393,7 @@ Retourne aussi `quantite_reservee`, `quantite_payee` et `quantite_restante` pour
         security: [['sanctum' => []]],
         parameters: [
             new OA\QueryParameter(name: 'search', schema: new OA\Schema(type: 'string')),
-            new OA\QueryParameter(name: 'statut', schema: new OA\Schema(type: 'string', enum: ['déposé', 'en_transit', 'arrivé', 'récupéré'])),
+            new OA\QueryParameter(name: 'statut', schema: new OA\Schema(type: 'string', enum: ['chez_client', 'déposé', 'en_transit', 'arrivé', 'récupéré'])),
             new OA\QueryParameter(name: 'page', schema: new OA\Schema(type: 'integer')),
             new OA\QueryParameter(name: 'per_page', schema: new OA\Schema(type: 'integer')),
         ],

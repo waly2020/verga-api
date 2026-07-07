@@ -28,14 +28,16 @@ interface Props {
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
 const STATUT_LABELS: Record<string, string> = {
-    'déposé':    'Déposé',
-    'en_transit': 'En transit',
-    'arrivé':    'Arrivé',
-    'récupéré':  'Récupéré',
+    'chez_client': 'Chez le client',
+    'déposé':      'Déposé',
+    'en_transit':  'En transit',
+    'arrivé':      'Arrivé',
+    'récupéré':    'Récupéré',
 };
 
 // Clé = statut CIBLE. Label = action à effectuer pour y arriver.
 const NEXT_ACTION: Record<string, { label: string; confirm: string }> = {
+    'déposé':     { label: 'Confirmer dépôt',    confirm: 'Confirmer que le colis a été remis à l\'agence ?' },
     'en_transit': { label: 'Expédier',           confirm: 'Confirmer l\'expédition de ce colis ?' },
     'arrivé':     { label: 'Confirmer arrivée',  confirm: 'Confirmer l\'arrivée à destination ?' },
     'récupéré':   { label: 'Marquer récupéré',   confirm: 'Marquer ce colis comme récupéré par le client ?' },
@@ -43,26 +45,29 @@ const NEXT_ACTION: Record<string, { label: string; confirm: string }> = {
 
 // Icône selon statut dans la timeline
 const STATUT_ICON: Record<string, React.ElementType> = {
-    'déposé':    Box,
-    'en_transit': Truck,
-    'arrivé':    PackageCheck,
-    'récupéré':  CheckCircle2,
+    'chez_client': User,
+    'déposé':      Box,
+    'en_transit':  Truck,
+    'arrivé':      PackageCheck,
+    'récupéré':    CheckCircle2,
 };
 
 // Couleur de la pastille timeline
 const STATUT_COLOR: Record<string, string> = {
-    'déposé':    'bg-slate-400',
-    'en_transit': 'bg-blue-500',
-    'arrivé':    'bg-amber-500',
-    'récupéré':  'bg-emerald-500',
+    'chez_client': 'bg-violet-500',
+    'déposé':      'bg-slate-400',
+    'en_transit':  'bg-blue-500',
+    'arrivé':      'bg-amber-500',
+    'récupéré':    'bg-emerald-500',
 };
 
 // Étapes visuelles de la barre de progression
 const STEPS = [
-    { key: 'déposé',    label: 'Déposé',      Icon: Box },
-    { key: 'en_transit', label: 'En transit',  Icon: Truck },
-    { key: 'arrivé',    label: 'Arrivé',       Icon: PackageCheck },
-    { key: 'récupéré',  label: 'Récupéré',     Icon: CheckCircle2 },
+    { key: 'chez_client', label: 'Chez le client', Icon: User },
+    { key: 'déposé',      label: 'Déposé',         Icon: Box },
+    { key: 'en_transit',  label: 'En transit',     Icon: Truck },
+    { key: 'arrivé',      label: 'Arrivé',         Icon: PackageCheck },
+    { key: 'récupéré',    label: 'Récupéré',       Icon: CheckCircle2 },
 ];
 
 // ─── Composant ────────────────────────────────────────────────────────────

@@ -1,9 +1,11 @@
 import { Head } from '@inertiajs/react';
 import { router } from '@inertiajs/react';
+import { RefreshCw } from 'lucide-react';
 import { DataTable  } from '@/components/admin/data-table';
 import type {Column} from '@/components/admin/data-table';
 import { ExportButtons } from '@/components/admin/export-buttons';
 import { StatusBadge } from '@/components/admin/status-badge';
+import { Button } from '@/components/ui/button';
 import admin from '@/routes/admin';
 import type { PaiementRow, Paginated } from '@/types';
 
@@ -78,6 +80,9 @@ export default function PaiementsIndex({ paiements, filters }: Props) {
             replace: true,
         });
 
+    const verifierStatut = (row: PaiementRow) =>
+        router.patch(admin.paiements.verifierStatut(row.id).url, {}, { preserveState: false });
+
     return (
         <>
             <Head title="Paiements" />
@@ -104,6 +109,14 @@ export default function PaiementsIndex({ paiements, filters }: Props) {
                     onSearchChange={(v) => go({ ...filters, search: v || undefined, page: 1 })}
                     onFilterChange={(v) => go({ ...filters, statut: v || undefined, page: 1 })}
                     onPageChange={(p) => go({ ...filters, page: p })}
+                    actions={(row) =>
+                        row.statut === 'en_attente' && row.code ? (
+                            <Button size="sm" variant="outline" onClick={() => verifierStatut(row)}>
+                                <RefreshCw className="mr-1 h-3.5 w-3.5" />
+                                Vérifier
+                            </Button>
+                        ) : null
+                    }
                 />
             </div>
         </>

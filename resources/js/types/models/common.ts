@@ -6,7 +6,7 @@ export type CommandeStatut = 'en_attente' | 'réservée' | 'confirmée' | 'annul
 
 export type PaiementStatut = 'en_attente' | 'validé' | 'remboursé' | 'échec';
 
-export type ColisStatut = 'déposé' | 'en_transit' | 'arrivé' | 'récupéré';
+export type ColisStatut = 'chez_client' | 'déposé' | 'en_transit' | 'arrivé' | 'récupéré';
 
 export type AgenceSummary = {
     id: string;

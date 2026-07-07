@@ -105,7 +105,7 @@ class CommandeCheckoutTest extends ClientApiTestCase
             'nom' => 'Obame',
             'statut' => 'en_attente',
         ]);
-        $this->assertDatabaseHas('colis', ['description' => 'Vêtements']);
+        $this->assertDatabaseHas('colis', ['description' => 'Vêtements', 'statut' => 'chez_client']);
         $this->assertDatabaseHas('paiements', ['statut' => 'en_attente', 'montant' => 25000]);
 
         $offre->refresh();
