@@ -5,6 +5,7 @@ use App\Http\Middleware\EnsureUserIsAgence;
 use App\Http\Middleware\EnsureUserIsClient;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\NormalizeBambooPayReturnUrl;
 use App\Http\Middleware\OptionalSanctumAuth;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -20,6 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->prepend(NormalizeBambooPayReturnUrl::class);
+
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,
             'agence' => EnsureUserIsAgence::class,

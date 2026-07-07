@@ -297,7 +297,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'montant_commission_client', type: 'number', format: 'float', example: 1250, description: 'Commission VERGA sur ce paiement'),
         new OA\Property(property: 'montant_total', type: 'number', format: 'float', example: 26250, description: 'Montant envoyé à Bamboo Pay pour ce paiement'),
         new OA\Property(property: 'paiement_code', type: 'string', example: 'PAY-ABCDEFGH'),
-        new OA\Property(property: 'retour_url', type: 'string', format: 'uri', example: 'http://localhost/paiement/PAY-ABCDEFGH/retour', description: 'URL de retour marchand après paiement Bamboo'),
+        new OA\Property(property: 'retour_url', type: 'string', format: 'uri', example: 'http://localhost/paiement/PAY-ABCDEFGH/retour?ref=PAY-ABCDEFGH', description: 'URL de retour marchand après paiement Bamboo (ancre ? pour les paramètres Bamboo)'),
         new OA\Property(property: 'redirect_url', type: 'string', format: 'uri', example: 'https://devfront-bamboopay.ventis.group/pay/abc'),
         new OA\Property(property: 'verification_url', type: 'string', format: 'uri', example: 'http://localhost/api/v1/client/paiements/PAY-ABCDEFGH/statut'),
         new OA\Property(property: 'mode', type: 'string', enum: ['reservation', 'complet'], description: 'reservation = paiement partiel, complet = solde total'),

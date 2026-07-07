@@ -69,7 +69,7 @@ export function DataTable<T extends Record<string, unknown>>({
     onPageChange,
     perPage = 10,
 }: DataTableProps<T>) {
-    const isServer = Boolean(pagination);
+    const isServer = Boolean(pagination) || Boolean(onSearchChange) || Boolean(onFilterChange) || Boolean(onPageChange);
 
     const normalizedFilter = initialFilter || 'all';
 
@@ -95,10 +95,10 @@ export function DataTable<T extends Record<string, unknown>>({
     function handleSearch(value: string) {
         setSearch(value);
 
-        if (isServer && onSearchChange) {
+        if (onSearchChange) {
             if (debounceRef.current) {
-clearTimeout(debounceRef.current);
-}
+                clearTimeout(debounceRef.current);
+            }
 
             debounceRef.current = setTimeout(() => onSearchChange(value), 350);
         } else {
@@ -109,7 +109,7 @@ clearTimeout(debounceRef.current);
     function handleFilter(value: string) {
         setFilterValue(value);
 
-        if (isServer && onFilterChange) {
+        if (onFilterChange) {
             onFilterChange(value === 'all' ? '' : value);
         } else {
             setClientPage(0);
@@ -117,7 +117,7 @@ clearTimeout(debounceRef.current);
     }
 
     function handlePageChange({ selected }: { selected: number }) {
-        if (isServer && onPageChange) {
+        if (onPageChange) {
             onPageChange(selected + 1);
         } else {
             setClientPage(selected);
@@ -153,7 +153,7 @@ clearTimeout(debounceRef.current);
         <div className="flex flex-col gap-4">
             {/* Search / filter bar */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                {(searchKey || (isServer && onSearchChange)) && (
+                {(searchKey || onSearchChange) && (
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input

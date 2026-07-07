@@ -19,8 +19,8 @@ export type PaginationMeta = {
 
 export type Paginated<T> = {
     data: T[];
-    meta: PaginationMeta;
-};
+    meta?: PaginationMeta;
+} & Partial<PaginationMeta>;
 
 export type FlashToast = {
     type: 'success' | 'info' | 'warning' | 'error';

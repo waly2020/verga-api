@@ -10,6 +10,9 @@ final class PaiementReturnUrl
 {
     public static function for(Paiement $paiement): string
     {
-        return url("/paiement/{$paiement->code}/retour");
+        $code = $paiement->code;
+
+        // Ancre ? pour que Bamboo Pay puisse ajouter &status=...&ref=... sans casser la route.
+        return url("/paiement/{$code}/retour").'?ref='.rawurlencode((string) $code);
     }
 }

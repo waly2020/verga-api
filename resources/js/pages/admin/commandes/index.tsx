@@ -8,6 +8,7 @@ import { StatusBadge } from '@/components/admin/status-badge';
 import { Button } from '@/components/ui/button';
 import admin from '@/routes/admin';
 import { formatQuantite } from '@/lib/format-quantite';
+import { paginationMeta } from '@/lib/pagination';
 import type { CommandeRow, Paginated } from '@/types';
 
 interface Props {
@@ -78,10 +79,10 @@ export default function CommandesIndex({ commandes, filters }: Props) {
                 <DataTable
                     columns={columns}
                     data={commandes.data}
-                    pagination={commandes.meta}
+                    pagination={paginationMeta(commandes)}
                     initialSearch={filters.search ?? ''}
                     initialFilter={filters.statut ?? ''}
-                    searchPlaceholder="Rechercher par code..."
+                    searchPlaceholder="Rechercher par code, client ou agence..."
                     filterKey="statut"
                     filterOptions={filterOptions}
                     emptyTitle="Aucune commande"

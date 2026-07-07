@@ -11,6 +11,7 @@ import { ExportButtons } from '@/components/admin/export-buttons';
 import { StatusBadge } from '@/components/admin/status-badge';
 import { Button } from '@/components/ui/button';
 import admin from '@/routes/admin';
+import { paginationMeta } from '@/lib/pagination';
 import type { Paginated } from '@/types';
 
 type AgenceRow = Record<string, unknown> & {
@@ -87,10 +88,10 @@ export default function AgencesIndex({ agences, filters, types_agences }: Props)
                 <DataTable
                     columns={columns}
                     data={agences.data}
-                    pagination={agences.meta}
+                    pagination={paginationMeta(agences)}
                     initialSearch={filters.search ?? ''}
                     initialFilter={filters.statut ?? ''}
-                    searchPlaceholder="Rechercher une agence..."
+                    searchPlaceholder="Rechercher par nom, email ou ville..."
                     filterKey="statut"
                     filterOptions={filterOptions}
                     emptyTitle="Aucune agence"

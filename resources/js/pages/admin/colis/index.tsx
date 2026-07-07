@@ -8,6 +8,7 @@ import { StatusBadge } from '@/components/admin/status-badge';
 import { Button } from '@/components/ui/button';
 import admin from '@/routes/admin';
 import { formatQuantite } from '@/lib/format-quantite';
+import { paginationMeta } from '@/lib/pagination';
 import type { ColisRow, Paginated } from '@/types';
 
 interface Props {
@@ -77,10 +78,10 @@ export default function ColisIndex({ colis, filters }: Props) {
                 <DataTable
                     columns={columns}
                     data={colis.data}
-                    pagination={colis.meta}
+                    pagination={paginationMeta(colis)}
                     initialSearch={filters.search ?? ''}
                     initialFilter={filters.statut ?? ''}
-                    searchPlaceholder="Rechercher par référence..."
+                    searchPlaceholder="Rechercher par référence, description ou commande..."
                     filterKey="statut"
                     filterOptions={filterOptions}
                     emptyTitle="Aucun colis"

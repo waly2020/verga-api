@@ -7,6 +7,7 @@ import { ExportButtons } from '@/components/admin/export-buttons';
 import { StatusBadge } from '@/components/admin/status-badge';
 import { Button } from '@/components/ui/button';
 import admin from '@/routes/admin';
+import { paginationMeta } from '@/lib/pagination';
 import type { ClientRow, Paginated } from '@/types';
 
 interface Props {
@@ -61,10 +62,10 @@ export default function ClientsIndex({ clients, filters }: Props) {
                 <DataTable
                     columns={columns}
                     data={clients.data}
-                    pagination={clients.meta}
+                    pagination={paginationMeta(clients)}
                     initialSearch={filters.search ?? ''}
                     initialFilter={filters.statut ?? ''}
-                    searchPlaceholder="Rechercher un client..."
+                    searchPlaceholder="Rechercher par nom, email ou téléphone..."
                     filterKey="statut"
                     filterOptions={filterOptions}
                     emptyTitle="Aucun client"
