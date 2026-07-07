@@ -15,6 +15,7 @@ const STATUS_MAP: Record<string, { label: string; className: string }> = {
     remboursé:   { label: 'Remboursé',   className: 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100' },
     échec:       { label: 'Échec',       className: 'bg-red-100 text-red-800 border-red-200 hover:bg-red-100' },
     // Colis
+    chez_client: { label: 'Chez le client', className: 'bg-violet-100 text-violet-800 border-violet-200 hover:bg-violet-100' },
     déposé:      { label: 'Déposé',      className: 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-100' },
     en_transit:  { label: 'En transit',  className: 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100' },
     arrivé:      { label: 'Arrivé',      className: 'bg-green-100 text-green-800 border-green-200 hover:bg-green-100' },

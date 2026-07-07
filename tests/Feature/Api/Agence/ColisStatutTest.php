@@ -11,7 +11,7 @@ class ColisStatutTest extends AgenceApiTestCase
 {
     use RefreshDatabase;
 
-    private function createColisForAgence(string $statut = 'déposé'): array
+    private function createColisForAgence(string $statut = 'chez_client'): array
     {
         ['agence' => $agence, 'user' => $user, 'token' => $token] = $this->createAuthenticatedAgence();
 
@@ -52,6 +52,7 @@ class ColisStatutTest extends AgenceApiTestCase
         ['token' => $token, 'user' => $user, 'colis' => $colis] = $this->createColisForAgence();
 
         $steps = [
+            ['from' => 'chez_client', 'to' => 'déposé', 'next' => 'en_transit'],
             ['from' => 'déposé', 'to' => 'en_transit', 'next' => 'arrivé'],
             ['from' => 'en_transit', 'to' => 'arrivé', 'next' => 'récupéré'],
             ['from' => 'arrivé', 'to' => 'récupéré', 'next' => null],
@@ -84,7 +85,7 @@ class ColisStatutTest extends AgenceApiTestCase
         $this->withAgenceToken($token)
             ->patchJson("/api/v1/agence/colis/{$colis->id}/statut")
             ->assertOk()
-            ->assertJsonPath('data.statut', 'en_transit');
+            ->assertJsonPath('data.statut', 'déposé');
     }
 
     public function test_cannot_advance_when_final_statut_reached(): void

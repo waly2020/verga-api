@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('reference')->unique();
             $table->decimal('poids', 10, 3)->nullable();
             $table->decimal('volume', 10, 3)->nullable();
-            $table->enum('statut', ['déposé', 'en_transit', 'arrivé', 'récupéré'])->default('déposé')->index();
+            $table->enum('statut', ['chez_client', 'déposé', 'en_transit', 'arrivé', 'récupéré'])->default('chez_client')->index();
             $table->timestamps();
         });
     }

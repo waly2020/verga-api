@@ -13,6 +13,7 @@ use Inertia\Response;
 class ColisController extends Controller
 {
     private const FLUX = [
+        'chez_client' => 'déposé',
         'déposé' => 'en_transit',
         'en_transit' => 'arrivé',
         'arrivé' => 'récupéré',
@@ -73,6 +74,7 @@ class ColisController extends Controller
         ]);
 
         $labels = [
+            'déposé' => 'déposé à l\'agence',
             'en_transit' => 'en transit',
             'arrivé' => 'arrivé à destination',
             'récupéré' => 'récupéré par le client',

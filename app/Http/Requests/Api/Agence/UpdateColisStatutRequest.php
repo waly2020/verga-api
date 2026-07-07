@@ -19,7 +19,7 @@ class UpdateColisStatutRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'statut' => ['nullable', 'string', Rule::in(['en_transit', 'arrivé', 'récupéré'])],
+            'statut' => ['nullable', 'string', Rule::in(['déposé', 'en_transit', 'arrivé', 'récupéré'])],
             'commentaire' => ['nullable', 'string', 'max:500'],
         ];
     }

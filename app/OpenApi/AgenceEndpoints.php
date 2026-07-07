@@ -371,7 +371,7 @@ class AgenceEndpoints
         security: [['sanctum' => []]],
         parameters: [
             new OA\QueryParameter(name: 'search', description: 'Recherche par référence', schema: new OA\Schema(type: 'string')),
-            new OA\QueryParameter(name: 'statut', schema: new OA\Schema(type: 'string', enum: ['déposé', 'en_transit', 'arrivé', 'récupéré'])),
+            new OA\QueryParameter(name: 'statut', schema: new OA\Schema(type: 'string', enum: ['chez_client', 'déposé', 'en_transit', 'arrivé', 'récupéré'])),
             new OA\QueryParameter(name: 'page', schema: new OA\Schema(type: 'integer')),
             new OA\QueryParameter(name: 'per_page', schema: new OA\Schema(type: 'integer')),
         ],
@@ -402,7 +402,7 @@ class AgenceEndpoints
         summary: 'Faire avancer le statut d\'un colis (suivi logistique)',
         description: 'Fait passer le colis à l\'étape suivante du flux logistique et enregistre une entrée dans l\'historique.
 
-**Flux autorisé** : `déposé` → `en_transit` → `arrivé` → `récupéré`
+**Flux autorisé** : `chez_client` → `déposé` → `en_transit` → `arrivé` → `récupéré`
 
 - Sans body : avance automatiquement au statut suivant
 - Avec `statut` : doit correspondre exactement au prochain statut attendu (utile pour le front)
@@ -417,7 +417,7 @@ Réponse : détail du colis mis à jour + `next_statut` (prochaine étape ou `nu
         requestBody: new OA\RequestBody(
             content: new OA\JsonContent(
                 properties: [
-                    new OA\Property(property: 'statut', type: 'string', enum: ['en_transit', 'arrivé', 'récupéré'], nullable: true, description: 'Prochain statut attendu (optionnel si avance automatique)'),
+                    new OA\Property(property: 'statut', type: 'string', enum: ['déposé', 'en_transit', 'arrivé', 'récupéré'], nullable: true, description: 'Prochain statut attendu (optionnel si avance automatique)'),
                     new OA\Property(property: 'commentaire', type: 'string', maxLength: 500, nullable: true, example: 'Colis embarqué à Libreville'),
                 ]
             )
@@ -429,7 +429,7 @@ Réponse : détail du colis mis à jour + `next_statut` (prochaine étape ou `nu
                 content: new OA\JsonContent(
                     properties: [
                         new OA\Property(property: 'data', ref: '#/components/schemas/AgenceColisDetailResource'),
-                        new OA\Property(property: 'next_statut', type: 'string', nullable: true, enum: ['en_transit', 'arrivé', 'récupéré'], example: 'arrivé'),
+                        new OA\Property(property: 'next_statut', type: 'string', nullable: true, enum: ['déposé', 'en_transit', 'arrivé', 'récupéré'], example: 'déposé'),
                     ]
                 )
             ),

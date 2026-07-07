@@ -15,9 +15,10 @@ interface Props {
 }
 
 const NEXT_ACTION: Record<string, { label: string; confirm: string }> = {
-    'déposé':    { label: 'Expédier',           confirm: 'Confirmer l\'expédition de ce colis ?' },
-    'en_transit': { label: 'Confirmer arrivée', confirm: 'Confirmer l\'arrivée à destination ?' },
-    'arrivé':    { label: 'Marquer récupéré',   confirm: 'Marquer ce colis comme récupéré par le client ?' },
+    'chez_client': { label: 'Confirmer dépôt',    confirm: 'Confirmer que le colis a été remis à l\'agence ?' },
+    'déposé':      { label: 'Expédier',           confirm: 'Confirmer l\'expédition de ce colis ?' },
+    'en_transit':  { label: 'Confirmer arrivée',  confirm: 'Confirmer l\'arrivée à destination ?' },
+    'arrivé':      { label: 'Marquer récupéré',   confirm: 'Marquer ce colis comme récupéré par le client ?' },
 };
 
 const columns: Column<ColisRow>[] = [
@@ -38,10 +39,11 @@ const columns: Column<ColisRow>[] = [
 ];
 
 const filterOptions = [
-    { label: 'Déposé',     value: 'déposé' },
-    { label: 'En transit', value: 'en_transit' },
-    { label: 'Arrivé',     value: 'arrivé' },
-    { label: 'Récupéré',   value: 'récupéré' },
+    { label: 'Chez le client', value: 'chez_client' },
+    { label: 'Déposé',         value: 'déposé' },
+    { label: 'En transit',     value: 'en_transit' },
+    { label: 'Arrivé',         value: 'arrivé' },
+    { label: 'Récupéré',       value: 'récupéré' },
 ];
 
 export default function ColisIndex({ colis, filters }: Props) {
