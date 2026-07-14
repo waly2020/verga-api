@@ -177,26 +177,59 @@ Retourne aussi `quantite_reservee`, `quantite_payee` et `quantite_restante` pour
         path: '/client/register',
         operationId: 'clientRegister',
         summary: 'Inscription client',
-        description: 'Crée un compte utilisateur (`role=client`) et un profil `clients`. Seule voie de création de compte client (non disponible dans le back-office admin).',
+        description: 'Crée un compte utilisateur (`role=client`) et un profil `clients`. Seule voie de création de compte client (non disponible dans le back-office admin).
+
+Peut être envoyé en `multipart/form-data` pour joindre des **documents** (pièce d\'identité, etc.).
+- `documents[i][fichier]` : fichier image/PDF (max 10 Mo)
+- `documents[i][type_document]` : libellé libre (ex. `piece_identite`)',
         tags: ['Client - Auth'],
         requestBody: new OA\RequestBody(
             required: true,
-            content: new OA\JsonContent(
-                required: ['nom', 'prenom', 'email', 'password', 'password_confirmation', 'telephone'],
-                properties: [
-                    new OA\Property(property: 'nom', type: 'string', example: 'Obame'),
-                    new OA\Property(property: 'prenom', type: 'string', example: 'Sarah'),
-                    new OA\Property(property: 'email', type: 'string', format: 'email', example: 'sarah@example.com'),
-                    new OA\Property(property: 'password', type: 'string', format: 'password', example: 'password'),
-                    new OA\Property(property: 'password_confirmation', type: 'string', format: 'password'),
-                    new OA\Property(property: 'telephone', type: 'string', example: '0622222222'),
-                    new OA\Property(property: 'adresse', type: 'string', nullable: true),
-                    new OA\Property(property: 'ville', type: 'string', nullable: true),
-                    new OA\Property(property: 'pays', type: 'string', example: 'Gabon', nullable: true),
-                    new OA\Property(property: 'type', type: 'string', enum: ['particulier', 'entreprise', 'boutique'], default: 'particulier'),
-                    new OA\Property(property: 'device_name', type: 'string', example: 'mobile-app'),
-                ]
-            )
+            content: [
+                new OA\MediaType(
+                    mediaType: 'multipart/form-data',
+                    schema: new OA\Schema(
+                        required: ['nom', 'prenom', 'email', 'password', 'password_confirmation', 'telephone'],
+                        properties: [
+                            new OA\Property(property: 'nom', type: 'string', example: 'Obame'),
+                            new OA\Property(property: 'prenom', type: 'string', example: 'Sarah'),
+                            new OA\Property(property: 'email', type: 'string', format: 'email', example: 'sarah@example.com'),
+                            new OA\Property(property: 'password', type: 'string', format: 'password', example: 'password'),
+                            new OA\Property(property: 'password_confirmation', type: 'string', format: 'password'),
+                            new OA\Property(property: 'telephone', type: 'string', example: '0622222222'),
+                            new OA\Property(property: 'adresse', type: 'string', nullable: true),
+                            new OA\Property(property: 'ville', type: 'string', nullable: true),
+                            new OA\Property(property: 'pays', type: 'string', example: 'Gabon', nullable: true),
+                            new OA\Property(property: 'type', type: 'string', enum: ['particulier', 'entreprise', 'boutique'], default: 'particulier'),
+                            new OA\Property(property: 'device_name', type: 'string', example: 'mobile-app'),
+                            new OA\Property(
+                                property: 'documents',
+                                type: 'array',
+                                items: new OA\Items(properties: [
+                                    new OA\Property(property: 'fichier', type: 'string', format: 'binary'),
+                                    new OA\Property(property: 'type_document', type: 'string', example: 'piece_identite'),
+                                ], type: 'object')
+                            ),
+                        ]
+                    )
+                ),
+                new OA\JsonContent(
+                    required: ['nom', 'prenom', 'email', 'password', 'password_confirmation', 'telephone'],
+                    properties: [
+                        new OA\Property(property: 'nom', type: 'string', example: 'Obame'),
+                        new OA\Property(property: 'prenom', type: 'string', example: 'Sarah'),
+                        new OA\Property(property: 'email', type: 'string', format: 'email', example: 'sarah@example.com'),
+                        new OA\Property(property: 'password', type: 'string', format: 'password', example: 'password'),
+                        new OA\Property(property: 'password_confirmation', type: 'string', format: 'password'),
+                        new OA\Property(property: 'telephone', type: 'string', example: '0622222222'),
+                        new OA\Property(property: 'adresse', type: 'string', nullable: true),
+                        new OA\Property(property: 'ville', type: 'string', nullable: true),
+                        new OA\Property(property: 'pays', type: 'string', example: 'Gabon', nullable: true),
+                        new OA\Property(property: 'type', type: 'string', enum: ['particulier', 'entreprise', 'boutique'], default: 'particulier'),
+                        new OA\Property(property: 'device_name', type: 'string', example: 'mobile-app'),
+                    ]
+                ),
+            ]
         ),
         responses: [
             new OA\Response(response: 201, description: 'Compte créé + token', content: new OA\JsonContent(ref: '#/components/schemas/TokenResponse')),
@@ -246,10 +279,18 @@ Retourne aussi `quantite_reservee`, `quantite_payee` et `quantite_restante` pour
         path: '/client/me',
         operationId: 'clientMe',
         summary: 'Profil client connecté',
+        description: 'Retourne l\'utilisateur et le profil `client`, y compris les **documents** téléversés (`documents[]` avec `url`).',
         tags: ['Client - Auth'],
         security: [['sanctum' => []]],
         responses: [
-            new OA\Response(response: 200, description: 'Profil utilisateur et client'),
+            new OA\Response(
+                response: 200,
+                description: 'Profil utilisateur et client',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'data', ref: '#/components/schemas/ClientUserResource'),
+                ])
+            ),
+            new OA\Response(response: 401, description: 'Non authentifié'),
         ]
     )]
     public function me(): void {}

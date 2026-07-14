@@ -480,7 +480,9 @@ class AgenceResourcesTest extends AgenceApiTestCase
             'montant_sous_total' => 17500,
             'montant' => 17500,
             'methode' => 'mobile_money',
+            'operateur' => 'moov_money',
             'reference' => 'PAY-001',
+            'bamboo_reference' => 'TXN-AGENCE-001',
             'statut' => 'validé',
         ]);
 
@@ -489,6 +491,8 @@ class AgenceResourcesTest extends AgenceApiTestCase
             ->assertOk()
             ->assertJsonPath('data.0.code', 'PAY-001')
             ->assertJsonPath('data.0.montant', 17500)
+            ->assertJsonPath('data.0.operateur', 'moov_money')
+            ->assertJsonPath('data.0.bamboo_reference', 'TXN-AGENCE-001')
             ->assertJsonPath('data.0.commande_code', 'CMD-PAY-001')
             ->assertJsonMissingPath('data.0.montant_commission_client');
     }

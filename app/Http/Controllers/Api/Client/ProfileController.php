@@ -23,7 +23,7 @@ class ProfileController extends ClientApiController
             ]);
         }
 
-        $user->load('client');
+        $user->load(['client.documents']);
 
         return ClientUserResource::make($user);
     }

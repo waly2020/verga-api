@@ -115,7 +115,21 @@ class CommandeCheckoutService
         $transactionStatus = (string) ($bambooStatus['transaction']['status'] ?? $bambooStatus['status'] ?? 'pending');
         $bambooMessage = PaymentSettlementService::messageFromCheckStatusResponse($bambooStatus);
 
-        $paiement = $this->settlement->settleFromBambooStatus($paiement, $transactionStatus, $bambooMessage);
+        $transaction = $bambooStatus['transaction'] ?? null;
+        $bambooReference = is_array($transaction)
+            ? ($transaction['reference'] ?? $transaction['reference_bp'] ?? null)
+            : ($bambooStatus['reference'] ?? $bambooStatus['reference_bp'] ?? null);
+
+        $this->settlement->syncBambooMetadata($paiement, [
+            'bamboo_reference' => is_string($bambooReference) ? $bambooReference : null,
+            'operateur' => PaymentSettlementService::operateurFromPayload($bambooStatus),
+        ]);
+
+        $paiement = $this->settlement->settleFromBambooStatus(
+            $paiement->fresh() ?? $paiement,
+            $transactionStatus,
+            $bambooMessage,
+        );
 
         return $this->statusPayload($paiement->fresh(['commande.offre.typeOffre']));
     }

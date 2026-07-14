@@ -65,12 +65,13 @@ class PaymentSettlementService
             return null;
         }
 
-        if ($reference && ! $paiement->bamboo_reference) {
-            $paiement->update(['bamboo_reference' => $reference]);
-        }
+        $this->syncBambooMetadata($paiement, [
+            'bamboo_reference' => is_string($reference) ? $reference : null,
+            'operateur' => self::operateurFromPayload($payload),
+        ]);
 
         return $this->settleFromBambooStatus(
-            $paiement,
+            $paiement->fresh() ?? $paiement,
             (string) $status,
             self::messageFromCallbackPayload($payload),
         );
@@ -101,6 +102,60 @@ class PaymentSettlementService
         }
 
         return self::normalizeMessage(is_string($message) ? $message : null);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    public static function operateurFromPayload(array $payload): ?string
+    {
+        $candidates = [
+            $payload['operateur'] ?? null,
+            $payload['operator'] ?? null,
+            $payload['paymentMethod'] ?? null,
+            $payload['payment_method'] ?? null,
+        ];
+
+        $transaction = $payload['transaction'] ?? null;
+
+        if (is_array($transaction)) {
+            $candidates[] = $transaction['operateur'] ?? null;
+            $candidates[] = $transaction['operator'] ?? null;
+            $candidates[] = $transaction['paymentMethod'] ?? null;
+            $candidates[] = $transaction['payment_method'] ?? null;
+        }
+
+        foreach ($candidates as $value) {
+            $normalized = self::normalizeMessage(is_string($value) ? $value : null);
+
+            if ($normalized !== null) {
+                return $normalized;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array{bamboo_reference?: ?string, operateur?: ?string}  $metadata
+     */
+    public function syncBambooMetadata(Paiement $paiement, array $metadata): void
+    {
+        $updates = [];
+
+        $reference = $metadata['bamboo_reference'] ?? null;
+        if (is_string($reference) && $reference !== '' && ! $paiement->bamboo_reference) {
+            $updates['bamboo_reference'] = $reference;
+        }
+
+        $operateur = $metadata['operateur'] ?? null;
+        if (is_string($operateur) && $operateur !== '' && ! $paiement->operateur) {
+            $updates['operateur'] = $operateur;
+        }
+
+        if ($updates !== []) {
+            $paiement->update($updates);
+        }
     }
 
     private static function normalizeMessage(?string $message): ?string

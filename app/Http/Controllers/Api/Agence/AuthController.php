@@ -8,19 +8,25 @@ use App\Http\Requests\Api\Agence\RegisterAgenceRequest;
 use App\Http\Resources\Api\Agence\AgenceUserResource;
 use App\Models\Agence;
 use App\Models\User;
+use App\Services\AgenceMediaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    public function __construct(
+        private readonly AgenceMediaService $media,
+    ) {}
+
     public function register(RegisterAgenceRequest $request): JsonResponse
     {
         $data = $request->validated();
 
-        $result = DB::transaction(function () use ($data) {
+        $result = DB::transaction(function () use ($request, $data) {
             $user = User::create([
                 'name' => $data['gerant_name'],
                 'email' => $data['gerant_email'],
@@ -41,10 +47,23 @@ class AuthController extends Controller
                 'statut' => 'actif',
             ]);
 
+            if ($request->hasFile('logo')) {
+                /** @var UploadedFile $logo */
+                $logo = $request->file('logo');
+                $this->media->storeLogo($agence, $logo);
+            }
+
+            /** @var array<int, array{fichier: UploadedFile, type_document: string}> $documents */
+            $documents = $data['documents'] ?? [];
+
+            if ($documents !== []) {
+                $this->media->storeDocuments($agence, $documents);
+            }
+
             return compact('user', 'agence');
         });
 
-        $result['user']->load('agence.typeAgence');
+        $result['user']->load(['agence.typeAgence', 'agence.logo', 'agence.documents']);
         $token = $result['user']->createToken($data['device_name'] ?? 'agence-api');
 
         return response()->json([
@@ -70,7 +89,7 @@ class AuthController extends Controller
             ]);
         }
 
-        $user->load('agence.typeAgence');
+        $user->load(['agence.typeAgence', 'agence.logo', 'agence.documents']);
 
         if (! $user->agence) {
             throw ValidationException::withMessages([
@@ -96,7 +115,7 @@ class AuthController extends Controller
 
     public function me(Request $request): AgenceUserResource
     {
-        $request->user()->load('agence.typeAgence');
+        $request->user()->load(['agence.typeAgence', 'agence.logo', 'agence.documents']);
 
         return AgenceUserResource::make($request->user());
     }

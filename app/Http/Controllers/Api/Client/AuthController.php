@@ -7,14 +7,20 @@ use App\Http\Requests\Api\Client\RegisterClientRequest;
 use App\Http\Resources\Api\Client\ClientUserResource;
 use App\Models\Client;
 use App\Models\User;
+use App\Services\ClientMediaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends ClientApiController
 {
+    public function __construct(
+        private readonly ClientMediaService $media,
+    ) {}
+
     public function register(RegisterClientRequest $request): JsonResponse
     {
         $data = $request->validated();
@@ -41,10 +47,17 @@ class AuthController extends ClientApiController
                 'statut' => 'actif',
             ]);
 
+            /** @var array<int, array{fichier: UploadedFile, type_document: string}> $documents */
+            $documents = $data['documents'] ?? [];
+
+            if ($documents !== []) {
+                $this->media->storeDocuments($client, $documents);
+            }
+
             return compact('user', 'client');
         });
 
-        $result['user']->load('client');
+        $result['user']->load(['client.documents']);
         $token = $result['user']->createToken($data['device_name'] ?? 'client-api');
 
         return response()->json([
@@ -70,7 +83,7 @@ class AuthController extends ClientApiController
             ]);
         }
 
-        $user->load('client');
+        $user->load(['client.documents']);
 
         if (! $user->client) {
             throw ValidationException::withMessages([
@@ -95,7 +108,7 @@ class AuthController extends ClientApiController
 
     public function me(Request $request): ClientUserResource
     {
-        $request->user()->load('client');
+        $request->user()->load(['client.documents']);
 
         return ClientUserResource::make($request->user());
     }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api\Client;
 
+use App\Http\Resources\Api\DocumentResource;
 use App\Models\Client;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -25,6 +26,7 @@ class ClientResource extends JsonResource
             'pays' => $this->pays,
             'type' => $this->type,
             'statut' => $this->statut,
+            'documents' => DocumentResource::collection($this->whenLoaded('documents')),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }
