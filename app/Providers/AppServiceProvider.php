@@ -2,8 +2,12 @@
 
 namespace App\Providers;
 
+use App\Models\Agence;
+use App\Models\Client;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +32,12 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+
+        Relation::enforceMorphMap([
+            'agence' => Agence::class,
+            'client' => Client::class,
+            'user' => User::class,
+        ]);
     }
 
     /**

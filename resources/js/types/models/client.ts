@@ -12,6 +12,14 @@ export type ClientRow = {
     commandes_count: number;
 };
 
+export type ClientDocument = {
+    id: string;
+    type_document: string;
+    chemin: string;
+    url: string;
+    nom_original: string | null;
+};
+
 export type ClientDetail = {
     id: string;
     nom: string;
@@ -25,6 +33,7 @@ export type ClientDetail = {
     statut: string;
     created_at: string;
     user: { id: number; name: string; email: string } | null;
+    documents?: ClientDocument[];
 };
 
 export type ClientCommandeRow = {

@@ -9,6 +9,8 @@ use App\Models\Commande;
 use App\Models\Offre;
 use App\Models\Paiement;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 class ClientResourcesTest extends ClientApiTestCase
 {
@@ -29,6 +31,76 @@ class ClientResourcesTest extends ClientApiTestCase
 
         $this->assertDatabaseHas('clients', ['email' => 'sarah@example.com']);
         $this->assertDatabaseHas('users', ['email' => 'sarah@example.com', 'role' => 'client']);
+    }
+
+    public function test_client_can_register_with_documents(): void
+    {
+        Storage::fake('public');
+
+        $response = $this->post('/api/v1/client/register', [
+            'nom' => 'Obame',
+            'prenom' => 'Sarah',
+            'email' => 'sarah.docs@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+            'telephone' => '0622222222',
+            'type' => 'particulier',
+            'documents' => [
+                [
+                    'fichier' => UploadedFile::fake()->create('cni.pdf', 100, 'application/pdf'),
+                    'type_document' => 'piece_identite',
+                ],
+                [
+                    'fichier' => UploadedFile::fake()->image('passeport.jpg'),
+                    'type_document' => 'passeport',
+                ],
+            ],
+        ], ['Accept' => 'application/json']);
+
+        $response->assertCreated()
+            ->assertJsonPath('user.client.documents.0.type_document', 'piece_identite')
+            ->assertJsonPath('user.client.documents.1.type_document', 'passeport')
+            ->assertJsonStructure([
+                'user' => [
+                    'client' => [
+                        'documents' => [
+                            ['id', 'type_document', 'chemin', 'url', 'nom_original'],
+                        ],
+                    ],
+                ],
+            ]);
+
+        $this->assertDatabaseCount('documents', 2);
+        $this->assertDatabaseHas('documents', [
+            'type_document' => 'piece_identite',
+            'documentable_type' => 'client',
+        ]);
+    }
+
+    public function test_client_me_includes_documents(): void
+    {
+        Storage::fake('public');
+        ['token' => $token, 'client' => $client] = $this->createAuthenticatedClient();
+
+        $client->documents()->create([
+            'type_document' => 'piece_identite',
+            'chemin' => "documents/clients/{$client->id}/cni.pdf",
+            'nom_original' => 'cni.pdf',
+        ]);
+
+        $this->withClientToken($token)
+            ->getJson('/api/v1/client/me')
+            ->assertOk()
+            ->assertJsonPath('data.client.documents.0.type_document', 'piece_identite')
+            ->assertJsonStructure([
+                'data' => [
+                    'client' => [
+                        'documents' => [
+                            ['id', 'type_document', 'chemin', 'url', 'nom_original'],
+                        ],
+                    ],
+                ],
+            ]);
     }
 
     public function test_client_can_update_profile(): void
@@ -96,7 +168,9 @@ class ClientResourcesTest extends ClientApiTestCase
             'montant_sous_total' => 17500,
             'montant' => 17500,
             'methode' => 'mobile_money',
+            'operateur' => 'airtel_money',
             'reference' => 'PAY-CLIENT-001',
+            'bamboo_reference' => 'TXN-CLIENT-001',
             'statut' => 'validé',
         ]);
 
@@ -112,6 +186,8 @@ class ClientResourcesTest extends ClientApiTestCase
             ->assertOk()
             ->assertJsonPath('data.0.code', 'PAY-CLIENT-001')
             ->assertJsonPath('data.0.montant', 17500)
+            ->assertJsonPath('data.0.operateur', 'airtel_money')
+            ->assertJsonPath('data.0.bamboo_reference', 'TXN-CLIENT-001')
             ->assertJsonPath('data.0.commande_code', 'CMD-CLIENT-001')
             ->assertJsonMissingPath('data.0.montant_commission_client')
             ->assertJsonMissingPath('data.0.montant_sous_total');

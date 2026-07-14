@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Agence extends Model
 {
@@ -66,5 +68,15 @@ class Agence extends Model
     public function avis(): HasMany
     {
         return $this->hasMany(Avis::class);
+    }
+
+    public function logo(): HasOne
+    {
+        return $this->hasOne(Logo::class);
+    }
+
+    public function documents(): MorphMany
+    {
+        return $this->morphMany(Document::class, 'documentable');
     }
 }

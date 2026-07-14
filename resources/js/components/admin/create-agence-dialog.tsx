@@ -1,5 +1,5 @@
 import { useForm } from '@inertiajs/react';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,6 +29,11 @@ interface Props {
     typesAgences: TypeAgence[];
 }
 
+type DocumentRow = {
+    fichier: File | null;
+    type_document: string;
+};
+
 type FormData = {
     nom: string;
     email: string;
@@ -41,45 +46,95 @@ type FormData = {
     gerant_email: string;
     gerant_password: string;
     gerant_password_confirmation: string;
+    logo: File | null;
+    documents: DocumentRow[];
 };
+
+const emptyForm = (): FormData => ({
+    nom: '',
+    email: '',
+    telephone: '',
+    type_agence_id: '',
+    ville: '',
+    adresse: '',
+    pays: 'Gabon',
+    gerant_name: '',
+    gerant_email: '',
+    gerant_password: '',
+    gerant_password_confirmation: '',
+    logo: null,
+    documents: [],
+});
 
 export function CreateAgenceDialog({ open, onOpenChange, typesAgences }: Props) {
     const [showPwd, setShowPwd] = useState(false);
+    const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
-    const { data, setData, post, processing, errors, reset } = useForm<FormData>({
-        nom: '',
-        email: '',
-        telephone: '',
-        type_agence_id: '',
-        ville: '',
-        adresse: '',
-        pays: 'Gabon',
-        gerant_name: '',
-        gerant_email: '',
-        gerant_password: '',
-        gerant_password_confirmation: '',
-    });
+    const { data, setData, post, processing, errors, reset, clearErrors, transform } = useForm<FormData>(emptyForm());
 
     const handleOpenChange = (value: boolean) => {
         if (!value) {
-reset();
-}
+            reset();
+            clearErrors();
+            setLogoPreview(null);
+            setShowPwd(false);
+        }
 
         onOpenChange(value);
     };
 
+    const setLogo = (file: File | null) => {
+        setData('logo', file);
+        setLogoPreview((prev) => {
+            if (prev) {
+                URL.revokeObjectURL(prev);
+            }
+
+            return file ? URL.createObjectURL(file) : null;
+        });
+    };
+
+    const addDocument = () => {
+        setData('documents', [...data.documents, { fichier: null, type_document: '' }]);
+    };
+
+    const updateDocument = (index: number, patch: Partial<DocumentRow>) => {
+        setData(
+            'documents',
+            data.documents.map((doc, i) => (i === index ? { ...doc, ...patch } : doc)),
+        );
+    };
+
+    const removeDocument = (index: number) => {
+        setData(
+            'documents',
+            data.documents.filter((_, i) => i !== index),
+        );
+    };
+
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        transform((formData) => ({
+            ...formData,
+            documents: formData.documents.filter(
+                (doc) => doc.fichier && doc.type_document.trim() !== '',
+            ),
+        }));
+
         post(admin.agences.store().url, {
+            forceFormData: true,
             onSuccess: () => {
                 reset();
+                clearErrors();
+                setLogoPreview(null);
                 onOpenChange(false);
             },
         });
     };
 
     const field = (
-        id: keyof FormData,
+        id: keyof Omit<FormData, 'logo' | 'documents'>,
         label: string,
         opts?: { type?: string; placeholder?: string; required?: boolean }
     ) => (
@@ -105,13 +160,12 @@ reset();
                 <DialogHeader>
                     <DialogTitle>Créer une agence</DialogTitle>
                     <DialogDescription>
-                        Renseignez les informations de l'agence et du compte gérant.
+                        Renseignez les informations de l'agence, le logo, les documents et le compte gérant.
                     </DialogDescription>
                 </DialogHeader>
 
                 <form id="create-agence-form" onSubmit={submit} className="space-y-6 py-2">
 
-                    {/* ── Section agence ─────────────────────────────── */}
                     <div className="space-y-4">
                         <h3 className="text-sm font-semibold text-foreground">Informations de l'agence</h3>
 
@@ -120,7 +174,6 @@ reset();
                             {field('email', 'Email agence', { type: 'email', placeholder: 'contact@agence.com' })}
                             {field('telephone', 'Téléphone', { placeholder: '+241 01 23 45 67' })}
 
-                            {/* Type d'agence */}
                             <div className="space-y-1.5">
                                 <Label htmlFor="type_agence_id">
                                     Type d'agence
@@ -148,7 +201,6 @@ reset();
                             {field('ville', 'Ville', { placeholder: 'Libreville', required: false })}
                             {field('adresse', 'Adresse', { placeholder: 'Rue du Commerce, Quartier Louis', required: false })}
 
-                            {/* Pays */}
                             <div className="space-y-1.5">
                                 <Label htmlFor="pays">Pays</Label>
                                 <Input
@@ -161,7 +213,103 @@ reset();
                         </div>
                     </div>
 
-                    {/* Séparateur */}
+                    <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t border-border" />
+                        </div>
+                        <div className="relative flex justify-center">
+                            <span className="bg-background px-3 text-xs text-muted-foreground">
+                                Logo & documents
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="logo">
+                                Logo
+                                <span className="ml-1 text-xs font-normal text-muted-foreground">(optionnel)</span>
+                            </Label>
+                            <Input
+                                id="logo"
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => setLogo(e.target.files?.[0] ?? null)}
+                            />
+                            {logoPreview && (
+                                <img
+                                    src={logoPreview}
+                                    alt="Aperçu logo"
+                                    className="mt-2 h-16 w-16 rounded-lg border object-cover"
+                                />
+                            )}
+                            {errors.logo && <p className="text-xs text-destructive">{errors.logo}</p>}
+                        </div>
+
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between gap-2">
+                                <Label>
+                                    Documents
+                                    <span className="ml-1 text-xs font-normal text-muted-foreground">(optionnel)</span>
+                                </Label>
+                                <Button type="button" variant="outline" size="sm" onClick={addDocument}>
+                                    <Plus className="mr-1.5 h-3.5 w-3.5" />
+                                    Ajouter
+                                </Button>
+                            </div>
+
+                            {data.documents.length === 0 && (
+                                <p className="text-xs text-muted-foreground">
+                                    Pièce d'identité, registre de commerce, etc.
+                                </p>
+                            )}
+
+                            {data.documents.map((doc, index) => (
+                                <div key={index} className="grid gap-3 rounded-lg border p-3 sm:grid-cols-[1fr_1.2fr_auto]">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor={`doc-type-${index}`}>Type</Label>
+                                        <Input
+                                            id={`doc-type-${index}`}
+                                            value={doc.type_document}
+                                            onChange={(e) => updateDocument(index, { type_document: e.target.value })}
+                                            placeholder="piece_identite"
+                                        />
+                                        {errors[`documents.${index}.type_document`] && (
+                                            <p className="text-xs text-destructive">
+                                                {errors[`documents.${index}.type_document`]}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor={`doc-file-${index}`}>Fichier</Label>
+                                        <Input
+                                            id={`doc-file-${index}`}
+                                            type="file"
+                                            accept="image/*,.pdf,application/pdf"
+                                            onChange={(e) => updateDocument(index, { fichier: e.target.files?.[0] ?? null })}
+                                        />
+                                        {errors[`documents.${index}.fichier`] && (
+                                            <p className="text-xs text-destructive">
+                                                {errors[`documents.${index}.fichier`]}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div className="flex items-end">
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => removeDocument(index)}
+                                            aria-label="Retirer le document"
+                                        >
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
                     <div className="relative">
                         <div className="absolute inset-0 flex items-center">
                             <span className="w-full border-t border-border" />
@@ -173,13 +321,11 @@ reset();
                         </div>
                     </div>
 
-                    {/* ── Section gérant ─────────────────────────────── */}
                     <div className="space-y-4">
                         <div className="grid gap-4 sm:grid-cols-2">
                             {field('gerant_name', 'Nom complet', { placeholder: 'Jean Mbaye' })}
                             {field('gerant_email', 'Email de connexion', { type: 'email', placeholder: 'gerant@agence.com' })}
 
-                            {/* Mot de passe */}
                             <div className="space-y-1.5">
                                 <Label htmlFor="gerant_password">
                                     Mot de passe <span className="text-destructive">*</span>
@@ -208,7 +354,6 @@ reset();
                                 )}
                             </div>
 
-                            {/* Confirmation */}
                             <div className="space-y-1.5">
                                 <Label htmlFor="gerant_password_confirmation">
                                     Confirmer le mot de passe <span className="text-destructive">*</span>

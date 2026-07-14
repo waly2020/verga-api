@@ -36,7 +36,7 @@ class ClientController extends Controller
 
     public function show(Client $client): Response
     {
-        $client->load(['user:id,name,email']);
+        $client->load(['user:id,name,email', 'documents']);
 
         $stats = [
             'nb_commandes' => $client->commandes()->count(),

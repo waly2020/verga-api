@@ -5,7 +5,9 @@ namespace Tests\Feature\Api\Agence;
 use App\Models\Agence;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class AuthTest extends TestCase
@@ -64,6 +66,55 @@ class AuthTest extends TestCase
         $this->assertDatabaseHas('agences', [
             'email' => 'contact@transit-express.test',
             'statut' => 'actif',
+        ]);
+    }
+
+    public function test_agence_can_register_with_logo_and_documents(): void
+    {
+        Storage::fake('public');
+
+        $response = $this->post('/api/v1/agence/register', [
+            'nom' => 'Transit Media',
+            'email' => 'contact@transit-media.test',
+            'telephone' => '0612345678',
+            'gerant_name' => 'Jean Mbaye',
+            'gerant_email' => 'gerant@transit-media.test',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+            'logo' => UploadedFile::fake()->image('logo.png'),
+            'documents' => [
+                [
+                    'fichier' => UploadedFile::fake()->create('cni.pdf', 100, 'application/pdf'),
+                    'type_document' => 'piece_identite',
+                ],
+                [
+                    'fichier' => UploadedFile::fake()->image('rc.jpg'),
+                    'type_document' => 'registre_commerce',
+                ],
+            ],
+        ], ['Accept' => 'application/json']);
+
+        $response->assertCreated()
+            ->assertJsonPath('user.agence.nom', 'Transit Media')
+            ->assertJsonPath('user.agence.logo.nom_original', 'logo.png')
+            ->assertJsonPath('user.agence.documents.0.type_document', 'piece_identite')
+            ->assertJsonPath('user.agence.documents.1.type_document', 'registre_commerce')
+            ->assertJsonStructure([
+                'user' => [
+                    'agence' => [
+                        'logo' => ['id', 'chemin', 'url', 'nom_original'],
+                        'documents' => [
+                            ['id', 'type_document', 'chemin', 'url', 'nom_original'],
+                        ],
+                    ],
+                ],
+            ]);
+
+        $this->assertDatabaseCount('logos', 1);
+        $this->assertDatabaseCount('documents', 2);
+        $this->assertDatabaseHas('documents', [
+            'type_document' => 'piece_identite',
+            'documentable_type' => 'agence',
         ]);
     }
 
@@ -177,6 +228,39 @@ class AuthTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('data.agence.id', $agence->id)
             ->assertJsonPath('data.email', $user->email);
+    }
+
+    public function test_agence_me_includes_logo_and_documents(): void
+    {
+        Storage::fake('public');
+        ['user' => $user, 'agence' => $agence] = $this->createAgenceAccount();
+
+        $agence->logo()->create([
+            'chemin' => "logos/{$agence->id}/logo.png",
+            'nom_original' => 'logo.png',
+        ]);
+
+        $agence->documents()->create([
+            'type_document' => 'piece_identite',
+            'chemin' => "documents/agences/{$agence->id}/cni.pdf",
+            'nom_original' => 'cni.pdf',
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->getJson('/api/v1/agence/me')
+            ->assertOk()
+            ->assertJsonPath('data.agence.logo.nom_original', 'logo.png')
+            ->assertJsonPath('data.agence.documents.0.type_document', 'piece_identite')
+            ->assertJsonStructure([
+                'data' => [
+                    'agence' => [
+                        'logo' => ['id', 'chemin', 'url', 'nom_original'],
+                        'documents' => [
+                            ['id', 'type_document', 'chemin', 'url', 'nom_original'],
+                        ],
+                    ],
+                ],
+            ]);
     }
 
     public function test_authenticated_agence_can_update_password(): void

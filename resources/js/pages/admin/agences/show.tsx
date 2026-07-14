@@ -6,6 +6,7 @@ import {
     Ban,
     Building2,
     CreditCard,
+    FileText,
     Mail,
     MapPin,
     Package,
@@ -27,6 +28,14 @@ import type { CommandeRow, OffreAgenceRow } from '@/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
+type AgenceMedia = {
+    id: string;
+    chemin: string;
+    url: string;
+    nom_original: string | null;
+    type_document?: string;
+};
+
 type Agence = {
     id: string;
     nom: string;
@@ -39,6 +48,8 @@ type Agence = {
     created_at: string;
     user: { id: number; name: string; email: string } | null;
     type_agence: { id: string; nom: string } | null;
+    logo: AgenceMedia | null;
+    documents: AgenceMedia[];
 };
 
 interface Stats {
@@ -93,9 +104,24 @@ export default function AgenceShow({ agence, stats, offres, commandes }: Props) 
                     {/* En-tête */}
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                                <Building2 className="h-6 w-6 text-primary" />
-                            </div>
+                            {agence.logo ? (
+                                <a
+                                    href={agence.logo.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="overflow-hidden rounded-xl border"
+                                >
+                                    <img
+                                        src={agence.logo.url}
+                                        alt={`Logo ${agence.nom}`}
+                                        className="h-12 w-12 object-cover"
+                                    />
+                                </a>
+                            ) : (
+                                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                                    <Building2 className="h-6 w-6 text-primary" />
+                                </div>
+                            )}
                             <div>
                                 <h1 className="text-2xl font-semibold tracking-tight">{agence.nom}</h1>
                                 <div className="mt-1 flex items-center gap-2">
@@ -197,6 +223,37 @@ export default function AgenceShow({ agence, stats, offres, commandes }: Props) 
                         </CardContent>
                     </Card>
                 </div>
+
+                {(agence.documents?.length ?? 0) > 0 && (
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                                <FileText className="h-4 w-4 text-muted-foreground" />
+                                Documents
+                                <Badge variant="secondary">{agence.documents.length}</Badge>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <ul className="divide-y rounded-lg border">
+                                {agence.documents.map((doc) => (
+                                    <li key={doc.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                                        <div className="min-w-0">
+                                            <p className="font-medium">{doc.type_document ?? 'Document'}</p>
+                                            <p className="truncate text-xs text-muted-foreground">
+                                                {doc.nom_original ?? doc.chemin}
+                                            </p>
+                                        </div>
+                                        <Button variant="outline" size="sm" asChild>
+                                            <a href={doc.url} target="_blank" rel="noreferrer">
+                                                Ouvrir
+                                            </a>
+                                        </Button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Activité */}
                 <div className="grid gap-4 sm:grid-cols-2">

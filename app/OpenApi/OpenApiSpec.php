@@ -5,9 +5,14 @@ namespace App\OpenApi;
 use OpenApi\Attributes as OA;
 
 #[OA\Info(
-    version: '1.3.0',
+    version: '1.4.0',
     title: 'VERGA API',
     description: 'API REST pour les applications externes VERGA (back-office agence Angular, application client mobile/web). Authentification Bearer Sanctum.
+
+**Médias (logo / documents)**
+- Inscription agence : `multipart/form-data` avec `logo` + `documents[i][fichier|type_document]`
+- Inscription client : `multipart/form-data` avec `documents[i][fichier|type_document]`
+- `GET /agence/me` et `GET /client/me` exposent `logo` / `documents` (id, type_document, chemin, url, nom_original)
 
 **Finance agence**
 - `GET /agence/solde` — solde courant, reversements effectués/en attente, montant disponible
@@ -79,6 +84,10 @@ use OpenApi\Attributes as OA;
     properties: [
         new OA\Property(property: 'token', type: 'string', example: '1|abcdef...'),
         new OA\Property(property: 'token_type', type: 'string', example: 'Bearer'),
+        new OA\Property(property: 'user', description: 'Profil selon le contexte (agence ou client)', oneOf: [
+            new OA\Schema(ref: '#/components/schemas/AgenceUserResource'),
+            new OA\Schema(ref: '#/components/schemas/ClientUserResource'),
+        ]),
     ]
 )]
 #[OA\Schema(
@@ -97,6 +106,83 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'chemin', type: 'string', example: 'colis/uuid/photo.jpg'),
         new OA\Property(property: 'url', type: 'string', format: 'uri', example: 'http://localhost/storage/colis/uuid/photo.jpg'),
         new OA\Property(property: 'ordre', type: 'integer', example: 0),
+    ]
+)]
+#[OA\Schema(
+    schema: 'LogoResource',
+    properties: [
+        new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+        new OA\Property(property: 'chemin', type: 'string', example: 'logos/uuid/logo.png'),
+        new OA\Property(property: 'url', type: 'string', format: 'uri', example: 'http://localhost/storage/logos/uuid/logo.png'),
+        new OA\Property(property: 'nom_original', type: 'string', nullable: true, example: 'logo.png'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'DocumentResource',
+    properties: [
+        new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+        new OA\Property(property: 'type_document', type: 'string', example: 'piece_identite', description: 'Libellé libre (pas un enum)'),
+        new OA\Property(property: 'chemin', type: 'string', example: 'documents/clients/uuid/cni.pdf'),
+        new OA\Property(property: 'url', type: 'string', format: 'uri', example: 'http://localhost/storage/documents/clients/uuid/cni.pdf'),
+        new OA\Property(property: 'nom_original', type: 'string', nullable: true, example: 'cni.pdf'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'AgenceResource',
+    properties: [
+        new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+        new OA\Property(property: 'nom', type: 'string', example: 'Transit Express'),
+        new OA\Property(property: 'email', type: 'string', format: 'email'),
+        new OA\Property(property: 'telephone', type: 'string', example: '0612345678'),
+        new OA\Property(property: 'adresse', type: 'string', nullable: true),
+        new OA\Property(property: 'ville', type: 'string', nullable: true),
+        new OA\Property(property: 'pays', type: 'string', nullable: true),
+        new OA\Property(property: 'statut', type: 'string', example: 'actif'),
+        new OA\Property(property: 'type', type: 'object', nullable: true, properties: [
+            new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+            new OA\Property(property: 'nom', type: 'string'),
+        ]),
+        new OA\Property(property: 'logo', ref: '#/components/schemas/LogoResource', nullable: true),
+        new OA\Property(property: 'documents', type: 'array', items: new OA\Items(ref: '#/components/schemas/DocumentResource')),
+        new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
+    ]
+)]
+#[OA\Schema(
+    schema: 'ClientResource',
+    properties: [
+        new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+        new OA\Property(property: 'nom', type: 'string', example: 'Obame'),
+        new OA\Property(property: 'prenom', type: 'string', example: 'Sarah'),
+        new OA\Property(property: 'email', type: 'string', format: 'email'),
+        new OA\Property(property: 'telephone', type: 'string', example: '0622222222'),
+        new OA\Property(property: 'adresse', type: 'string', nullable: true),
+        new OA\Property(property: 'ville', type: 'string', nullable: true),
+        new OA\Property(property: 'pays', type: 'string', nullable: true),
+        new OA\Property(property: 'type', type: 'string', enum: ['particulier', 'entreprise', 'boutique']),
+        new OA\Property(property: 'statut', type: 'string', example: 'actif'),
+        new OA\Property(property: 'documents', type: 'array', items: new OA\Items(ref: '#/components/schemas/DocumentResource')),
+        new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
+    ]
+)]
+#[OA\Schema(
+    schema: 'AgenceUserResource',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer'),
+        new OA\Property(property: 'name', type: 'string'),
+        new OA\Property(property: 'email', type: 'string', format: 'email'),
+        new OA\Property(property: 'telephone', type: 'string', nullable: true),
+        new OA\Property(property: 'role', type: 'string', example: 'agence'),
+        new OA\Property(property: 'agence', ref: '#/components/schemas/AgenceResource', nullable: true),
+    ]
+)]
+#[OA\Schema(
+    schema: 'ClientUserResource',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer'),
+        new OA\Property(property: 'name', type: 'string'),
+        new OA\Property(property: 'email', type: 'string', format: 'email'),
+        new OA\Property(property: 'role', type: 'string', example: 'client'),
+        new OA\Property(property: 'client', ref: '#/components/schemas/ClientResource', nullable: true),
     ]
 )]
 #[OA\Schema(
@@ -374,9 +460,10 @@ use OpenApi\Attributes as OA;
     schema: 'PaiementResource',
     properties: [
         new OA\Property(property: 'code', type: 'string', example: 'PAY-ABCDEFGH', description: 'Référence du paiement VERGA'),
-        new OA\Property(property: 'montant', type: 'number', format: 'float', example: 75000, description: 'Montant net transport (hors commission)'),
-        new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'montant', type: 'number', format: 'float', example: 78750, description: 'Montant total payé (transport + commission client)'),
+        new OA\Property(property: 'operateur', type: 'string', nullable: true, example: 'moov_money', description: 'Opérateur mobile money (ex. moov_money, airtel_money)'),
         new OA\Property(property: 'bamboo_reference', type: 'string', nullable: true, example: 'TXN-2025-000381'),
+        new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'commande_code', type: 'string', nullable: true, example: 'CMD-ABCDEFGH'),
     ]
 )]

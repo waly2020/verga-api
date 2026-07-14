@@ -3,18 +3,24 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreAgenceRequest;
 use App\Models\Agence;
 use App\Models\TypeAgence;
 use App\Models\User;
+use App\Services\AgenceMediaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class AgenceController extends Controller
 {
+    public function __construct(
+        private readonly AgenceMediaService $media,
+    ) {}
+
     public function index(Request $request): Response
     {
         $query = Agence::withCount('offres');
@@ -38,58 +44,50 @@ class AgenceController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreAgenceRequest $request): RedirectResponse
     {
-        $request->validate([
-            'gerant_name' => ['required', 'string', 'max:255'],
-            'gerant_email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'gerant_password' => ['required', 'confirmed', Password::min(8)],
-            'nom' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:agences,email'],
-            'telephone' => ['required', 'string', 'max:20'],
-            'type_agence_id' => ['nullable', 'uuid', 'exists:type_agences,id'],
-            'ville' => ['nullable', 'string', 'max:255'],
-            'adresse' => ['nullable', 'string', 'max:255'],
-            'pays' => ['nullable', 'string', 'max:100'],
-        ], [
-            'gerant_name.required' => 'Le nom du gérant est obligatoire.',
-            'gerant_email.required' => "L'email du gérant est obligatoire.",
-            'gerant_email.unique' => 'Cet email est déjà utilisé.',
-            'gerant_password.required' => 'Le mot de passe est obligatoire.',
-            'gerant_password.confirmed' => 'Les mots de passe ne correspondent pas.',
-            'nom.required' => "Le nom de l'agence est obligatoire.",
-            'email.required' => "L'email de l'agence est obligatoire.",
-            'email.unique' => 'Cet email est déjà utilisé par une autre agence.',
-            'telephone.required' => 'Le téléphone est obligatoire.',
-        ]);
+        $data = $request->validated();
 
-        DB::transaction(function () use ($request) {
+        DB::transaction(function () use ($request, $data) {
             $user = User::create([
-                'name' => $request->gerant_name,
-                'email' => $request->gerant_email,
-                'password' => $request->gerant_password,
+                'name' => $data['gerant_name'],
+                'email' => $data['gerant_email'],
+                'password' => $data['gerant_password'],
                 'role' => 'agence',
             ]);
 
-            Agence::create([
+            $agence = Agence::create([
                 'user_id' => $user->id,
-                'type_agence_id' => $request->type_agence_id,
-                'nom' => $request->nom,
-                'email' => $request->email,
-                'telephone' => $request->telephone,
-                'ville' => $request->ville,
-                'adresse' => $request->adresse,
-                'pays' => $request->pays ?? 'Gabon',
+                'type_agence_id' => $data['type_agence_id'] ?? null,
+                'nom' => $data['nom'],
+                'email' => $data['email'],
+                'telephone' => $data['telephone'],
+                'ville' => $data['ville'] ?? null,
+                'adresse' => $data['adresse'] ?? null,
+                'pays' => $data['pays'] ?? 'Gabon',
                 'statut' => 'actif',
             ]);
+
+            if ($request->hasFile('logo')) {
+                /** @var UploadedFile $logo */
+                $logo = $request->file('logo');
+                $this->media->storeLogo($agence, $logo);
+            }
+
+            /** @var array<int, array{fichier: UploadedFile, type_document: string}> $documents */
+            $documents = $data['documents'] ?? [];
+
+            if ($documents !== []) {
+                $this->media->storeDocuments($agence, $documents);
+            }
         });
 
-        return back()->with('success', "L'agence \"{$request->nom}\" a été créée avec succès.");
+        return back()->with('success', "L'agence \"{$data['nom']}\" a été créée avec succès.");
     }
 
     public function show(Agence $agence): Response
     {
-        $agence->load(['user:id,name,email', 'typeAgence:id,nom']);
+        $agence->load(['user:id,name,email', 'typeAgence:id,nom', 'logo', 'documents']);
 
         $finance = DB::table('vue_agences_soldes')
             ->where('agence_id', $agence->id)

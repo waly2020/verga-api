@@ -2,12 +2,12 @@
     "openapi": "3.0.0",
     "info": {
         "title": "VERGA API",
-        "description": "API REST pour les applications externes VERGA (back-office agence Angular, application client mobile/web). Authentification Bearer Sanctum.\n\n**Finance agence**\n- `GET /agence/solde` — solde courant, reversements effectués/en attente, montant disponible\n- `GET /agence/reversements` — historique des reversements (lecture seule)\n\n**Réservations et paiements multiples**\n- `quantite_reservee` : quantité bloquée sur l'offre (ex. 50 kg)\n- `quantite` : quantité payée lors du versement en cours (ex. 30 kg)\n- Après validation du 1er paiement partiel : statut commande `réservée`, stock bloqué sur la quantité réservée\n- Solde via `POST /client/commandes/{commande}/paiements` (auth requise)\n- Commission client recalculée à chaque versement sur la quantité payée",
+        "description": "API REST pour les applications externes VERGA (back-office agence Angular, application client mobile/web). Authentification Bearer Sanctum.\n\n**Médias (logo / documents)**\n- Inscription agence : `multipart/form-data` avec `logo` + `documents[i][fichier|type_document]`\n- Inscription client : `multipart/form-data` avec `documents[i][fichier|type_document]`\n- `GET /agence/me` et `GET /client/me` exposent `logo` / `documents` (id, type_document, chemin, url, nom_original)\n\n**Finance agence**\n- `GET /agence/solde` — solde courant, reversements effectués/en attente, montant disponible\n- `GET /agence/reversements` — historique des reversements (lecture seule)\n\n**Réservations et paiements multiples**\n- `quantite_reservee` : quantité bloquée sur l'offre (ex. 50 kg)\n- `quantite` : quantité payée lors du versement en cours (ex. 30 kg)\n- Après validation du 1er paiement partiel : statut commande `réservée`, stock bloqué sur la quantité réservée\n- Solde via `POST /client/commandes/{commande}/paiements` (auth requise)\n- Commission client recalculée à chaque versement sur la quantité payée\n\n**Quantités et unités**\n- Chaque quantité numérique (`quantite`, `quantite_payee`, etc.) est accompagnée d'un champ `*_label` formaté selon le `type_offre` de l'offre (ex. `2 kg`, `2 conteneurs`, `2,5 m³`)\n- L'unité source est dans `offre.type_offre` (`unite`, `unite_label`, `quantite_entier`)\n- Pour les colis : `quantite_label` affiche le poids physique (`poids_label`) s'il est renseigné, sinon la quantité de la commande avec unité",
         "contact": {
             "name": "VERGA",
             "email": "contact@verga.test"
         },
-        "version": "1.3.0"
+        "version": "1.4.0"
     },
     "servers": [
         {
@@ -49,10 +49,10 @@
         "/agence/types-offres": {
             "get": {
                 "tags": [
-                    "Agence - Référentiels"
+                    "Agence - Types d'offre"
                 ],
-                "summary": "Lister les types d'offre",
-                "description": "Retourne la liste complète des types d'offre actifs (sans pagination). Utilisé pour les formulaires de création d'offre (`type_offre_id`). Aucune authentification requise.",
+                "summary": "Lister les types d'offre disponibles",
+                "description": "Retourne les types d'offre plateforme actifs. Si l'agence est authentifiée, inclut aussi ses types personnalisés (actifs ou non). Sans pagination.",
                 "operationId": "agenceListTypesOffres",
                 "responses": {
                     "200": {
@@ -73,7 +73,275 @@
                             }
                         }
                     }
-                }
+                },
+                "security": []
+            },
+            "post": {
+                "tags": [
+                    "Agence - Types d'offre"
+                ],
+                "summary": "Créer un type d'offre personnalisé",
+                "description": "Crée un type d'offre propre à l'agence connectée. Les types plateforme (`agence_id` null) ne peuvent pas être créés via cette route.",
+                "operationId": "agenceCreateTypeOffre",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "slug",
+                                    "nom",
+                                    "unite",
+                                    "unite_label",
+                                    "quantite_min"
+                                ],
+                                "properties": {
+                                    "slug": {
+                                        "type": "string",
+                                        "example": "palette"
+                                    },
+                                    "nom": {
+                                        "type": "string",
+                                        "example": "Palette standard"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "unite": {
+                                        "type": "string",
+                                        "example": "palette"
+                                    },
+                                    "unite_label": {
+                                        "type": "string",
+                                        "example": "par palette"
+                                    },
+                                    "quantite_entier": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "quantite_min": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 1
+                                    },
+                                    "actif": {
+                                        "type": "boolean",
+                                        "example": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Type d'offre créé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/TypeOffreResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    },
+                    "422": {
+                        "description": "Erreur de validation"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/agence/types-offres/{typeOffre}": {
+            "get": {
+                "tags": [
+                    "Agence - Types d'offre"
+                ],
+                "summary": "Détail d'un type d'offre",
+                "description": "Consulte un type plateforme ou un type personnalisé appartenant à l'agence connectée.",
+                "operationId": "agenceShowTypeOffre",
+                "parameters": [
+                    {
+                        "name": "typeOffre",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Détail du type d'offre",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/TypeOffreResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Type d'une autre agence"
+                    },
+                    "404": {
+                        "description": "Type introuvable"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Agence - Types d'offre"
+                ],
+                "summary": "Supprimer un type d'offre personnalisé",
+                "description": "Supprime un type créé par l'agence s'il n'est lié à aucune offre.",
+                "operationId": "agenceDeleteTypeOffre",
+                "parameters": [
+                    {
+                        "name": "typeOffre",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Type supprimé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Type d'offre supprimé avec succès."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Type plateforme ou autre agence"
+                    },
+                    "422": {
+                        "description": "Type utilisé par des offres"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Agence - Types d'offre"
+                ],
+                "summary": "Modifier un type d'offre personnalisé",
+                "description": "Met à jour un type créé par l'agence. Les types plateforme ne sont pas modifiables.",
+                "operationId": "agenceUpdateTypeOffre",
+                "parameters": [
+                    {
+                        "name": "typeOffre",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "nom": {
+                                        "type": "string"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "unite": {
+                                        "type": "string"
+                                    },
+                                    "unite_label": {
+                                        "type": "string"
+                                    },
+                                    "quantite_entier": {
+                                        "type": "boolean"
+                                    },
+                                    "quantite_min": {
+                                        "type": "number",
+                                        "format": "float"
+                                    },
+                                    "actif": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Type d'offre mis à jour",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/TypeOffreResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Type plateforme ou autre agence"
+                    },
+                    "422": {
+                        "description": "Erreur de validation"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
             }
         },
         "/agence/register": {
@@ -82,11 +350,102 @@
                     "Agence - Auth"
                 ],
                 "summary": "Inscription agence",
-                "description": "Crée un compte gérant (`role=agence`) et le profil agence associé. Retourne un token Bearer pour connexion immédiate.",
+                "description": "Crée un compte gérant (`role=agence`) et le profil agence associé. Retourne un token Bearer pour connexion immédiate.\n\nPeut être envoyé en `multipart/form-data` pour joindre un **logo** et des **documents** (pièce d'identité, registre de commerce, etc.).\n- `logo` : image (max 5 Mo)\n- `documents[i][fichier]` : fichier image/PDF (max 10 Mo)\n- `documents[i][type_document]` : libellé libre (ex. `piece_identite`, `registre_commerce`)",
                 "operationId": "agenceRegister",
                 "requestBody": {
                     "required": true,
                     "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "nom",
+                                    "email",
+                                    "telephone",
+                                    "gerant_name",
+                                    "gerant_email",
+                                    "password",
+                                    "password_confirmation"
+                                ],
+                                "properties": {
+                                    "nom": {
+                                        "type": "string",
+                                        "example": "Transit Express Libreville"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "contact@transit-express.test"
+                                    },
+                                    "telephone": {
+                                        "type": "string",
+                                        "example": "0612345678"
+                                    },
+                                    "type_agence_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "nullable": true
+                                    },
+                                    "ville": {
+                                        "type": "string",
+                                        "example": "Libreville",
+                                        "nullable": true
+                                    },
+                                    "adresse": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "pays": {
+                                        "type": "string",
+                                        "example": "Gabon",
+                                        "nullable": true
+                                    },
+                                    "gerant_name": {
+                                        "type": "string",
+                                        "example": "Jean Mbaye"
+                                    },
+                                    "gerant_email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "gerant@transit-express.test"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "password"
+                                    },
+                                    "password_confirmation": {
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "device_name": {
+                                        "type": "string",
+                                        "example": "angular-backoffice"
+                                    },
+                                    "logo": {
+                                        "description": "Logo de l'agence (image)",
+                                        "type": "string",
+                                        "format": "binary"
+                                    },
+                                    "documents": {
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "fichier": {
+                                                    "type": "string",
+                                                    "format": "binary"
+                                                },
+                                                "type_document": {
+                                                    "type": "string",
+                                                    "example": "piece_identite"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        },
                         "application/json": {
                             "schema": {
                                 "required": [
@@ -356,10 +715,23 @@
                     "Agence - Auth"
                 ],
                 "summary": "Profil agence connectée",
+                "description": "Retourne l'utilisateur et le profil `agence`, y compris le **logo** et les **documents** (`logo`, `documents[]` avec `url`).",
                 "operationId": "agenceMe",
                 "responses": {
                     "200": {
-                        "description": "Profil utilisateur et agence"
+                        "description": "Profil utilisateur et agence",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/AgenceUserResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "401": {
                         "description": "Non authentifié"
@@ -818,7 +1190,28 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Liste paginée"
+                        "description": "Liste paginée des commandes (quantités avec `*_label` et `offre.type_offre`)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/AgenceCommandeResource"
+                                            }
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        },
+                                        "links": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -848,7 +1241,19 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Détail avec client, offre, paiement, colis"
+                        "description": "Détail avec client, offre, paiement, colis (quantités formatées)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/AgenceCommandeResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "404": {
                         "description": "Commande introuvable"
@@ -904,7 +1309,19 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Statut mis à jour"
+                        "description": "Statut mis à jour",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/AgenceCommandeResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "422": {
                         "description": "Transition non autorisée"
@@ -939,6 +1356,7 @@
                         "schema": {
                             "type": "string",
                             "enum": [
+                                "chez_client",
                                 "déposé",
                                 "en_transit",
                                 "arrivé",
@@ -963,7 +1381,28 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Liste paginée"
+                        "description": "Liste paginée des colis (`quantite_label`, `poids_label`)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/AgenceColisResource"
+                                            }
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        },
+                                        "links": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -993,7 +1432,29 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Détail avec historique et next_statut"
+                        "description": "Détail avec commande, historique et `next_statut`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/AgenceColisDetailResource"
+                                        },
+                                        "next_statut": {
+                                            "type": "string",
+                                            "nullable": true,
+                                            "enum": [
+                                                "déposé",
+                                                "en_transit",
+                                                "arrivé",
+                                                "récupéré"
+                                            ]
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -1009,7 +1470,7 @@
                     "Agence - Colis"
                 ],
                 "summary": "Faire avancer le statut d'un colis (suivi logistique)",
-                "description": "Fait passer le colis à l'étape suivante du flux logistique et enregistre une entrée dans l'historique.\n\n**Flux autorisé** : `déposé` → `en_transit` → `arrivé` → `récupéré`\n\n- Sans body : avance automatiquement au statut suivant\n- Avec `statut` : doit correspondre exactement au prochain statut attendu (utile pour le front)\n- `commentaire` optionnel : note visible dans l'historique\n\nRéponse : détail du colis mis à jour + `next_statut` (prochaine étape ou `null` si terminé).",
+                "description": "Fait passer le colis à l'étape suivante du flux logistique et enregistre une entrée dans l'historique.\n\n**Flux autorisé** : `chez_client` → `déposé` → `en_transit` → `arrivé` → `récupéré`\n\n- Sans body : avance automatiquement au statut suivant\n- Avec `statut` : doit correspondre exactement au prochain statut attendu (utile pour le front)\n- `commentaire` optionnel : note visible dans l'historique\n\nRéponse : détail du colis mis à jour + `next_statut` (prochaine étape ou `null` si terminé).",
                 "operationId": "agenceUpdateColisStatut",
                 "parameters": [
                     {
@@ -1032,6 +1493,7 @@
                                         "type": "string",
                                         "nullable": true,
                                         "enum": [
+                                            "déposé",
                                             "en_transit",
                                             "arrivé",
                                             "récupéré"
@@ -1061,9 +1523,10 @@
                                         },
                                         "next_statut": {
                                             "type": "string",
-                                            "example": "arrivé",
+                                            "example": "déposé",
                                             "nullable": true,
                                             "enum": [
+                                                "déposé",
                                                 "en_transit",
                                                 "arrivé",
                                                 "récupéré"
@@ -1345,7 +1808,111 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Liste paginée"
+                        "description": "Liste paginée des paiements (`quantite_label`)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/AgencePaiementResource"
+                                            }
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        },
+                                        "links": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/agence/reversements": {
+            "get": {
+                "tags": [
+                    "Agence - Finance"
+                ],
+                "summary": "Lister les reversements de l'agence",
+                "description": "Historique des reversements enregistrés pour l'agence connectée (lecture seule).",
+                "operationId": "agenceListReversements",
+                "parameters": [
+                    {
+                        "name": "statut",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "en_attente",
+                                "effectué"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "periode",
+                        "in": "query",
+                        "description": "Filtrer par période (AAAA-MM)",
+                        "schema": {
+                            "type": "string",
+                            "example": "2026-07"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste paginée des reversements",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/AgenceReversementResource"
+                                            }
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        },
+                                        "links": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    },
+                    "403": {
+                        "description": "Accès réservé aux agences"
                     }
                 },
                 "security": [
@@ -1485,7 +2052,7 @@
                     "Client - Offres"
                 ],
                 "summary": "Lister les types d'offre",
-                "description": "Retourne la liste complète des types d'offre actifs (sans pagination). Aucune authentification requise.",
+                "description": "Retourne les types d'offre plateforme VERGA actifs (sans pagination). Les types personnalisés d'une agence apparaissent via `offre.type_offre`. Aucune authentification requise.",
                 "operationId": "clientListTypesOffres",
                 "responses": {
                     "200": {
@@ -1820,11 +2387,94 @@
                     "Client - Auth"
                 ],
                 "summary": "Inscription client",
-                "description": "Crée un compte utilisateur (`role=client`) et un profil `clients`. Seule voie de création de compte client (non disponible dans le back-office admin).",
+                "description": "Crée un compte utilisateur (`role=client`) et un profil `clients`. Seule voie de création de compte client (non disponible dans le back-office admin).\n\nPeut être envoyé en `multipart/form-data` pour joindre des **documents** (pièce d'identité, etc.).\n- `documents[i][fichier]` : fichier image/PDF (max 10 Mo)\n- `documents[i][type_document]` : libellé libre (ex. `piece_identite`)",
                 "operationId": "clientRegister",
                 "requestBody": {
                     "required": true,
                     "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "nom",
+                                    "prenom",
+                                    "email",
+                                    "password",
+                                    "password_confirmation",
+                                    "telephone"
+                                ],
+                                "properties": {
+                                    "nom": {
+                                        "type": "string",
+                                        "example": "Obame"
+                                    },
+                                    "prenom": {
+                                        "type": "string",
+                                        "example": "Sarah"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "sarah@example.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "password"
+                                    },
+                                    "password_confirmation": {
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "telephone": {
+                                        "type": "string",
+                                        "example": "0622222222"
+                                    },
+                                    "adresse": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "ville": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "pays": {
+                                        "type": "string",
+                                        "example": "Gabon",
+                                        "nullable": true
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "default": "particulier",
+                                        "enum": [
+                                            "particulier",
+                                            "entreprise",
+                                            "boutique"
+                                        ]
+                                    },
+                                    "device_name": {
+                                        "type": "string",
+                                        "example": "mobile-app"
+                                    },
+                                    "documents": {
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "fichier": {
+                                                    "type": "string",
+                                                    "format": "binary"
+                                                },
+                                                "type_document": {
+                                                    "type": "string",
+                                                    "example": "piece_identite"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        },
                         "application/json": {
                             "schema": {
                                 "required": [
@@ -2007,10 +2657,26 @@
                     "Client - Auth"
                 ],
                 "summary": "Profil client connecté",
+                "description": "Retourne l'utilisateur et le profil `client`, y compris les **documents** téléversés (`documents[]` avec `url`).",
                 "operationId": "clientMe",
                 "responses": {
                     "200": {
-                        "description": "Profil utilisateur et client"
+                        "description": "Profil utilisateur et client",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ClientUserResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
                     }
                 },
                 "security": [
@@ -2161,11 +2827,16 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Détail avec agence, offre, dernier paiement, colis",
+                        "description": "Détail avec agence, offre, dernier paiement, colis (quantités formatées)",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/ClientCommandeResource"
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ClientCommandeResource"
+                                        }
+                                    },
+                                    "type": "object"
                                 }
                             }
                         }
@@ -2256,6 +2927,7 @@
                         "schema": {
                             "type": "string",
                             "enum": [
+                                "chez_client",
                                 "déposé",
                                 "en_transit",
                                 "arrivé",
@@ -2280,7 +2952,28 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Liste paginée"
+                        "description": "Liste paginée des colis (`quantite_label`, `poids_label`)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ClientColisResource"
+                                            }
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        },
+                                        "links": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -2310,7 +3003,19 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Détail avec historique"
+                        "description": "Détail avec commande, photos et historique",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ClientColisDetailResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -2365,7 +3070,28 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Liste paginée"
+                        "description": "Liste paginée des paiements (`quantite_label`)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ClientPaiementResource"
+                                            }
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        },
+                                        "links": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -2645,89 +3371,6 @@
                 ]
             }
         },
-        "/agence/reversements": {
-            "get": {
-                "tags": [
-                    "Agence - Finance"
-                ],
-                "summary": "Lister les reversements de l'agence",
-                "description": "Historique des reversements enregistrés pour l'agence connectée (lecture seule).",
-                "operationId": "agenceListReversements",
-                "parameters": [
-                    {
-                        "name": "statut",
-                        "in": "query",
-                        "schema": {
-                            "type": "string",
-                            "enum": [
-                                "en_attente",
-                                "effectué"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "periode",
-                        "in": "query",
-                        "description": "Filtrer par période (AAAA-MM)",
-                        "schema": {
-                            "type": "string",
-                            "example": "2026-07"
-                        }
-                    },
-                    {
-                        "name": "page",
-                        "in": "query",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "per_page",
-                        "in": "query",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Liste paginée des reversements",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/AgenceReversementResource"
-                                            }
-                                        },
-                                        "meta": {
-                                            "$ref": "#/components/schemas/PaginationMeta"
-                                        },
-                                        "links": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Non authentifié"
-                    },
-                    "403": {
-                        "description": "Accès réservé aux agences"
-                    }
-                },
-                "security": [
-                    {
-                        "sanctum": []
-                    }
-                ]
-            }
-        },
         "/payments/bamboo-pay/callback": {
             "post": {
                 "tags": [
@@ -2764,6 +3407,12 @@
                                         "description": "Référence Bamboo Pay",
                                         "type": "string",
                                         "example": "TXN-2025-000381"
+                                    },
+                                    "observation": {
+                                        "description": "Message ou motif Bamboo Pay (échec, info)",
+                                        "type": "string",
+                                        "example": "Solde insuffisant",
+                                        "nullable": true
                                     },
                                     "paymentType": {
                                         "type": "string",
@@ -2867,6 +3516,17 @@
                     "token_type": {
                         "type": "string",
                         "example": "Bearer"
+                    },
+                    "user": {
+                        "description": "Profil selon le contexte (agence ou client)",
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/AgenceUserResource"
+                            },
+                            {
+                                "$ref": "#/components/schemas/ClientUserResource"
+                            }
+                        ]
                     }
                 },
                 "type": "object"
@@ -2892,6 +3552,266 @@
                 },
                 "type": "object"
             },
+            "ColisPhotoResource": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "chemin": {
+                        "type": "string",
+                        "example": "colis/uuid/photo.jpg"
+                    },
+                    "url": {
+                        "type": "string",
+                        "format": "uri",
+                        "example": "http://localhost/storage/colis/uuid/photo.jpg"
+                    },
+                    "ordre": {
+                        "type": "integer",
+                        "example": 0
+                    }
+                },
+                "type": "object"
+            },
+            "LogoResource": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "chemin": {
+                        "type": "string",
+                        "example": "logos/uuid/logo.png"
+                    },
+                    "url": {
+                        "type": "string",
+                        "format": "uri",
+                        "example": "http://localhost/storage/logos/uuid/logo.png"
+                    },
+                    "nom_original": {
+                        "type": "string",
+                        "example": "logo.png",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "DocumentResource": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "type_document": {
+                        "description": "Libellé libre (pas un enum)",
+                        "type": "string",
+                        "example": "piece_identite"
+                    },
+                    "chemin": {
+                        "type": "string",
+                        "example": "documents/clients/uuid/cni.pdf"
+                    },
+                    "url": {
+                        "type": "string",
+                        "format": "uri",
+                        "example": "http://localhost/storage/documents/clients/uuid/cni.pdf"
+                    },
+                    "nom_original": {
+                        "type": "string",
+                        "example": "cni.pdf",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "AgenceResource": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "nom": {
+                        "type": "string",
+                        "example": "Transit Express"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email"
+                    },
+                    "telephone": {
+                        "type": "string",
+                        "example": "0612345678"
+                    },
+                    "adresse": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "ville": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "pays": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "statut": {
+                        "type": "string",
+                        "example": "actif"
+                    },
+                    "type": {
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "nom": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "logo": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/LogoResource"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "documents": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/DocumentResource"
+                        }
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "ClientResource": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "nom": {
+                        "type": "string",
+                        "example": "Obame"
+                    },
+                    "prenom": {
+                        "type": "string",
+                        "example": "Sarah"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email"
+                    },
+                    "telephone": {
+                        "type": "string",
+                        "example": "0622222222"
+                    },
+                    "adresse": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "ville": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "pays": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "particulier",
+                            "entreprise",
+                            "boutique"
+                        ]
+                    },
+                    "statut": {
+                        "type": "string",
+                        "example": "actif"
+                    },
+                    "documents": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/DocumentResource"
+                        }
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "AgenceUserResource": {
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email"
+                    },
+                    "telephone": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "role": {
+                        "type": "string",
+                        "example": "agence"
+                    },
+                    "agence": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/AgenceResource"
+                            }
+                        ],
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "ClientUserResource": {
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email"
+                    },
+                    "role": {
+                        "type": "string",
+                        "example": "client"
+                    },
+                    "client": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/ClientResource"
+                            }
+                        ],
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
             "HistoriqueColisResource": {
                 "properties": {
                     "id": {
@@ -2901,6 +3821,7 @@
                     "statut": {
                         "type": "string",
                         "enum": [
+                            "chez_client",
                             "déposé",
                             "en_transit",
                             "arrivé",
@@ -2931,6 +3852,98 @@
                 },
                 "type": "object"
             },
+            "ColisCommandeEmbed": {
+                "description": "Commande liée à un colis (liste ou détail léger)",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "code": {
+                        "type": "string",
+                        "example": "CMD-ABCDEFGH"
+                    },
+                    "quantite": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 2,
+                        "nullable": true
+                    },
+                    "quantite_label": {
+                        "type": "string",
+                        "example": "2 kg",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "AgenceColisResource": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "reference": {
+                        "type": "string",
+                        "example": "COL-ABCDEFGH"
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "poids": {
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true
+                    },
+                    "poids_label": {
+                        "type": "string",
+                        "example": "15 kg",
+                        "nullable": true
+                    },
+                    "volume": {
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true
+                    },
+                    "quantite_label": {
+                        "description": "Poids si renseigné, sinon quantité commandée avec unité",
+                        "type": "string",
+                        "example": "2 kg",
+                        "nullable": true
+                    },
+                    "statut": {
+                        "type": "string",
+                        "enum": [
+                            "chez_client",
+                            "déposé",
+                            "en_transit",
+                            "arrivé",
+                            "récupéré"
+                        ]
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "commande": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/ColisCommandeEmbed"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "photos": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ColisPhotoResource"
+                        }
+                    }
+                },
+                "type": "object"
+            },
             "AgenceColisDetailResource": {
                 "properties": {
                     "id": {
@@ -2941,9 +3954,19 @@
                         "type": "string",
                         "example": "COL-ABCDEFGH"
                     },
+                    "description": {
+                        "type": "string",
+                        "example": "Vêtements et accessoires",
+                        "nullable": true
+                    },
                     "poids": {
                         "type": "number",
                         "format": "float",
+                        "nullable": true
+                    },
+                    "poids_label": {
+                        "type": "string",
+                        "example": "15 kg",
                         "nullable": true
                     },
                     "volume": {
@@ -2951,9 +3974,16 @@
                         "format": "float",
                         "nullable": true
                     },
+                    "quantite_label": {
+                        "description": "Poids si renseigné, sinon quantité commandée avec unité",
+                        "type": "string",
+                        "example": "2 kg",
+                        "nullable": true
+                    },
                     "statut": {
                         "type": "string",
                         "enum": [
+                            "chez_client",
                             "déposé",
                             "en_transit",
                             "arrivé",
@@ -2971,8 +4001,179 @@
                         "nullable": true
                     },
                     "commande": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/AgenceCommandeResource"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "photos": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ColisPhotoResource"
+                        }
+                    },
+                    "historique": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/HistoriqueColisResource"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "ClientColisResource": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "reference": {
+                        "type": "string",
+                        "example": "COL-ABCDEFGH"
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "poids": {
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true
+                    },
+                    "poids_label": {
+                        "type": "string",
+                        "example": "15 kg",
+                        "nullable": true
+                    },
+                    "volume": {
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true
+                    },
+                    "quantite_label": {
+                        "description": "Poids si renseigné, sinon quantité commandée avec unité",
+                        "type": "string",
+                        "example": "2 kg",
+                        "nullable": true
+                    },
+                    "statut": {
+                        "type": "string",
+                        "enum": [
+                            "chez_client",
+                            "déposé",
+                            "en_transit",
+                            "arrivé",
+                            "récupéré"
+                        ]
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "commande": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/ColisCommandeEmbed"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "agence": {
                         "type": "object",
                         "nullable": true
+                    },
+                    "photos": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ColisPhotoResource"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "ClientColisDetailResource": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "reference": {
+                        "type": "string",
+                        "example": "COL-ABCDEFGH"
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "poids": {
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true
+                    },
+                    "poids_label": {
+                        "type": "string",
+                        "example": "15 kg",
+                        "nullable": true
+                    },
+                    "volume": {
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true
+                    },
+                    "quantite_label": {
+                        "type": "string",
+                        "example": "2 kg",
+                        "nullable": true
+                    },
+                    "statut": {
+                        "type": "string",
+                        "enum": [
+                            "chez_client",
+                            "déposé",
+                            "en_transit",
+                            "arrivé",
+                            "récupéré"
+                        ]
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "commande": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/ClientCommandeResource"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "agence": {
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "nom": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "photos": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ColisPhotoResource"
+                        }
                     },
                     "historique": {
                         "type": "array",
@@ -2989,14 +4190,20 @@
                         "type": "string",
                         "format": "uuid"
                     },
+                    "agence_id": {
+                        "description": "Null pour un type plateforme VERGA",
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "is_platform": {
+                        "description": "True si type global VERGA",
+                        "type": "boolean",
+                        "example": true
+                    },
                     "slug": {
                         "type": "string",
-                        "example": "particulier",
-                        "enum": [
-                            "particulier",
-                            "metre_cube",
-                            "conteneur"
-                        ]
+                        "example": "particulier"
                     },
                     "nom": {
                         "type": "string",
@@ -3022,6 +4229,10 @@
                         "type": "number",
                         "format": "float",
                         "example": 0.001
+                    },
+                    "actif": {
+                        "type": "boolean",
+                        "example": true
                     }
                 },
                 "type": "object"
@@ -3238,20 +4449,40 @@
                         "format": "float",
                         "example": 50
                     },
+                    "quantite_reservee_label": {
+                        "type": "string",
+                        "example": "50 kg",
+                        "nullable": true
+                    },
                     "quantite_payee": {
                         "type": "number",
                         "format": "float",
                         "example": 0
+                    },
+                    "quantite_payee_label": {
+                        "type": "string",
+                        "example": "0 kg",
+                        "nullable": true
                     },
                     "quantite_a_payer": {
                         "type": "number",
                         "format": "float",
                         "example": 30
                     },
+                    "quantite_a_payer_label": {
+                        "type": "string",
+                        "example": "30 kg",
+                        "nullable": true
+                    },
                     "quantite_restante": {
                         "type": "number",
                         "format": "float",
                         "example": 20
+                    },
+                    "quantite_restante_label": {
+                        "type": "string",
+                        "example": "20 kg",
+                        "nullable": true
                     },
                     "montant_sous_total": {
                         "description": "Prix offre × quantité du paiement en cours",
@@ -3274,6 +4505,12 @@
                     "paiement_code": {
                         "type": "string",
                         "example": "PAY-ABCDEFGH"
+                    },
+                    "retour_url": {
+                        "description": "URL de retour marchand après paiement Bamboo (ancre ? pour les paramètres Bamboo)",
+                        "type": "string",
+                        "format": "uri",
+                        "example": "http://localhost/paiement/PAY-ABCDEFGH/retour?ref=PAY-ABCDEFGH"
                     },
                     "redirect_url": {
                         "type": "string",
@@ -3310,6 +4547,252 @@
                 },
                 "type": "object"
             },
+            "AgenceOffreResource": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "titre": {
+                        "type": "string",
+                        "example": "Groupage Paris"
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "type": {
+                        "description": "Legacy — conservé pour compatibilité",
+                        "type": "string",
+                        "enum": [
+                            "particulier",
+                            "metre_cube",
+                            "conteneur"
+                        ]
+                    },
+                    "type_offre_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "type_offre": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/TypeOffreResource"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "prix": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 2500
+                    },
+                    "capacite_totale": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 1000
+                    },
+                    "capacite_disponible": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 750
+                    },
+                    "origine": {
+                        "type": "string",
+                        "example": "Libreville"
+                    },
+                    "destination": {
+                        "type": "string",
+                        "example": "Paris"
+                    },
+                    "statut": {
+                        "type": "string",
+                        "example": "active",
+                        "enum": [
+                            "active",
+                            "inactive",
+                            "archivée"
+                        ]
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "AgenceCommandeResource": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "code": {
+                        "type": "string",
+                        "example": "CMD-ABCDEFGH"
+                    },
+                    "quantite": {
+                        "description": "Quantité réservée totale",
+                        "type": "number",
+                        "format": "float",
+                        "example": 50
+                    },
+                    "quantite_label": {
+                        "type": "string",
+                        "example": "50 kg",
+                        "nullable": true
+                    },
+                    "quantite_payee": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 30
+                    },
+                    "quantite_payee_label": {
+                        "type": "string",
+                        "example": "30 kg",
+                        "nullable": true
+                    },
+                    "quantite_restante": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 20
+                    },
+                    "quantite_restante_label": {
+                        "type": "string",
+                        "example": "20 kg",
+                        "nullable": true
+                    },
+                    "montant_sous_total": {
+                        "type": "number",
+                        "format": "float"
+                    },
+                    "montant_commission_client": {
+                        "type": "number",
+                        "format": "float"
+                    },
+                    "montant_total": {
+                        "type": "number",
+                        "format": "float"
+                    },
+                    "statut": {
+                        "type": "string",
+                        "enum": [
+                            "en_attente",
+                            "réservée",
+                            "confirmée",
+                            "annulée"
+                        ]
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "client": {
+                        "properties": {
+                            "id": {
+                                "description": "Null pour une commande invité",
+                                "type": "string",
+                                "format": "uuid",
+                                "nullable": true
+                            },
+                            "nom": {
+                                "type": "string",
+                                "nullable": true
+                            },
+                            "prenom": {
+                                "type": "string",
+                                "nullable": true
+                            },
+                            "email": {
+                                "type": "string",
+                                "nullable": true
+                            },
+                            "telephone": {
+                                "type": "string",
+                                "nullable": true
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "offre": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/AgenceOffreResource"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "paiement": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/AgencePaiementResource"
+                            }
+                        ],
+                        "nullable": true,
+                        "description": "Dernier paiement initié"
+                    },
+                    "colis": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AgenceColisResource"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "PaiementResource": {
+                "properties": {
+                    "code": {
+                        "description": "Référence du paiement VERGA",
+                        "type": "string",
+                        "example": "PAY-ABCDEFGH"
+                    },
+                    "montant": {
+                        "description": "Montant total payé (transport + commission client)",
+                        "type": "number",
+                        "format": "float",
+                        "example": 78750
+                    },
+                    "operateur": {
+                        "description": "Opérateur mobile money (ex. moov_money, airtel_money)",
+                        "type": "string",
+                        "example": "moov_money",
+                        "nullable": true
+                    },
+                    "bamboo_reference": {
+                        "type": "string",
+                        "example": "TXN-2025-000381",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "commande_code": {
+                        "type": "string",
+                        "example": "CMD-ABCDEFGH",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "AgencePaiementResource": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/PaiementResource"
+                    }
+                ]
+            },
             "ClientCommandeResource": {
                 "properties": {
                     "id": {
@@ -3326,15 +4809,30 @@
                         "format": "float",
                         "example": 50
                     },
+                    "quantite_label": {
+                        "type": "string",
+                        "example": "50 kg",
+                        "nullable": true
+                    },
                     "quantite_payee": {
                         "type": "number",
                         "format": "float",
                         "example": 30
                     },
+                    "quantite_payee_label": {
+                        "type": "string",
+                        "example": "30 kg",
+                        "nullable": true
+                    },
                     "quantite_restante": {
                         "type": "number",
                         "format": "float",
                         "example": 20
+                    },
+                    "quantite_restante_label": {
+                        "type": "string",
+                        "example": "20 kg",
+                        "nullable": true
                     },
                     "montant_sous_total": {
                         "description": "Cumul des sous-totaux des paiements validés",
@@ -3372,17 +4870,57 @@
                         "type": "string",
                         "nullable": true
                     },
+                    "client": {
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "format": "uuid",
+                                "nullable": true
+                            },
+                            "nom": {
+                                "type": "string",
+                                "nullable": true
+                            },
+                            "prenom": {
+                                "type": "string",
+                                "nullable": true
+                            },
+                            "email": {
+                                "type": "string",
+                                "nullable": true
+                            },
+                            "telephone": {
+                                "type": "string",
+                                "nullable": true
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
                     "created_at": {
                         "type": "string",
                         "format": "date-time",
                         "nullable": true
                     },
                     "agence": {
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "nom": {
+                                "type": "string"
+                            }
+                        },
                         "type": "object",
                         "nullable": true
                     },
                     "offre": {
-                        "type": "object",
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/ClientOffreResource"
+                            }
+                        ],
                         "nullable": true
                     },
                     "paiement": {
@@ -3397,59 +4935,18 @@
                     "colis": {
                         "type": "array",
                         "items": {
-                            "type": "object"
+                            "$ref": "#/components/schemas/ClientColisResource"
                         }
                     }
                 },
                 "type": "object"
             },
             "ClientPaiementResource": {
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "format": "uuid"
-                    },
-                    "code": {
-                        "type": "string",
-                        "example": "PAY-ABCDEFGH"
-                    },
-                    "montant": {
-                        "type": "number",
-                        "format": "float",
-                        "example": 78750
-                    },
-                    "methode": {
-                        "type": "string",
-                        "example": "bamboo_redirect"
-                    },
-                    "reference": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "bamboo_reference": {
-                        "type": "string",
-                        "nullable": true
-                    },
-                    "statut": {
-                        "type": "string",
-                        "enum": [
-                            "en_attente",
-                            "validé",
-                            "remboursé",
-                            "échec"
-                        ]
-                    },
-                    "created_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "nullable": true
-                    },
-                    "commande": {
-                        "type": "object",
-                        "nullable": true
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/PaiementResource"
                     }
-                },
-                "type": "object"
+                ]
             },
             "PaymentStatusCheckResponse": {
                 "properties": {
@@ -3471,6 +4968,38 @@
                         "example": "TXN-2025-000381",
                         "nullable": true
                     },
+                    "bamboo_message": {
+                        "type": "string",
+                        "example": "Solde insuffisant",
+                        "nullable": true
+                    },
+                    "quantite": {
+                        "description": "Quantité couverte par ce paiement",
+                        "type": "number",
+                        "format": "float",
+                        "example": 2.5
+                    },
+                    "quantite_label": {
+                        "type": "string",
+                        "example": "2,5 kg",
+                        "nullable": true
+                    },
+                    "montant_sous_total": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 75000
+                    },
+                    "montant_commission_client": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 3750
+                    },
+                    "montant_total": {
+                        "description": "Montant total de ce paiement",
+                        "type": "number",
+                        "format": "float",
+                        "example": 78750
+                    },
                     "commande_code": {
                         "type": "string",
                         "example": "CMD-ABCDEFGH"
@@ -3489,12 +5018,45 @@
                         "format": "float",
                         "nullable": true
                     },
+                    "quantite_reservee_label": {
+                        "type": "string",
+                        "example": "50 kg",
+                        "nullable": true
+                    },
                     "quantite_payee": {
                         "type": "number",
                         "format": "float",
                         "nullable": true
                     },
+                    "quantite_payee_label": {
+                        "type": "string",
+                        "example": "30 kg",
+                        "nullable": true
+                    },
                     "quantite_restante": {
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true
+                    },
+                    "quantite_restante_label": {
+                        "type": "string",
+                        "example": "20 kg",
+                        "nullable": true
+                    },
+                    "commande_montant_sous_total": {
+                        "description": "Cumul sous-total transport des paiements validés",
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true
+                    },
+                    "commande_montant_commission_client": {
+                        "description": "Cumul commission VERGA des paiements validés",
+                        "type": "number",
+                        "format": "float",
+                        "nullable": true
+                    },
+                    "commande_montant_total": {
+                        "description": "Cumul total payé sur la commande",
                         "type": "number",
                         "format": "float",
                         "nullable": true
@@ -3562,6 +5124,17 @@
                                         "type": "integer"
                                     },
                                     "total_depense": {
+                                        "description": "Total payé (transport + commission client)",
+                                        "type": "number",
+                                        "format": "float"
+                                    },
+                                    "total_sous_total": {
+                                        "description": "Cumul sous-total transport",
+                                        "type": "number",
+                                        "format": "float"
+                                    },
+                                    "total_commissions": {
+                                        "description": "Cumul commissions VERGA côté client",
                                         "type": "number",
                                         "format": "float"
                                     },
@@ -3651,14 +5224,32 @@
                                         "type": "integer"
                                     },
                                     "total_paiements": {
+                                        "description": "Total payé par les clients",
+                                        "type": "number",
+                                        "format": "float"
+                                    },
+                                    "total_sous_total": {
+                                        "description": "Cumul sous-total transport",
+                                        "type": "number",
+                                        "format": "float"
+                                    },
+                                    "total_commissions_client": {
+                                        "description": "Commissions VERGA côté client",
+                                        "type": "number",
+                                        "format": "float"
+                                    },
+                                    "total_commissions_agence": {
+                                        "description": "Commissions VERGA côté agence",
                                         "type": "number",
                                         "format": "float"
                                     },
                                     "total_commissions": {
+                                        "description": "Alias de total_commissions_agence",
                                         "type": "number",
                                         "format": "float"
                                     },
                                     "revenu_net_estime": {
+                                        "description": "Sous-total transport − commission agence",
                                         "type": "number",
                                         "format": "float"
                                     },
@@ -3796,6 +5387,10 @@
         {
             "name": "Agence - Référentiels",
             "description": "Données de référence pour l'inscription et les formulaires agence"
+        },
+        {
+            "name": "Agence - Types d'offre",
+            "description": "Types d'offre plateforme et personnalisés par agence"
         },
         {
             "name": "Agence - Offres",

@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources\Api\Agence;
 
+use App\Http\Resources\Api\DocumentResource;
+use App\Http\Resources\Api\LogoResource;
 use App\Models\Agence;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -27,6 +29,8 @@ class AgenceResource extends JsonResource
                 'id' => $this->typeAgence?->id,
                 'nom' => $this->typeAgence?->nom,
             ]),
+            'logo' => LogoResource::make($this->whenLoaded('logo')),
+            'documents' => DocumentResource::collection($this->whenLoaded('documents')),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

@@ -75,6 +75,8 @@ class PaymentSettlementServiceTest extends TestCase
             'billingId' => $paiement->code,
             'status' => 'failed',
             'observation' => 'Solde insuffisant sur le compte mobile money',
+            'operateur' => 'moov_money',
+            'reference' => 'TXN-MSG-001',
         ]);
 
         $this->assertNotNull($result);
@@ -82,6 +84,8 @@ class PaymentSettlementServiceTest extends TestCase
             'id' => $paiement->id,
             'statut' => 'échec',
             'bamboo_message' => 'Solde insuffisant sur le compte mobile money',
+            'operateur' => 'moov_money',
+            'bamboo_reference' => 'TXN-MSG-001',
         ]);
     }
 

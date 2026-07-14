@@ -190,27 +190,63 @@ class AgenceEndpoints
         path: '/agence/register',
         operationId: 'agenceRegister',
         summary: 'Inscription agence',
-        description: 'Crée un compte gérant (`role=agence`) et le profil agence associé. Retourne un token Bearer pour connexion immédiate.',
+        description: 'Crée un compte gérant (`role=agence`) et le profil agence associé. Retourne un token Bearer pour connexion immédiate.
+
+Peut être envoyé en `multipart/form-data` pour joindre un **logo** et des **documents** (pièce d\'identité, registre de commerce, etc.).
+- `logo` : image (max 5 Mo)
+- `documents[i][fichier]` : fichier image/PDF (max 10 Mo)
+- `documents[i][type_document]` : libellé libre (ex. `piece_identite`, `registre_commerce`)',
         tags: ['Agence - Auth'],
         requestBody: new OA\RequestBody(
             required: true,
-            content: new OA\JsonContent(
-                required: ['nom', 'email', 'telephone', 'gerant_name', 'gerant_email', 'password', 'password_confirmation'],
-                properties: [
-                    new OA\Property(property: 'nom', type: 'string', example: 'Transit Express Libreville'),
-                    new OA\Property(property: 'email', type: 'string', format: 'email', example: 'contact@transit-express.test'),
-                    new OA\Property(property: 'telephone', type: 'string', example: '0612345678'),
-                    new OA\Property(property: 'type_agence_id', type: 'string', format: 'uuid', nullable: true),
-                    new OA\Property(property: 'ville', type: 'string', example: 'Libreville', nullable: true),
-                    new OA\Property(property: 'adresse', type: 'string', nullable: true),
-                    new OA\Property(property: 'pays', type: 'string', example: 'Gabon', nullable: true),
-                    new OA\Property(property: 'gerant_name', type: 'string', example: 'Jean Mbaye'),
-                    new OA\Property(property: 'gerant_email', type: 'string', format: 'email', example: 'gerant@transit-express.test'),
-                    new OA\Property(property: 'password', type: 'string', format: 'password', example: 'password'),
-                    new OA\Property(property: 'password_confirmation', type: 'string', format: 'password'),
-                    new OA\Property(property: 'device_name', type: 'string', example: 'angular-backoffice'),
-                ]
-            )
+            content: [
+                new OA\MediaType(
+                    mediaType: 'multipart/form-data',
+                    schema: new OA\Schema(
+                        required: ['nom', 'email', 'telephone', 'gerant_name', 'gerant_email', 'password', 'password_confirmation'],
+                        properties: [
+                            new OA\Property(property: 'nom', type: 'string', example: 'Transit Express Libreville'),
+                            new OA\Property(property: 'email', type: 'string', format: 'email', example: 'contact@transit-express.test'),
+                            new OA\Property(property: 'telephone', type: 'string', example: '0612345678'),
+                            new OA\Property(property: 'type_agence_id', type: 'string', format: 'uuid', nullable: true),
+                            new OA\Property(property: 'ville', type: 'string', example: 'Libreville', nullable: true),
+                            new OA\Property(property: 'adresse', type: 'string', nullable: true),
+                            new OA\Property(property: 'pays', type: 'string', example: 'Gabon', nullable: true),
+                            new OA\Property(property: 'gerant_name', type: 'string', example: 'Jean Mbaye'),
+                            new OA\Property(property: 'gerant_email', type: 'string', format: 'email', example: 'gerant@transit-express.test'),
+                            new OA\Property(property: 'password', type: 'string', format: 'password', example: 'password'),
+                            new OA\Property(property: 'password_confirmation', type: 'string', format: 'password'),
+                            new OA\Property(property: 'device_name', type: 'string', example: 'angular-backoffice'),
+                            new OA\Property(property: 'logo', type: 'string', format: 'binary', description: 'Logo de l\'agence (image)'),
+                            new OA\Property(
+                                property: 'documents',
+                                type: 'array',
+                                items: new OA\Items(properties: [
+                                    new OA\Property(property: 'fichier', type: 'string', format: 'binary'),
+                                    new OA\Property(property: 'type_document', type: 'string', example: 'piece_identite'),
+                                ], type: 'object')
+                            ),
+                        ]
+                    )
+                ),
+                new OA\JsonContent(
+                    required: ['nom', 'email', 'telephone', 'gerant_name', 'gerant_email', 'password', 'password_confirmation'],
+                    properties: [
+                        new OA\Property(property: 'nom', type: 'string', example: 'Transit Express Libreville'),
+                        new OA\Property(property: 'email', type: 'string', format: 'email', example: 'contact@transit-express.test'),
+                        new OA\Property(property: 'telephone', type: 'string', example: '0612345678'),
+                        new OA\Property(property: 'type_agence_id', type: 'string', format: 'uuid', nullable: true),
+                        new OA\Property(property: 'ville', type: 'string', example: 'Libreville', nullable: true),
+                        new OA\Property(property: 'adresse', type: 'string', nullable: true),
+                        new OA\Property(property: 'pays', type: 'string', example: 'Gabon', nullable: true),
+                        new OA\Property(property: 'gerant_name', type: 'string', example: 'Jean Mbaye'),
+                        new OA\Property(property: 'gerant_email', type: 'string', format: 'email', example: 'gerant@transit-express.test'),
+                        new OA\Property(property: 'password', type: 'string', format: 'password', example: 'password'),
+                        new OA\Property(property: 'password_confirmation', type: 'string', format: 'password'),
+                        new OA\Property(property: 'device_name', type: 'string', example: 'angular-backoffice'),
+                    ]
+                ),
+            ]
         ),
         responses: [
             new OA\Response(response: 201, description: 'Compte créé + token', content: new OA\JsonContent(allOf: [
@@ -285,10 +321,17 @@ class AgenceEndpoints
         path: '/agence/me',
         operationId: 'agenceMe',
         summary: 'Profil agence connectée',
+        description: 'Retourne l\'utilisateur et le profil `agence`, y compris le **logo** et les **documents** (`logo`, `documents[]` avec `url`).',
         tags: ['Agence - Auth'],
         security: [['sanctum' => []]],
         responses: [
-            new OA\Response(response: 200, description: 'Profil utilisateur et agence'),
+            new OA\Response(
+                response: 200,
+                description: 'Profil utilisateur et agence',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'data', ref: '#/components/schemas/AgenceUserResource'),
+                ])
+            ),
             new OA\Response(response: 401, description: 'Non authentifié'),
             new OA\Response(response: 403, description: 'Compte non agence ou agence inactive'),
         ]

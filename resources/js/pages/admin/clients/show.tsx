@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import {
     ArrowLeft,
+    FileText,
     Mail,
     MapPin,
     MessageSquareWarning,
@@ -95,6 +96,37 @@ export default function ClientShow({ client, stats, commandes, reclamations }: P
                         {client.adresse && <InfoRow icon={MapPin} label={client.adresse} />}
                     </CardContent>
                 </Card>
+
+                {(client.documents?.length ?? 0) > 0 && (
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                                <FileText className="h-4 w-4 text-muted-foreground" />
+                                Documents
+                                <Badge variant="secondary">{client.documents!.length}</Badge>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <ul className="divide-y rounded-lg border">
+                                {client.documents!.map((doc) => (
+                                    <li key={doc.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                                        <div className="min-w-0">
+                                            <p className="font-medium">{doc.type_document}</p>
+                                            <p className="truncate text-xs text-muted-foreground">
+                                                {doc.nom_original ?? doc.chemin}
+                                            </p>
+                                        </div>
+                                        <Button variant="outline" size="sm" asChild>
+                                            <a href={doc.url} target="_blank" rel="noreferrer">
+                                                Ouvrir
+                                            </a>
+                                        </Button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </CardContent>
+                    </Card>
+                )}
 
                 <Card>
                     <CardHeader className="pb-3">

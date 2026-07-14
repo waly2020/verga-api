@@ -18,6 +18,7 @@ class Paiement extends Model
         'montant_sous_total',
         'montant_commission_client',
         'methode',
+        'operateur',
         'reference',
         'bamboo_reference',
         'bamboo_message',
