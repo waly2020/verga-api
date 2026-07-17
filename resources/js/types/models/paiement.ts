@@ -20,8 +20,10 @@ export type PaiementRow = {
 export type PaiementApi = {
     code: string;
     montant: number;
-    created_at: string | null;
+    statut: PaiementStatut | string;
+    operateur?: string | null;
     bamboo_reference: string | null;
+    created_at: string | null;
     commande_code?: string | null;
 };
 

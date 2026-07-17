@@ -33,13 +33,11 @@ class DashboardTest extends AgenceApiTestCase
             ->assertJsonPath('data.stats.nb_offres_actives', 1)
             ->assertJsonPath('data.stats.nb_commandes', 2)
             ->assertJsonPath('data.stats.nb_commandes_en_attente', 1)
-            ->assertJsonPath('data.stats.total_paiements', 50000)
-            ->assertJsonPath('data.stats.total_sous_total', 47500)
-            ->assertJsonPath('data.stats.total_commissions_client', 2500)
-            ->assertJsonPath('data.stats.total_commissions_agence', 2500)
-            ->assertJsonPath('data.stats.total_commissions', 2500)
+            ->assertJsonPath('data.stats.total_paiements', 47500)
             ->assertJsonPath('data.stats.revenu_net_estime', 45000)
             ->assertJsonPath('data.stats.reversements_en_attente', 10000)
+            ->assertJsonMissingPath('data.stats.total_commissions_client')
+            ->assertJsonMissingPath('data.stats.total_sous_total')
             ->assertJsonStructure([
                 'data' => [
                     'periode',
@@ -54,10 +52,6 @@ class DashboardTest extends AgenceApiTestCase
                         'nb_commandes_en_attente',
                         'nb_commandes_confirmees',
                         'total_paiements',
-                        'total_sous_total',
-                        'total_commissions_client',
-                        'total_commissions_agence',
-                        'total_commissions',
                         'revenu_net_estime',
                         'reversements_en_attente',
                         'nb_colis',

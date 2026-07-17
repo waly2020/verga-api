@@ -243,6 +243,10 @@ class PaymentSettlementService
             ->lockForUpdate()
             ->firstOrFail();
 
+        if (! $offre->hasStockLimite()) {
+            return;
+        }
+
         $nouvelleCapacite = max(0, (float) $offre->capacite_disponible - (float) $commande->quantite);
         $offre->update(['capacite_disponible' => $nouvelleCapacite]);
 

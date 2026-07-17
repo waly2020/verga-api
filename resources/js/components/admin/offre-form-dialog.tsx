@@ -2,6 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { Loader2, Package } from 'lucide-react';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -36,6 +37,7 @@ function emptyForm(typesOffres: TypeOffreApi[]): OffreFormData {
         titre: '',
         type_offre_id: typesOffres[0]?.id ?? '',
         prix: '',
+        capacite_illimitee: false,
         capacite_totale: '',
         origine: '',
         destination: '',
@@ -50,7 +52,8 @@ function toFormData(offre: OffreRow, typesOffres: TypeOffreApi[]): OffreFormData
         titre: offre.titre,
         type_offre_id: offre.type_offre_id ?? typesOffres[0]?.id ?? '',
         prix: String(offre.prix),
-        capacite_totale: String(offre.capacite_totale),
+        capacite_illimitee: Boolean(offre.capacite_illimitee),
+        capacite_totale: offre.capacite_totale == null ? '' : String(offre.capacite_totale),
         origine: offre.origine,
         destination: offre.destination,
         description: offre.description ?? '',
@@ -170,9 +173,9 @@ export function OffreFormDialog({ open, onOpenChange, agences, typesOffres, offr
                                     ))}
                                 </SelectContent>
                             </Select>
-                            {(errors.type_offre_id || errors.type) && (
+                            {errors.type_offre_id && (
                                 <p className="text-xs text-destructive">
-                                    {errors.type_offre_id ?? errors.type}
+                                    {errors.type_offre_id}
                                 </p>
                             )}
                         </div>
@@ -198,32 +201,63 @@ export function OffreFormDialog({ open, onOpenChange, agences, typesOffres, offr
                             )}
                         </div>
 
-                        <div className="space-y-1.5 sm:col-span-2">
-                            <Label htmlFor="offre-capacite">
-                                Capacité totale <span className="text-destructive">*</span>
-                            </Label>
-                            <Input
-                                id="offre-capacite"
-                                type="number"
-                                min="0.001"
-                                step="any"
-                                value={data.capacite_totale}
-                                onChange={(e) => setData('capacite_totale', e.target.value)}
-                                placeholder={
-                                    selectedType
-                                        ? `Ex : stock en ${selectedType.unite}`
-                                        : 'Ex : 30000 kg, 6 conteneurs...'
-                                }
-                            />
-                            {isEdit && offre && (
-                                <p className="text-xs text-muted-foreground">
-                                    Stock disponible actuel :{' '}
-                                    {Number(offre.capacite_disponible).toLocaleString('fr-FR')}
-                                    {' '}/ {Number(offre.capacite_totale).toLocaleString('fr-FR')}
-                                </p>
+                        <div className="space-y-3 sm:col-span-2">
+                            <div className="flex items-start gap-2 rounded-lg border p-3">
+                                <Checkbox
+                                    id="offre-capacite-illimitee"
+                                    checked={data.capacite_illimitee}
+                                    onCheckedChange={(v) => {
+                                        const illimitee = v === true;
+                                        setData({
+                                            ...data,
+                                            capacite_illimitee: illimitee,
+                                            capacite_totale: illimitee ? '' : data.capacite_totale,
+                                        });
+                                    }}
+                                />
+                                <div className="space-y-1">
+                                    <Label htmlFor="offre-capacite-illimitee" className="cursor-pointer font-normal">
+                                        Capacité illimitée
+                                    </Label>
+                                    <p className="text-xs text-muted-foreground">
+                                        Pas de plafond de stock : le client peut commander toute quantité
+                                        autorisée par le type d&apos;offre.
+                                    </p>
+                                </div>
+                            </div>
+                            {errors.capacite_illimitee && (
+                                <p className="text-xs text-destructive">{errors.capacite_illimitee}</p>
                             )}
-                            {errors.capacite_totale && (
-                                <p className="text-xs text-destructive">{errors.capacite_totale}</p>
+
+                            {!data.capacite_illimitee && (
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="offre-capacite">
+                                        Capacité totale <span className="text-destructive">*</span>
+                                    </Label>
+                                    <Input
+                                        id="offre-capacite"
+                                        type="number"
+                                        min="0.001"
+                                        step="any"
+                                        value={data.capacite_totale}
+                                        onChange={(e) => setData('capacite_totale', e.target.value)}
+                                        placeholder={
+                                            selectedType
+                                                ? `Ex : stock en ${selectedType.unite}`
+                                                : 'Ex : 30000 kg, 6 conteneurs...'
+                                        }
+                                    />
+                                    {isEdit && offre && !offre.capacite_illimitee && (
+                                        <p className="text-xs text-muted-foreground">
+                                            Stock disponible actuel :{' '}
+                                            {Number(offre.capacite_disponible).toLocaleString('fr-FR')}
+                                            {' '}/ {Number(offre.capacite_totale).toLocaleString('fr-FR')}
+                                        </p>
+                                    )}
+                                    {errors.capacite_totale && (
+                                        <p className="text-xs text-destructive">{errors.capacite_totale}</p>
+                                    )}
+                                </div>
                             )}
                         </div>
                     </div>

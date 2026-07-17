@@ -7,13 +7,14 @@ use App\Models\Commande;
 use App\Models\Offre;
 use App\Models\Paiement;
 use App\Models\Reversement;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\CreatesTestAgences;
 use Tests\TestCase;
 
 class AgenceFinanceViewsTest extends TestCase
 {
+    use CreatesTestAgences;
     use RefreshDatabase;
 
     public function test_paiements_valides_view_sums_only_validated_payments_per_agence(): void
@@ -134,15 +135,12 @@ class AgenceFinanceViewsTest extends TestCase
 
     private function createAgence(): Agence
     {
-        $user = User::factory()->create(['role' => 'agence']);
-
-        return Agence::create([
-            'user_id' => $user->id,
+        ['agence' => $agence] = $this->createTestAgence([
             'nom' => 'Agence Test Views',
-            'email' => fake()->unique()->safeEmail(),
             'telephone' => '0612345678',
-            'statut' => 'actif',
         ]);
+
+        return $agence;
     }
 
     private function createCommande(Agence $agence): Commande

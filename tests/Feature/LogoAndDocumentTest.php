@@ -7,10 +7,12 @@ use App\Models\Client;
 use App\Models\Logo;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\CreatesTestAgences;
 use Tests\TestCase;
 
 class LogoAndDocumentTest extends TestCase
 {
+    use CreatesTestAgences;
     use RefreshDatabase;
 
     public function test_agence_can_have_a_logo(): void
@@ -79,12 +81,11 @@ class LogoAndDocumentTest extends TestCase
 
     private function createAgence(): Agence
     {
-        return Agence::create([
-            'user_id' => User::factory()->create(['role' => 'agence'])->id,
+        ['agence' => $agence] = $this->createTestAgence([
             'nom' => 'Transit Test',
-            'email' => fake()->unique()->safeEmail(),
             'telephone' => '0611111111',
-            'statut' => 'actif',
         ]);
+
+        return $agence;
     }
 }

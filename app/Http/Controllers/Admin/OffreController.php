@@ -45,7 +45,7 @@ class OffreController extends Controller
     public function store(StoreOffreRequest $request): RedirectResponse
     {
         $data = $this->typeResolver->resolveForCreate($request->validated());
-        $data['capacite_disponible'] = $data['capacite_totale'];
+        $data = $this->capacite->normalizeForCreate($data);
 
         Offre::create($data);
 

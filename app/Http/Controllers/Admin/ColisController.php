@@ -56,7 +56,7 @@ class ColisController extends Controller
             'commande.offre.typeOffre:id,unite,quantite_entier',
             'commande.client:id,nom,prenom,email',
             'photos:id,colis_id,chemin,ordre',
-            'historique' => fn ($q) => $q->with('user:id,name')->latest(),
+            'historique' => fn ($q) => $q->with('actor')->latest(),
         ]);
 
         return Inertia::render('admin/colis/show', [
@@ -77,7 +77,8 @@ class ColisController extends Controller
 
         HistoriqueColis::create([
             'colis_id' => $colis->id,
-            'user_id' => $request->user()->id,
+            'actor_type' => 'user',
+            'actor_id' => $request->user()->id,
             'statut' => $next,
             'commentaire' => $request->get('commentaire'),
         ]);

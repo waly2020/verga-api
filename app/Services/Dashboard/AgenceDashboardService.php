@@ -50,15 +50,14 @@ class AgenceDashboardService
             'stats' => [
                 'nb_offres' => (clone $offresBase)->count(),
                 'nb_offres_actives' => (clone $offresBase)->where('statut', 'active')->count(),
-                'capacite_disponible_totale' => (float) (clone $offresBase)->where('statut', 'active')->sum('capacite_disponible'),
+                'capacite_disponible_totale' => (float) (clone $offresBase)
+                    ->where('statut', 'active')
+                    ->where('capacite_illimitee', false)
+                    ->sum('capacite_disponible'),
                 'nb_commandes' => (clone $commandesQuery)->count(),
                 'nb_commandes_en_attente' => (clone $commandesQuery)->where('statut', 'en_attente')->count(),
                 'nb_commandes_confirmees' => (clone $commandesQuery)->where('statut', 'confirmée')->count(),
-                'total_paiements' => $paiements['total'],
-                'total_sous_total' => $paiements['sous_total'],
-                'total_commissions_client' => $paiements['commissions_client'],
-                'total_commissions_agence' => $totalCommissionsAgence,
-                'total_commissions' => $totalCommissionsAgence,
+                'total_paiements' => $paiements['sous_total'],
                 'revenu_net_estime' => $paiements['sous_total'] - $totalCommissionsAgence,
                 'reversements_en_attente' => (float) $agence->reversements()->where('statut', 'en_attente')->sum('montant'),
                 'nb_colis' => (clone $colisQuery)->count(),
@@ -97,15 +96,16 @@ class AgenceDashboardService
             ])
             ->orderByDesc('nb_commandes')
             ->limit(5)
-            ->get(['id', 'titre', 'type', 'prix', 'statut', 'capacite_totale', 'capacite_disponible'])
+            ->get(['id', 'titre', 'type', 'prix', 'statut', 'capacite_illimitee', 'capacite_totale', 'capacite_disponible'])
             ->map(fn ($offre) => [
                 'id' => $offre->id,
                 'titre' => $offre->titre,
                 'type' => $offre->type,
                 'prix' => (float) $offre->prix,
                 'statut' => $offre->statut,
-                'capacite_totale' => (float) $offre->capacite_totale,
-                'capacite_disponible' => (float) $offre->capacite_disponible,
+                'capacite_illimitee' => (bool) $offre->capacite_illimitee,
+                'capacite_totale' => $offre->capacite_totale !== null ? (float) $offre->capacite_totale : null,
+                'capacite_disponible' => $offre->capacite_disponible !== null ? (float) $offre->capacite_disponible : null,
                 'nb_commandes' => (int) $offre->nb_commandes,
             ])
             ->values()
@@ -129,17 +129,13 @@ class AgenceDashboardService
                 'prenom',
                 'telephone',
                 'montant_sous_total',
-                'montant_commission_client',
-                'montant_total',
                 'statut',
                 'created_at',
             ])
             ->map(fn ($commande) => [
                 'id' => $commande->id,
                 'code' => $commande->code,
-                'montant_sous_total' => $commande->montant_sous_total,
-                'montant_commission_client' => $commande->montant_commission_client,
-                'montant_total' => $commande->montant_total,
+                'montant' => (float) $commande->montant_sous_total,
                 'statut' => $commande->statut,
                 'created_at' => $commande->created_at?->toIso8601String(),
                 'client' => CommandeClientPresenter::for($commande),

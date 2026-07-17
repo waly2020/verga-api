@@ -2,12 +2,10 @@
 
 namespace Tests\Feature\Api\Client;
 
-use App\Models\Agence;
 use App\Models\Colis;
 use App\Models\ColisPhoto;
 use App\Models\Commande;
 use App\Models\Offre;
-use App\Models\User;
 
 class ColisPhotosTest extends ClientApiTestCase
 {
@@ -15,13 +13,9 @@ class ColisPhotosTest extends ClientApiTestCase
     {
         ['client' => $client, 'token' => $token] = $this->createAuthenticatedClient();
 
-        $agenceUser = User::factory()->create(['role' => 'agence']);
-        $agence = Agence::create([
-            'user_id' => $agenceUser->id,
+        ['agence' => $agence] = $this->createTestAgence([
             'nom' => 'Transit Photos',
-            'email' => fake()->unique()->safeEmail(),
             'telephone' => '0611111111',
-            'statut' => 'actif',
         ]);
 
         $offre = Offre::create([

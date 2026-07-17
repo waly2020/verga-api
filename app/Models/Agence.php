@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -14,7 +16,6 @@ class Agence extends Model
     use HasUuids;
 
     protected $fillable = [
-        'user_id',
         'type_agence_id',
         'nom',
         'email',
@@ -25,9 +26,14 @@ class Agence extends Model
         'statut',
     ];
 
-    public function user(): BelongsTo
+    public function users(): HasMany
     {
-        return $this->belongsTo(User::class);
+        return $this->hasMany(AgenceUser::class);
+    }
+
+    public function proprietaire(): HasOne
+    {
+        return $this->hasOne(AgenceUser::class)->where('est_proprietaire', true);
     }
 
     public function typeAgence(): BelongsTo

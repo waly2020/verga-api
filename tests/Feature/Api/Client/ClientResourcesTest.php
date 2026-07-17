@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api\Client;
 
-use App\Models\Agence;
 use App\Models\Client;
 use App\Models\Colis;
 use App\Models\Commande;
@@ -124,13 +123,10 @@ class ClientResourcesTest extends ClientApiTestCase
     {
         ['client' => $client, 'token' => $token] = $this->createAuthenticatedClient();
 
-        $agenceUser = User::factory()->create(['role' => 'agence']);
-        $agence = Agence::create([
-            'user_id' => $agenceUser->id,
+        ['agence' => $agence] = $this->createTestAgence([
             'nom' => 'Transit',
             'email' => 'agence@test.com',
             'telephone' => '0611111111',
-            'statut' => 'actif',
         ]);
 
         $offre = Offre::create([
@@ -186,6 +182,7 @@ class ClientResourcesTest extends ClientApiTestCase
             ->assertOk()
             ->assertJsonPath('data.0.code', 'PAY-CLIENT-001')
             ->assertJsonPath('data.0.montant', 17500)
+            ->assertJsonPath('data.0.statut', 'validé')
             ->assertJsonPath('data.0.operateur', 'airtel_money')
             ->assertJsonPath('data.0.bamboo_reference', 'TXN-CLIENT-001')
             ->assertJsonPath('data.0.commande_code', 'CMD-CLIENT-001')
@@ -223,13 +220,10 @@ class ClientResourcesTest extends ClientApiTestCase
             'telephone' => '0699999999',
         ]);
 
-        $agenceUser = User::factory()->create(['role' => 'agence']);
-        $agence = Agence::create([
-            'user_id' => $agenceUser->id,
+        ['agence' => $agence] = $this->createTestAgence([
             'nom' => 'Agence',
             'email' => 'a@test.com',
             'telephone' => '0611111111',
-            'statut' => 'actif',
         ]);
 
         $offre = Offre::create([

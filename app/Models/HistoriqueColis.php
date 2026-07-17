@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class HistoriqueColis extends Model
 {
@@ -12,7 +15,8 @@ class HistoriqueColis extends Model
 
     protected $fillable = [
         'colis_id',
-        'user_id',
+        'actor_type',
+        'actor_id',
         'statut',
         'commentaire',
     ];
@@ -22,8 +26,8 @@ class HistoriqueColis extends Model
         return $this->belongsTo(Colis::class);
     }
 
-    public function user(): BelongsTo
+    public function actor(): MorphTo
     {
-        return $this->belongsTo(User::class);
+        return $this->morphTo();
     }
 }

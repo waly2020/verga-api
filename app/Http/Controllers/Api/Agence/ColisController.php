@@ -56,7 +56,7 @@ class ColisController extends AgenceApiController
 
         $updated = $this->statutService->advance(
             colis: $model,
-            user: $request->user(),
+            actor: $request->user(),
             statut: $request->validated('statut'),
             commentaire: $request->validated('commentaire'),
         );
@@ -65,7 +65,7 @@ class ColisController extends AgenceApiController
             'commande.client:id,nom,prenom,email',
             'commande.offre.typeOffre',
             'photos',
-            'historique' => fn ($q) => $q->with('user:id,name')->latest(),
+            'historique' => fn ($q) => $q->with('actor')->latest(),
         ]);
 
         return ColisDetailResource::make($updated)->additional([
@@ -81,7 +81,7 @@ class ColisController extends AgenceApiController
                 'commande.client:id,nom,prenom,email',
                 'commande.offre.typeOffre',
                 'photos',
-                'historique' => fn ($q) => $q->with('user:id,name')->latest(),
+                'historique' => fn ($q) => $q->with('actor')->latest(),
             ])
             ->findOrFail($colis);
     }

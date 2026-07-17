@@ -5,8 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreAgenceRequest;
 use App\Models\Agence;
+use App\Models\AgenceRole;
+use App\Models\AgenceUser;
 use App\Models\TypeAgence;
-use App\Models\User;
 use App\Services\AgenceMediaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -49,15 +50,11 @@ class AgenceController extends Controller
         $data = $request->validated();
 
         DB::transaction(function () use ($request, $data) {
-            $user = User::create([
-                'name' => $data['gerant_name'],
-                'email' => $data['gerant_email'],
-                'password' => $data['gerant_password'],
-                'role' => 'agence',
-            ]);
+            $adminRole = AgenceRole::query()
+                ->where('slug', AgenceRole::SLUG_ADMIN_AGENCE)
+                ->firstOrFail();
 
             $agence = Agence::create([
-                'user_id' => $user->id,
                 'type_agence_id' => $data['type_agence_id'] ?? null,
                 'nom' => $data['nom'],
                 'email' => $data['email'],
@@ -66,6 +63,17 @@ class AgenceController extends Controller
                 'adresse' => $data['adresse'] ?? null,
                 'pays' => $data['pays'] ?? 'Gabon',
                 'statut' => 'actif',
+            ]);
+
+            AgenceUser::create([
+                'agence_id' => $agence->id,
+                'agence_role_id' => $adminRole->id,
+                'name' => $data['gerant_name'],
+                'email' => $data['gerant_email'],
+                'telephone' => $data['telephone'] ?? null,
+                'password' => $data['gerant_password'],
+                'statut' => AgenceUser::STATUT_ACTIF,
+                'est_proprietaire' => true,
             ]);
 
             if ($request->hasFile('logo')) {
@@ -87,7 +95,7 @@ class AgenceController extends Controller
 
     public function show(Agence $agence): Response
     {
-        $agence->load(['user:id,name,email', 'typeAgence:id,nom', 'logo', 'documents']);
+        $agence->load(['proprietaire:id,name,email,agence_id', 'typeAgence:id,nom', 'logo', 'documents']);
 
         $finance = DB::table('vue_agences_soldes')
             ->where('agence_id', $agence->id)

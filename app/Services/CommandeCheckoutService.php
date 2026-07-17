@@ -144,7 +144,7 @@ class CommandeCheckoutService
 
         $this->quantityRules->validate($offre, $quantiteReservee, $quantiteAPayer);
 
-        if ((float) $offre->capacite_disponible < $quantiteReservee) {
+        if ($offre->hasStockLimite() && (float) $offre->capacite_disponible < $quantiteReservee) {
             throw ValidationException::withMessages([
                 'quantite_reservee' => ['Quantité indisponible pour cette offre.'],
             ]);

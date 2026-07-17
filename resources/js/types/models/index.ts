@@ -1,3 +1,5 @@
+export type * from './agence-role';
+export type * from './agence-user';
 export type * from './checkout';
 export type * from './client';
 export type * from './colis';

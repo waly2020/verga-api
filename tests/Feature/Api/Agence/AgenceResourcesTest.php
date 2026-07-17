@@ -2,14 +2,12 @@
 
 namespace Tests\Feature\Api\Agence;
 
-use App\Models\Agence;
 use App\Models\Colis;
 use App\Models\ColisPhoto;
 use App\Models\Commande;
 use App\Models\Offre;
 use App\Models\Paiement;
 use App\Models\TypeOffre;
-use App\Models\User;
 
 class AgenceResourcesTest extends AgenceApiTestCase
 {
@@ -97,6 +95,33 @@ class AgenceResourcesTest extends AgenceApiTestCase
             'titre' => 'Offre m³',
             'type' => 'metre_cube',
             'type_offre_id' => $typeOffre->id,
+        ]);
+    }
+
+    public function test_agence_can_create_offre_capacite_illimitee(): void
+    {
+        ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
+
+        $this->withAgenceToken($token)
+            ->postJson('/api/v1/agence/offres', [
+                'titre' => '2000 F / colis Port-Gentil',
+                'type' => 'particulier',
+                'prix' => 2000,
+                'capacite_illimitee' => true,
+                'origine' => 'Libreville',
+                'destination' => 'Port-Gentil',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.capacite_illimitee', true)
+            ->assertJsonPath('data.capacite_totale', null)
+            ->assertJsonPath('data.capacite_disponible', null);
+
+        $this->assertDatabaseHas('offres', [
+            'agence_id' => $agence->id,
+            'titre' => '2000 F / colis Port-Gentil',
+            'capacite_illimitee' => true,
+            'capacite_totale' => null,
+            'capacite_disponible' => null,
         ]);
     }
 
@@ -233,13 +258,10 @@ class AgenceResourcesTest extends AgenceApiTestCase
     {
         ['token' => $token] = $this->createAuthenticatedAgence();
 
-        $otherUser = User::factory()->create(['role' => 'agence']);
-        $otherAgence = Agence::create([
-            'user_id' => $otherUser->id,
+        ['agence' => $otherAgence] = $this->createTestAgence([
             'nom' => 'Autre agence',
             'email' => 'autre@test.com',
             'telephone' => '0699999999',
-            'statut' => 'actif',
         ]);
 
         $offre = Offre::create([
@@ -282,7 +304,9 @@ class AgenceResourcesTest extends AgenceApiTestCase
             'agence_id' => $agence->id,
             'code' => 'CMD-TEST-001',
             'quantite' => 10,
-            'montant_total' => 87500,
+            'montant_sous_total' => 87500,
+            'montant_commission_client' => 4375,
+            'montant_total' => 91875,
             'statut' => 'en_attente',
         ]);
 
@@ -290,6 +314,9 @@ class AgenceResourcesTest extends AgenceApiTestCase
             ->getJson('/api/v1/agence/commandes')
             ->assertOk()
             ->assertJsonPath('data.0.code', 'CMD-TEST-001')
+            ->assertJsonPath('data.0.montant', 87500)
+            ->assertJsonMissingPath('data.0.montant_commission_client')
+            ->assertJsonMissingPath('data.0.montant_total')
             ->assertJsonPath('data.0.offre.capacite_totale', 1000)
             ->assertJsonPath('data.0.offre.capacite_disponible', 1000);
 
@@ -410,7 +437,8 @@ class AgenceResourcesTest extends AgenceApiTestCase
 
         $this->assertDatabaseHas('historique_colis', [
             'colis_id' => $colis->id,
-            'user_id' => $user->id,
+            'actor_type' => 'agence_user',
+            'actor_id' => $user->id,
             'statut' => 'en_transit',
         ]);
     }
@@ -478,7 +506,8 @@ class AgenceResourcesTest extends AgenceApiTestCase
             'commande_id' => $commande->id,
             'code' => 'PAY-001',
             'montant_sous_total' => 17500,
-            'montant' => 17500,
+            'montant_commission_client' => 875,
+            'montant' => 18375,
             'methode' => 'mobile_money',
             'operateur' => 'moov_money',
             'reference' => 'PAY-001',
@@ -491,9 +520,11 @@ class AgenceResourcesTest extends AgenceApiTestCase
             ->assertOk()
             ->assertJsonPath('data.0.code', 'PAY-001')
             ->assertJsonPath('data.0.montant', 17500)
+            ->assertJsonPath('data.0.statut', 'validé')
             ->assertJsonPath('data.0.operateur', 'moov_money')
             ->assertJsonPath('data.0.bamboo_reference', 'TXN-AGENCE-001')
             ->assertJsonPath('data.0.commande_code', 'CMD-PAY-001')
-            ->assertJsonMissingPath('data.0.montant_commission_client');
+            ->assertJsonMissingPath('data.0.montant_commission_client')
+            ->assertJsonMissingPath('data.0.montant_sous_total');
     }
 }

@@ -15,7 +15,10 @@ class ClientOffreCatalogService
         $query = Offre::query()
             ->with(['agence:id,nom,ville', 'typeOffre:id,slug,nom,unite,unite_label,quantite_entier,quantite_min'])
             ->active()
-            ->where('capacite_disponible', '>', 0);
+            ->where(function ($q) {
+                $q->where('capacite_illimitee', true)
+                    ->orWhere('capacite_disponible', '>', 0);
+            });
 
         if ($search = $filters['search'] ?? null) {
             $query->where(function ($q) use ($search) {

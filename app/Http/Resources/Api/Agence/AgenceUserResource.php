@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Resources\Api\Agence;
 
-use App\Models\User;
+use App\Models\AgenceUser;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin User */
+/** @mixin AgenceUser */
 class AgenceUserResource extends JsonResource
 {
     /**
@@ -19,7 +21,9 @@ class AgenceUserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'telephone' => $this->telephone,
-            'role' => $this->role,
+            'statut' => $this->statut,
+            'est_proprietaire' => $this->est_proprietaire,
+            'role' => AgenceRoleResource::make($this->whenLoaded('role')),
             'agence' => AgenceResource::make($this->whenLoaded('agence')),
         ];
     }

@@ -13,9 +13,11 @@ use App\Http\Controllers\Api\Agence\PaiementController;
 use App\Http\Controllers\Api\Agence\PasswordController;
 use App\Http\Controllers\Api\Agence\ReclamationController;
 use App\Http\Controllers\Api\Agence\ReversementController;
+use App\Http\Controllers\Api\Agence\RoleController;
 use App\Http\Controllers\Api\Agence\SoldeController;
 use App\Http\Controllers\Api\Agence\TypeAgenceController;
 use App\Http\Controllers\Api\Agence\TypeOffreController;
+use App\Http\Controllers\Api\Agence\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('agence')->name('api.agence.')->group(function () {
@@ -36,6 +38,12 @@ Route::prefix('agence')->name('api.agence.')->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
         Route::get('me', [AuthController::class, 'me'])->name('me');
         Route::put('password', [PasswordController::class, 'update'])->name('password.update');
+
+        Route::get('roles', [RoleController::class, 'index'])->name('roles.index');
+        Route::get('users', [UserController::class, 'index'])->name('users.index');
+        Route::post('users', [UserController::class, 'store'])->name('users.store');
+        Route::patch('users/{agenceUser}', [UserController::class, 'update'])->name('users.update');
+        Route::delete('users/{agenceUser}', [UserController::class, 'destroy'])->name('users.destroy');
 
         Route::get('dashboard', DashboardController::class)->name('dashboard');
         Route::get('solde', SoldeController::class)->name('solde');

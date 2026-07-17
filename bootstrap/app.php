@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\EnsureUserIsAgence;
 use App\Http\Middleware\EnsureUserIsClient;
+use App\Http\Middleware\EnsureUserIsStrictAdmin;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\NormalizeBambooPayReturnUrl;
@@ -25,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,
+            'admin.strict' => EnsureUserIsStrictAdmin::class,
             'agence' => EnsureUserIsAgence::class,
             'client' => EnsureUserIsClient::class,
             'optional.sanctum' => OptionalSanctumAuth::class,

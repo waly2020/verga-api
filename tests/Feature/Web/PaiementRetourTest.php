@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Web;
 
-use App\Models\Agence;
 use App\Models\Colis;
 use App\Models\Commande;
 use App\Models\Offre;
 use App\Models\Paiement;
-use App\Models\User;
 use App\Support\PaiementReturnUrl;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\CreatesTestAgences;
 use Tests\TestCase;
 
 class PaiementRetourTest extends TestCase
 {
+    use CreatesTestAgences;
     use RefreshDatabase;
 
     /**
@@ -23,13 +23,10 @@ class PaiementRetourTest extends TestCase
      */
     private function createPaiementScenario(): array
     {
-        $user = User::factory()->create(['role' => 'agence']);
-        $agence = Agence::create([
-            'user_id' => $user->id,
+        ['agence' => $agence] = $this->createTestAgence([
             'nom' => 'Transit Test',
             'email' => 'agence@test.com',
             'telephone' => '0611111111',
-            'statut' => 'actif',
             'ville' => 'Libreville',
         ]);
 

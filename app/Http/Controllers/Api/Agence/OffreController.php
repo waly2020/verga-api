@@ -53,7 +53,7 @@ class OffreController extends AgenceApiController
     public function store(StoreOffreRequest $request): JsonResponse
     {
         $data = $this->typeResolver->resolveForCreate($request->validated(), $this->agence($request)->id);
-        $data['capacite_disponible'] = $data['capacite_totale'];
+        $data = $this->capacite->normalizeForCreate($data);
         $data['statut'] = $request->input('statut', 'active');
 
         $offre = $this->agence($request)

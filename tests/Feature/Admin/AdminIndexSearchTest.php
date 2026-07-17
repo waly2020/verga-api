@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Admin;
 
-use App\Models\Agence;
 use App\Models\Client;
 use App\Models\Colis;
 use App\Models\Commande;
 use App\Models\Offre;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\CreatesTestAgences;
 use Tests\TestCase;
 
 class AdminIndexSearchTest extends TestCase
 {
+    use CreatesTestAgences;
     use RefreshDatabase;
 
     private function actingAsAdmin(): User
@@ -33,14 +34,11 @@ class AdminIndexSearchTest extends TestCase
     {
         $this->actingAsAdmin();
 
-        $agenceUser = User::factory()->create(['role' => 'agence']);
-        $agence = Agence::create([
-            'user_id' => $agenceUser->id,
+        ['agence' => $agence] = $this->createTestAgence([
             'nom' => 'Transit Libreville',
             'email' => 'libreville@transit.test',
             'telephone' => '0611111111',
             'ville' => 'Libreville',
-            'statut' => 'actif',
         ]);
 
         $clientUser = User::factory()->create(['role' => 'client']);

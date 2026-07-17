@@ -22,6 +22,7 @@ class PaiementResourceTest extends TestCase
             'montant_sous_total' => 5000,
             'montant_commission_client' => 250,
             'montant' => 5250,
+            'statut' => 'validé',
             'operateur' => 'moov_money',
             'bamboo_reference' => 'TXN-001',
         ]);
@@ -34,6 +35,7 @@ class PaiementResourceTest extends TestCase
         $this->assertSame([
             'code' => 'PAY-TEST-001',
             'montant' => 5250.0,
+            'statut' => 'validé',
             'operateur' => 'moov_money',
             'bamboo_reference' => 'TXN-001',
             'created_at' => $createdAt->toIso8601String(),

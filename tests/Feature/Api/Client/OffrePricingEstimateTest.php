@@ -2,10 +2,8 @@
 
 namespace Tests\Feature\Api\Client;
 
-use App\Models\Agence;
 use App\Models\ConfigurationCommission;
 use App\Models\Offre;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class OffrePricingEstimateTest extends ClientApiTestCase
@@ -14,13 +12,10 @@ class OffrePricingEstimateTest extends ClientApiTestCase
 
     private function createActiveOffre(float $prix = 2500, float $capacite = 100): Offre
     {
-        $user = User::factory()->create(['role' => 'agence']);
-        $agence = Agence::create([
-            'user_id' => $user->id,
+        ['agence' => $agence] = $this->createTestAgence([
             'nom' => 'Transit Test',
             'email' => 'agence@test.com',
             'telephone' => '0611111111',
-            'statut' => 'actif',
         ]);
 
         return Offre::create([
@@ -101,6 +96,34 @@ class OffrePricingEstimateTest extends ClientApiTestCase
             ->assertOk()
             ->assertJsonPath('capacite_disponible', 5)
             ->assertJsonPath('stock_suffisant', false);
+    }
+
+    public function test_estimate_accepts_high_quantity_for_unlimited_offre(): void
+    {
+        ['agence' => $agence] = $this->createTestAgence([
+            'nom' => 'Transit Illimité',
+            'email' => 'illimite@test.com',
+            'telephone' => '0611111112',
+        ]);
+
+        $offre = Offre::create([
+            'agence_id' => $agence->id,
+            'titre' => 'Offre illimitée',
+            'type' => 'particulier',
+            'prix' => 2000,
+            'capacite_illimitee' => true,
+            'capacite_totale' => null,
+            'capacite_disponible' => null,
+            'origine' => 'Libreville',
+            'destination' => 'Port-Gentil',
+            'statut' => 'active',
+        ]);
+
+        $this->getJson("/api/v1/client/offres/{$offre->id}/estimation?quantite=500")
+            ->assertOk()
+            ->assertJsonPath('montant_sous_total', 1000000)
+            ->assertJsonPath('capacite_disponible', null)
+            ->assertJsonPath('stock_suffisant', true);
     }
 
     public function test_estimate_requires_quantite(): void

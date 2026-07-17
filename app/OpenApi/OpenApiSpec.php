@@ -58,6 +58,7 @@ use OpenApi\Attributes as OA;
 #[OA\Tag(name: 'Paiement - Bamboo Pay', description: 'Webhooks et intégration Bamboo Pay')]
 #[OA\Tag(name: 'Agence - Dashboard', description: 'Statistiques tableau de bord agence')]
 #[OA\Tag(name: 'Agence - Finance', description: 'Solde et reversements agence')]
+#[OA\Tag(name: 'Agence - Utilisateurs', description: 'Rôles et utilisateurs agence')]
 #[OA\Schema(
     schema: 'MessageResponse',
     properties: [
@@ -165,13 +166,26 @@ use OpenApi\Attributes as OA;
     ]
 )]
 #[OA\Schema(
+    schema: 'AgenceRoleResource',
+    properties: [
+        new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+        new OA\Property(property: 'slug', type: 'string', example: 'operations'),
+        new OA\Property(property: 'nom', type: 'string', example: 'Opérations'),
+        new OA\Property(property: 'description', type: 'string', nullable: true),
+        new OA\Property(property: 'actif', type: 'boolean', example: true),
+        new OA\Property(property: 'est_systeme', type: 'boolean', example: false),
+    ]
+)]
+#[OA\Schema(
     schema: 'AgenceUserResource',
     properties: [
         new OA\Property(property: 'id', type: 'integer'),
         new OA\Property(property: 'name', type: 'string'),
         new OA\Property(property: 'email', type: 'string', format: 'email'),
         new OA\Property(property: 'telephone', type: 'string', nullable: true),
-        new OA\Property(property: 'role', type: 'string', example: 'agence'),
+        new OA\Property(property: 'statut', type: 'string', example: 'actif', enum: ['actif', 'suspendu']),
+        new OA\Property(property: 'est_proprietaire', type: 'boolean', example: true),
+        new OA\Property(property: 'role', ref: '#/components/schemas/AgenceRoleResource'),
         new OA\Property(property: 'agence', ref: '#/components/schemas/AgenceResource', nullable: true),
     ]
 )]
@@ -192,8 +206,9 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'statut', type: 'string', enum: ['chez_client', 'déposé', 'en_transit', 'arrivé', 'récupéré']),
         new OA\Property(property: 'commentaire', type: 'string', nullable: true),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
-        new OA\Property(property: 'user', type: 'object', nullable: true, properties: [
+        new OA\Property(property: 'actor', type: 'object', nullable: true, properties: [
             new OA\Property(property: 'id', type: 'integer'),
+            new OA\Property(property: 'type', type: 'string', example: 'agence_user'),
             new OA\Property(property: 'name', type: 'string'),
         ]),
     ]
@@ -339,8 +354,9 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'type_offre_id', type: 'string', format: 'uuid', nullable: true),
         new OA\Property(property: 'type_offre', ref: '#/components/schemas/TypeOffreResource', nullable: true),
         new OA\Property(property: 'prix', type: 'number', format: 'float', example: 2500),
-        new OA\Property(property: 'capacite_totale', type: 'number', format: 'float', example: 1000),
-        new OA\Property(property: 'capacite_disponible', type: 'number', format: 'float', example: 750),
+        new OA\Property(property: 'capacite_illimitee', type: 'boolean', example: false),
+        new OA\Property(property: 'capacite_totale', type: 'number', format: 'float', nullable: true, example: 1000),
+        new OA\Property(property: 'capacite_disponible', type: 'number', format: 'float', nullable: true, example: 750),
         new OA\Property(property: 'origine', type: 'string', example: 'Libreville'),
         new OA\Property(property: 'destination', type: 'string', example: 'Paris'),
         new OA\Property(property: 'statut', type: 'string', enum: ['active', 'inactive', 'archivée'], example: 'active'),
@@ -369,7 +385,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'montant_sous_total', type: 'number', format: 'float', example: 25000),
         new OA\Property(property: 'montant_commission_client', type: 'number', format: 'float', example: 1250),
         new OA\Property(property: 'montant_total', type: 'number', format: 'float', example: 26250, description: 'Montant total que le client paiera'),
-        new OA\Property(property: 'capacite_disponible', type: 'number', format: 'float', example: 1000),
+        new OA\Property(property: 'capacite_disponible', type: 'number', format: 'float', nullable: true, example: 1000, description: 'Null si capacité illimitée'),
         new OA\Property(property: 'stock_suffisant', type: 'boolean', example: true),
         new OA\Property(property: 'commission', ref: '#/components/schemas/ClientCommissionConfig', nullable: true),
     ]
@@ -415,8 +431,9 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'type_offre_id', type: 'string', format: 'uuid', nullable: true),
         new OA\Property(property: 'type_offre', ref: '#/components/schemas/TypeOffreResource', nullable: true),
         new OA\Property(property: 'prix', type: 'number', format: 'float', example: 2500),
-        new OA\Property(property: 'capacite_totale', type: 'number', format: 'float', example: 1000),
-        new OA\Property(property: 'capacite_disponible', type: 'number', format: 'float', example: 750),
+        new OA\Property(property: 'capacite_illimitee', type: 'boolean', example: false),
+        new OA\Property(property: 'capacite_totale', type: 'number', format: 'float', nullable: true, example: 1000),
+        new OA\Property(property: 'capacite_disponible', type: 'number', format: 'float', nullable: true, example: 750),
         new OA\Property(property: 'origine', type: 'string', example: 'Libreville'),
         new OA\Property(property: 'destination', type: 'string', example: 'Paris'),
         new OA\Property(property: 'statut', type: 'string', enum: ['active', 'inactive', 'archivée'], example: 'active'),
@@ -435,9 +452,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'quantite_payee_label', type: 'string', nullable: true, example: '30 kg'),
         new OA\Property(property: 'quantite_restante', type: 'number', format: 'float', example: 20),
         new OA\Property(property: 'quantite_restante_label', type: 'string', nullable: true, example: '20 kg'),
-        new OA\Property(property: 'montant_sous_total', type: 'number', format: 'float'),
-        new OA\Property(property: 'montant_commission_client', type: 'number', format: 'float'),
-        new OA\Property(property: 'montant_total', type: 'number', format: 'float'),
+        new OA\Property(property: 'montant', type: 'number', format: 'float', description: 'Montant net transport (hors commissions VERGA)'),
         new OA\Property(property: 'statut', type: 'string', enum: ['en_attente', 'réservée', 'confirmée', 'annulée']),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'client', type: 'object', nullable: true, properties: [
@@ -461,6 +476,7 @@ use OpenApi\Attributes as OA;
     properties: [
         new OA\Property(property: 'code', type: 'string', example: 'PAY-ABCDEFGH', description: 'Référence du paiement VERGA'),
         new OA\Property(property: 'montant', type: 'number', format: 'float', example: 78750, description: 'Montant total payé (transport + commission client)'),
+        new OA\Property(property: 'statut', type: 'string', enum: ['en_attente', 'validé', 'échec', 'remboursé'], example: 'validé'),
         new OA\Property(property: 'operateur', type: 'string', nullable: true, example: 'moov_money', description: 'Opérateur mobile money (ex. moov_money, airtel_money)'),
         new OA\Property(property: 'bamboo_reference', type: 'string', nullable: true, example: 'TXN-2025-000381'),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
@@ -469,7 +485,15 @@ use OpenApi\Attributes as OA;
 )]
 #[OA\Schema(
     schema: 'AgencePaiementResource',
-    allOf: [new OA\Schema(ref: '#/components/schemas/PaiementResource')],
+    properties: [
+        new OA\Property(property: 'code', type: 'string', example: 'PAY-ABCDEFGH', description: 'Référence du paiement VERGA'),
+        new OA\Property(property: 'montant', type: 'number', format: 'float', example: 75000, description: 'Montant net transport (hors commissions VERGA)'),
+        new OA\Property(property: 'statut', type: 'string', enum: ['en_attente', 'validé', 'échec', 'remboursé'], example: 'validé'),
+        new OA\Property(property: 'operateur', type: 'string', nullable: true, example: 'moov_money', description: 'Opérateur mobile money (ex. moov_money, airtel_money)'),
+        new OA\Property(property: 'bamboo_reference', type: 'string', nullable: true, example: 'TXN-2025-000381'),
+        new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'commande_code', type: 'string', nullable: true, example: 'CMD-ABCDEFGH'),
+    ]
 )]
 #[OA\Schema(
     schema: 'ClientCommandeResource',
@@ -590,12 +614,8 @@ use OpenApi\Attributes as OA;
                 new OA\Property(property: 'nb_commandes', type: 'integer'),
                 new OA\Property(property: 'nb_commandes_en_attente', type: 'integer'),
                 new OA\Property(property: 'nb_commandes_confirmees', type: 'integer'),
-                new OA\Property(property: 'total_paiements', type: 'number', format: 'float', description: 'Total payé par les clients'),
-                new OA\Property(property: 'total_sous_total', type: 'number', format: 'float', description: 'Cumul sous-total transport'),
-                new OA\Property(property: 'total_commissions_client', type: 'number', format: 'float', description: 'Commissions VERGA côté client'),
-                new OA\Property(property: 'total_commissions_agence', type: 'number', format: 'float', description: 'Commissions VERGA côté agence'),
-                new OA\Property(property: 'total_commissions', type: 'number', format: 'float', description: 'Alias de total_commissions_agence'),
-                new OA\Property(property: 'revenu_net_estime', type: 'number', format: 'float', description: 'Sous-total transport − commission agence'),
+                new OA\Property(property: 'total_paiements', type: 'number', format: 'float', description: 'Cumul des montants nets transport (hors commissions)'),
+                new OA\Property(property: 'revenu_net_estime', type: 'number', format: 'float', description: 'Montant net transport − commission agence VERGA'),
                 new OA\Property(property: 'reversements_en_attente', type: 'number', format: 'float'),
                 new OA\Property(property: 'nb_colis', type: 'integer'),
                 new OA\Property(property: 'nb_colis_en_transit', type: 'integer'),
@@ -612,9 +632,9 @@ use OpenApi\Attributes as OA;
     schema: 'AgenceSoldeResponse',
     properties: [
         new OA\Property(property: 'data', properties: [
-            new OA\Property(property: 'montant_paiements_valides', type: 'number', format: 'float', description: 'Cumul des paiements validés (part agence)'),
+            new OA\Property(property: 'montant_paiements_valides', type: 'number', format: 'float', description: 'Cumul des paiements validés nets (hors commissions)'),
             new OA\Property(property: 'montant_reversements', type: 'number', format: 'float', description: 'Cumul des reversements effectués'),
-            new OA\Property(property: 'montant_solde', type: 'number', format: 'float', description: 'Paiements perçus − reversements effectués'),
+            new OA\Property(property: 'montant_solde', type: 'number', format: 'float', description: 'Paiements nets perçus − reversements effectués'),
             new OA\Property(property: 'montant_reversements_en_attente', type: 'number', format: 'float', description: 'Reversements en attente de validation'),
             new OA\Property(property: 'montant_disponible', type: 'number', format: 'float', description: 'Solde disponible pour un nouveau reversement'),
         ], type: 'object'),

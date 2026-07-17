@@ -19,9 +19,10 @@ class HistoriqueColisResource extends JsonResource
             'statut' => $this->statut,
             'commentaire' => $this->commentaire,
             'created_at' => $this->created_at?->toIso8601String(),
-            'user' => $this->whenLoaded('user', fn () => [
-                'id' => $this->user?->id,
-                'name' => $this->user?->name,
+            'actor' => $this->whenLoaded('actor', fn () => [
+                'id' => $this->actor?->getKey(),
+                'type' => $this->actor_type,
+                'name' => $this->actor?->name,
             ]),
         ];
     }
