@@ -8,7 +8,6 @@ use App\Http\Integrations\BambooPay\Requests\RedirectPaymentRequest;
 use App\Models\Agence;
 use App\Models\ConfigurationCommission;
 use App\Models\Offre;
-use App\Models\User;
 use App\Services\BambooPayService;
 use App\Services\CommandeCheckoutService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -41,13 +40,10 @@ class CommandeCheckoutTest extends ClientApiTestCase
      */
     private function createActiveOffre(float $capacite = 1000): array
     {
-        $user = User::factory()->create(['role' => 'agence']);
-        $agence = Agence::create([
-            'user_id' => $user->id,
+        ['agence' => $agence] = $this->createTestAgence([
             'nom' => 'Transit Test',
             'email' => 'agence@test.com',
             'telephone' => '0611111111',
-            'statut' => 'actif',
         ]);
 
         $offre = Offre::create([
@@ -507,5 +503,54 @@ class CommandeCheckoutTest extends ClientApiTestCase
             ->assertJsonPath('data.0.id', $offre->id)
             ->assertJsonPath('data.0.capacite_disponible', 1000)
             ->assertJsonPath('data.0.capacite_totale', 1000);
+    }
+
+    public function test_unlimited_offre_accepts_high_quantity_without_decrementing_stock(): void
+    {
+        $this->mockBambooRedirect();
+
+        ['agence' => $agence] = $this->createTestAgence([
+            'nom' => 'Transit Illimité',
+            'email' => 'illimite-checkout@test.com',
+            'telephone' => '0611111199',
+        ]);
+
+        $offre = Offre::create([
+            'agence_id' => $agence->id,
+            'titre' => 'Offre illimitée',
+            'type' => 'particulier',
+            'prix' => 2000,
+            'capacite_illimitee' => true,
+            'capacite_totale' => null,
+            'capacite_disponible' => null,
+            'origine' => 'Libreville',
+            'destination' => 'Port-Gentil',
+            'statut' => 'active',
+        ]);
+
+        $create = $this->postJson('/api/v1/client/commandes', [
+            'offre_id' => $offre->id,
+            'quantite' => 250,
+            'nom' => 'Test',
+            'prenom' => 'Illimite',
+            'telephone' => '0612345678',
+        ])->assertCreated();
+
+        $this->postJson('/api/v1/payments/bamboo-pay/callback', [
+            'billingId' => $create->json('paiement_code'),
+            'reference' => 'TXN-ILLIMITE-001',
+            'status' => 'completed',
+        ])->assertOk();
+
+        $offre->refresh();
+        $this->assertTrue($offre->capacite_illimitee);
+        $this->assertNull($offre->capacite_disponible);
+        $this->assertNull($offre->capacite_totale);
+        $this->assertEquals('active', $offre->statut);
+        $this->assertDatabaseHas('commandes', [
+            'id' => $create->json('commande_id'),
+            'statut' => 'confirmée',
+            'capacite_bloquee' => true,
+        ]);
     }
 }

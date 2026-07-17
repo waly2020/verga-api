@@ -19,6 +19,7 @@ class PaiementResource extends JsonResource
         return [
             'code' => $this->code,
             'montant' => (float) $this->montant,
+            'statut' => $this->statut,
             'operateur' => $this->operateur,
             'bamboo_reference' => $this->bamboo_reference,
             'created_at' => $this->created_at?->toIso8601String(),

@@ -190,7 +190,7 @@ class AgenceEndpoints
         path: '/agence/register',
         operationId: 'agenceRegister',
         summary: 'Inscription agence',
-        description: 'Crée un compte gérant (`role=agence`) et le profil agence associé. Retourne un token Bearer pour connexion immédiate.
+        description: 'Crée une agence et son compte propriétaire (`AgenceUser` avec rôle `admin-agence`). Retourne un token Bearer pour connexion immédiate.
 
 Peut être envoyé en `multipart/form-data` pour joindre un **logo** et des **documents** (pièce d\'identité, registre de commerce, etc.).
 - `logo` : image (max 5 Mo)
@@ -256,7 +256,7 @@ Peut être envoyé en `multipart/form-data` pour joindre un **logo** et des **do
                         new OA\Property(property: 'id', type: 'integer'),
                         new OA\Property(property: 'name', type: 'string'),
                         new OA\Property(property: 'email', type: 'string'),
-                        new OA\Property(property: 'role', type: 'string', example: 'agence'),
+                        new OA\Property(property: 'role', ref: '#/components/schemas/AgenceRoleResource'),
                         new OA\Property(property: 'agence', type: 'object'),
                     ], type: 'object'),
                 ]),
@@ -271,7 +271,7 @@ Peut être envoyé en `multipart/form-data` pour joindre un **logo** et des **do
         path: '/agence/login',
         operationId: 'agenceLogin',
         summary: 'Connexion agence',
-        description: 'Authentifie le gérant de l\'agence (email du compte `users`) et retourne un token Bearer.',
+        description: 'Authentifie un utilisateur agence (`agence_users`) et retourne un token Bearer.',
         tags: ['Agence - Auth'],
         requestBody: new OA\RequestBody(
             required: true,
@@ -292,7 +292,7 @@ Peut être envoyé en `multipart/form-data` pour joindre un **logo** et des **do
                         new OA\Property(property: 'id', type: 'integer'),
                         new OA\Property(property: 'name', type: 'string'),
                         new OA\Property(property: 'email', type: 'string'),
-                        new OA\Property(property: 'role', type: 'string', example: 'agence'),
+                        new OA\Property(property: 'role', ref: '#/components/schemas/AgenceRoleResource'),
                         new OA\Property(property: 'agence', type: 'object'),
                     ], type: 'object'),
                 ]),
@@ -389,13 +389,14 @@ Peut être envoyé en `multipart/form-data` pour joindre un **logo** et des **do
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['titre', 'prix', 'capacite_totale', 'origine', 'destination'],
+                required: ['titre', 'prix', 'origine', 'destination'],
                 properties: [
                     new OA\Property(property: 'titre', type: 'string', example: 'Forfait Particulier Chine → Libreville'),
                     new OA\Property(property: 'type_offre_id', type: 'string', format: 'uuid', description: 'Type d\'offre (recommandé)'),
                     new OA\Property(property: 'type', type: 'string', enum: ['particulier', 'metre_cube', 'conteneur'], description: 'Legacy — requis si type_offre_id absent'),
                     new OA\Property(property: 'prix', type: 'number', format: 'float', example: 8750, description: 'Prix unitaire (FCFA/kg, FCFA/m³ ou FCFA/conteneur)'),
-                    new OA\Property(property: 'capacite_totale', type: 'number', format: 'float', example: 30000, description: 'Stock total (kg, m³ ou nombre de conteneurs)'),
+                    new OA\Property(property: 'capacite_illimitee', type: 'boolean', example: false, description: 'Si true, pas de plafond de stock (capacite_totale ignorée)'),
+                    new OA\Property(property: 'capacite_totale', type: 'number', format: 'float', nullable: true, example: 30000, description: 'Stock total — requis sauf si capacite_illimitee=true'),
                     new OA\Property(property: 'origine', type: 'string', example: 'Chine'),
                     new OA\Property(property: 'destination', type: 'string', example: 'Libreville'),
                     new OA\Property(property: 'description', type: 'string', nullable: true),
@@ -438,13 +439,14 @@ Peut être envoyé en `multipart/form-data` pour joindre un **logo** et des **do
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['titre', 'prix', 'capacite_totale', 'origine', 'destination', 'statut'],
+                required: ['titre', 'prix', 'origine', 'destination', 'statut'],
                 properties: [
                     new OA\Property(property: 'titre', type: 'string', example: 'Forfait Particulier Chine → Libreville'),
                     new OA\Property(property: 'type_offre_id', type: 'string', format: 'uuid'),
                     new OA\Property(property: 'type', type: 'string', enum: ['particulier', 'metre_cube', 'conteneur']),
                     new OA\Property(property: 'prix', type: 'number', format: 'float', example: 8750),
-                    new OA\Property(property: 'capacite_totale', type: 'number', format: 'float', example: 30000, description: 'Doit rester ≥ quantité déjà réservée sur l\'offre'),
+                    new OA\Property(property: 'capacite_illimitee', type: 'boolean', example: false, description: 'Si true, pas de plafond de stock'),
+                    new OA\Property(property: 'capacite_totale', type: 'number', format: 'float', nullable: true, example: 30000, description: 'Requis sauf si capacite_illimitee=true ; doit rester ≥ quantité déjà réservée'),
                     new OA\Property(property: 'origine', type: 'string', example: 'Chine'),
                     new OA\Property(property: 'destination', type: 'string', example: 'Libreville'),
                     new OA\Property(property: 'description', type: 'string', nullable: true),
@@ -826,4 +828,126 @@ Réponse : détail du colis mis à jour + `next_statut` (prochaine étape ou `nu
         ]
     )]
     public function listReversements(): void {}
+
+    #[OA\Get(
+        path: '/agence/roles',
+        operationId: 'agenceListRoles',
+        summary: 'Lister les rôles assignables',
+        description: 'Retourne les rôles actifs non système définis par VERGA. Le rôle propriétaire `admin-agence` n’est pas assignable. Consultation seule — les agences ne peuvent pas créer ni modifier les rôles.',
+        tags: ['Agence - Utilisateurs'],
+        security: [['sanctum' => []]],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Rôles disponibles',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(ref: '#/components/schemas/AgenceRoleResource')
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Non authentifié'),
+            new OA\Response(response: 403, description: 'Accès réservé aux agences'),
+        ]
+    )]
+    public function listRoles(): void {}
+
+    #[OA\Get(
+        path: '/agence/users',
+        operationId: 'agenceListUsers',
+        summary: 'Lister les utilisateurs de l\'agence',
+        tags: ['Agence - Utilisateurs'],
+        security: [['sanctum' => []]],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Liste des utilisateurs',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(ref: '#/components/schemas/AgenceUserResource')
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(response: 403, description: 'Accès réservé aux agences'),
+        ]
+    )]
+    public function listUsers(): void {}
+
+    #[OA\Post(
+        path: '/agence/users',
+        operationId: 'agenceCreateUser',
+        summary: 'Créer un utilisateur agence',
+        tags: ['Agence - Utilisateurs'],
+        security: [['sanctum' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['name', 'email', 'password', 'password_confirmation', 'agence_role_id'],
+                properties: [
+                    new OA\Property(property: 'name', type: 'string'),
+                    new OA\Property(property: 'email', type: 'string', format: 'email'),
+                    new OA\Property(property: 'telephone', type: 'string', nullable: true),
+                    new OA\Property(property: 'password', type: 'string', format: 'password'),
+                    new OA\Property(property: 'password_confirmation', type: 'string', format: 'password'),
+                    new OA\Property(property: 'agence_role_id', type: 'string', format: 'uuid', description: 'Rôle actif non système défini par VERGA'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 201, description: 'Utilisateur créé', content: new OA\JsonContent(ref: '#/components/schemas/AgenceUserResource')),
+            new OA\Response(response: 422, description: 'Validation échouée'),
+        ]
+    )]
+    public function createUser(): void {}
+
+    #[OA\Patch(
+        path: '/agence/users/{agenceUser}',
+        operationId: 'agenceUpdateUser',
+        summary: 'Modifier un utilisateur agence',
+        tags: ['Agence - Utilisateurs'],
+        security: [['sanctum' => []]],
+        parameters: [
+            new OA\Parameter(name: 'agenceUser', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        requestBody: new OA\RequestBody(
+            content: new OA\JsonContent(properties: [
+                new OA\Property(property: 'name', type: 'string'),
+                new OA\Property(property: 'email', type: 'string', format: 'email'),
+                new OA\Property(property: 'telephone', type: 'string', nullable: true),
+                new OA\Property(property: 'agence_role_id', type: 'string', format: 'uuid', description: 'Rôle actif non système défini par VERGA'),
+                new OA\Property(property: 'statut', type: 'string', enum: ['actif', 'suspendu']),
+            ])
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Utilisateur mis à jour', content: new OA\JsonContent(ref: '#/components/schemas/AgenceUserResource')),
+            new OA\Response(response: 404, description: 'Utilisateur introuvable'),
+            new OA\Response(response: 422, description: 'Validation échouée'),
+        ]
+    )]
+    public function updateUser(): void {}
+
+    #[OA\Delete(
+        path: '/agence/users/{agenceUser}',
+        operationId: 'agenceDeleteUser',
+        summary: 'Retirer un utilisateur agence',
+        tags: ['Agence - Utilisateurs'],
+        security: [['sanctum' => []]],
+        parameters: [
+            new OA\Parameter(name: 'agenceUser', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Utilisateur retiré', content: new OA\JsonContent(ref: '#/components/schemas/MessageResponse')),
+            new OA\Response(response: 404, description: 'Utilisateur introuvable'),
+            new OA\Response(response: 422, description: 'Impossible de retirer le propriétaire'),
+        ]
+    )]
+    public function deleteUser(): void {}
 }

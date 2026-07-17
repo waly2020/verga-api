@@ -9,10 +9,12 @@ use App\Models\Offre;
 use App\Models\TypeOffre;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\CreatesTestAgences;
 use Tests\TestCase;
 
 class OffreTest extends TestCase
 {
+    use CreatesTestAgences;
     use RefreshDatabase;
 
     private function adminUser(): User
@@ -28,13 +30,10 @@ class OffreTest extends TestCase
      */
     private function createAgence(): array
     {
-        $user = User::factory()->create(['role' => 'agence']);
-        $agence = Agence::create([
-            'user_id' => $user->id,
+        ['agence' => $agence] = $this->createTestAgence([
             'nom' => 'Transit Test',
             'email' => 'agence@test.com',
             'telephone' => '0611111111',
-            'statut' => 'actif',
         ]);
 
         return compact('agence');
@@ -76,6 +75,35 @@ class OffreTest extends TestCase
             'agence_id' => $agence->id,
             'titre' => 'Nouvelle offre admin',
             'type' => 'particulier',
+            'capacite_illimitee' => false,
+        ]);
+    }
+
+    public function test_admin_can_create_offre_capacite_illimitee(): void
+    {
+        ['agence' => $agence] = $this->createAgence();
+        $type = TypeOffre::query()->where('slug', 'particulier')->firstOrFail();
+
+        $this->actingAs($this->adminUser())
+            ->post('/admin/offres', [
+                'agence_id' => $agence->id,
+                'titre' => 'Offre illimitée',
+                'type_offre_id' => $type->id,
+                'prix' => 2000,
+                'capacite_illimitee' => true,
+                'origine' => 'Libreville',
+                'destination' => 'Port-Gentil',
+                'statut' => 'active',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('offres', [
+            'agence_id' => $agence->id,
+            'titre' => 'Offre illimitée',
+            'capacite_illimitee' => true,
+            'capacite_totale' => null,
+            'capacite_disponible' => null,
         ]);
     }
 

@@ -2,14 +2,12 @@
 
 namespace Tests\Feature\Api\Client;
 
-use App\Models\Agence;
 use App\Models\Client;
 use App\Models\Colis;
 use App\Models\Commande;
 use App\Models\Offre;
 use App\Models\Paiement;
 use App\Models\Reclamation;
-use App\Models\User;
 
 class DashboardTest extends ClientApiTestCase
 {
@@ -101,13 +99,9 @@ class DashboardTest extends ClientApiTestCase
 
     private function seedClientActivity(Client $client, string $suffix = ''): void
     {
-        $agenceUser = User::factory()->create(['role' => 'agence']);
-        $agence = Agence::create([
-            'user_id' => $agenceUser->id,
+        ['agence' => $agence] = $this->createTestAgence([
             'nom' => 'Transit Test',
-            'email' => fake()->unique()->safeEmail(),
             'telephone' => '0611111111',
-            'statut' => 'actif',
         ]);
 
         $offre = Offre::create([

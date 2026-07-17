@@ -38,8 +38,17 @@ const columns: Column<OffreRow>[] = [
         label: 'Stock',
         render: (r) => (
             <span className="tabular-nums text-sm">
-                {Number(r.capacite_disponible).toLocaleString('fr-FR')}
-                <span className="text-muted-foreground"> / {Number(r.capacite_totale).toLocaleString('fr-FR')}</span>
+                {r.capacite_illimitee ? (
+                    <span className="text-muted-foreground">Illimitée</span>
+                ) : (
+                    <>
+                        {Number(r.capacite_disponible).toLocaleString('fr-FR')}
+                        <span className="text-muted-foreground">
+                            {' '}
+                            / {Number(r.capacite_totale).toLocaleString('fr-FR')}
+                        </span>
+                    </>
+                )}
             </span>
         ),
     },

@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Middleware;
 
+use App\Models\AgenceUser;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -12,9 +15,17 @@ class EnsureUserIsAgence
     {
         $user = $request->user();
 
-        if (! $user?->isAgence()) {
+        if (! $user instanceof AgenceUser) {
             return response()->json([
                 'message' => 'Accès réservé aux comptes agence.',
+            ], 403);
+        }
+
+        $user->loadMissing('agence');
+
+        if (! $user->isActif()) {
+            return response()->json([
+                'message' => 'Ce compte est suspendu.',
             ], 403);
         }
 

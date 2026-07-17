@@ -2,8 +2,9 @@ import type { AgenceSummary, OffreStatut, OffreType } from './common';
 import type { TypeOffreApi, TypeOffreSummary } from './type-offre';
 
 export type OffreCapacite = {
-    capacite_totale: string | number;
-    capacite_disponible: string | number;
+    capacite_illimitee?: boolean;
+    capacite_totale: string | number | null;
+    capacite_disponible: string | number | null;
 };
 
 export type OffreRow = OffreCapacite & {
@@ -70,6 +71,7 @@ export type OffreFormData = {
     titre: string;
     type_offre_id: string;
     prix: string;
+    capacite_illimitee: boolean;
     capacite_totale: string;
     origine: string;
     destination: string;

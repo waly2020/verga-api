@@ -2,9 +2,7 @@
 
 namespace Tests\Feature\Api\Client;
 
-use App\Models\Agence;
 use App\Models\Offre;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 
@@ -17,13 +15,10 @@ class OffreCatalogTest extends ClientApiTestCase
         static $counter = 0;
         $counter++;
 
-        $user = User::factory()->create(['role' => 'agence']);
-        $agence = Agence::create([
-            'user_id' => $user->id,
+        ['agence' => $agence] = $this->createTestAgence([
             'nom' => 'Transit Test',
             'email' => "agence{$counter}@test.com",
             'telephone' => '0611111111',
-            'statut' => 'actif',
         ]);
 
         return Offre::create(array_merge([
@@ -80,6 +75,24 @@ class OffreCatalogTest extends ClientApiTestCase
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', $active->id);
+    }
+
+    public function test_includes_unlimited_capacity_offres_without_stock(): void
+    {
+        $illimitee = $this->createOffre([
+            'titre' => 'Illimitée',
+            'capacite_illimitee' => true,
+            'capacite_totale' => null,
+            'capacite_disponible' => null,
+        ]);
+        $this->createOffre(['capacite_disponible' => 0, 'titre' => 'Pleine']);
+
+        $this->getJson('/api/v1/client/offres')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $illimitee->id)
+            ->assertJsonPath('data.0.capacite_illimitee', true)
+            ->assertJsonPath('data.0.capacite_disponible', null);
     }
 
     public function test_filters_by_search(): void

@@ -204,9 +204,9 @@ export default function CommandeShow({ commande }: Props) {
                                     <Row label="Type">{commande.offre.type}</Row>
                                     <Row label="Prix unitaire">{fmtFcfa(commande.offre.prix)}</Row>
                                     <Row label="Capacité">
-                                        {Number(commande.offre.capacite_disponible).toLocaleString('fr-FR')}
-                                        {' / '}
-                                        {Number(commande.offre.capacite_totale).toLocaleString('fr-FR')}
+                                        {commande.offre.capacite_illimitee
+                                            ? 'Illimitée'
+                                            : `${Number(commande.offre.capacite_disponible).toLocaleString('fr-FR')} / ${Number(commande.offre.capacite_totale).toLocaleString('fr-FR')}`}
                                     </Row>
                                     {(commande.offre.origine || commande.offre.destination) && (
                                         <Row label="Trajet">

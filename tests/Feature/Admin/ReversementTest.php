@@ -11,10 +11,13 @@ use App\Models\Paiement;
 use App\Models\Reversement;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Tests\Support\CreatesTestAgences;
 use Tests\TestCase;
 
 class ReversementTest extends TestCase
 {
+    use CreatesTestAgences;
     use RefreshDatabase;
 
     private function actingAsAdmin(): User
@@ -138,13 +141,10 @@ class ReversementTest extends TestCase
 
     private function createAgenceWithSolde(float $montantSousTotal): Agence
     {
-        $agenceUser = User::factory()->create(['role' => 'agence']);
-        $agence = Agence::create([
-            'user_id' => $agenceUser->id,
+        ['agence' => $agence] = $this->createTestAgence([
             'nom' => 'Transit Libreville',
             'email' => 'libreville@transit.test',
             'telephone' => '0611111111',
-            'statut' => 'actif',
         ]);
 
         $offre = Offre::create([
@@ -186,7 +186,7 @@ class ReversementTest extends TestCase
 
     private function soldeCourant(string $agenceId): float
     {
-        return (float) \Illuminate\Support\Facades\DB::table('vue_agences_soldes')
+        return (float) DB::table('vue_agences_soldes')
             ->where('agence_id', $agenceId)
             ->value('montant_solde');
     }

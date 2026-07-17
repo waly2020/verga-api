@@ -46,11 +46,6 @@ export type AgenceDashboardStats = {
     nb_commandes_en_attente: number;
     nb_commandes_confirmees: number;
     total_paiements: number;
-    total_sous_total: number;
-    total_commissions_client: number;
-    total_commissions_agence: number;
-    /** @deprecated Utiliser total_commissions_agence */
-    total_commissions: number;
     revenu_net_estime: number;
     reversements_en_attente: number;
     nb_colis: number;
@@ -76,15 +71,15 @@ export type AgenceDashboardResponse = {
         type: string;
         prix: string | number;
         statut: string;
-        capacite_disponible: string | number;
+        capacite_illimitee?: boolean;
+        capacite_totale?: string | number | null;
+        capacite_disponible: string | number | null;
         nb_commandes: number;
     }>;
     dernieres_commandes: Array<{
         id: string;
         code: string;
-        montant_sous_total: string | number | null;
-        montant_commission_client: string | number | null;
-        montant_total: string | number;
+        montant: string | number | null;
         statut: string;
         created_at: string | null;
         client: {

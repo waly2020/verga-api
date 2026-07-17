@@ -11,7 +11,7 @@ export type OffrePricingEstimateResponse = {
     montant_sous_total: number;
     montant_commission_client: number;
     montant_total: number;
-    capacite_disponible: number;
+    capacite_disponible: number | null;
     stock_suffisant: boolean;
     commission: ClientCommissionConfig | null;
 };

@@ -2,28 +2,25 @@
 
 namespace Tests\Unit\Services;
 
-use App\Models\Agence;
 use App\Models\Commande;
 use App\Models\Offre;
 use App\Models\Paiement;
-use App\Models\User;
 use App\Services\PaymentSettlementService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\CreatesTestAgences;
 use Tests\TestCase;
 
 class PaymentSettlementServiceTest extends TestCase
 {
+    use CreatesTestAgences;
     use RefreshDatabase;
 
     private function createPendingPayment(): Paiement
     {
-        $user = User::factory()->create(['role' => 'agence']);
-        $agence = Agence::create([
-            'user_id' => $user->id,
+        ['agence' => $agence] = $this->createTestAgence([
             'nom' => 'Transit Test',
             'email' => 'agence@test.com',
             'telephone' => '0611111111',
-            'statut' => 'actif',
         ]);
 
         $offre = Offre::create([

@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Agence;
+use App\Models\AgenceUser;
 use App\Models\Client;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -35,6 +36,7 @@ class AppServiceProvider extends ServiceProvider
 
         Relation::enforceMorphMap([
             'agence' => Agence::class,
+            'agence_user' => AgenceUser::class,
             'client' => Client::class,
             'user' => User::class,
         ]);

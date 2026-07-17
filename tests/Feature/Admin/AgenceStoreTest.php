@@ -43,9 +43,9 @@ class AgenceStoreTest extends TestCase
             'email' => 'contact@transit-admin.test',
             'nom' => 'Transit Admin Media',
         ]);
-        $this->assertDatabaseHas('users', [
+        $this->assertDatabaseHas('agence_users', [
             'email' => 'gerant@transit-admin.test',
-            'role' => 'agence',
+            'est_proprietaire' => true,
         ]);
         $this->assertDatabaseCount('logos', 1);
         $this->assertDatabaseHas('documents', [

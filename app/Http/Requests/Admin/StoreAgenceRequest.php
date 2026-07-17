@@ -20,7 +20,7 @@ class StoreAgenceRequest extends FormRequest
     {
         return [
             'gerant_name' => ['required', 'string', 'max:255'],
-            'gerant_email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'gerant_email' => ['required', 'email', 'max:255', 'unique:agence_users,email'],
             'gerant_password' => ['required', 'confirmed', Password::min(8)],
             'nom' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:agences,email'],

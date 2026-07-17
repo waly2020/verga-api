@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\Colis;
 use App\Models\HistoriqueColis;
-use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -23,9 +25,9 @@ class ColisStatutService
         return self::FLUX[$statutActuel] ?? null;
     }
 
-    public function advance(Colis $colis, User $user, ?string $statut = null, ?string $commentaire = null): Colis
+    public function advance(Colis $colis, Model $actor, ?string $statut = null, ?string $commentaire = null): Colis
     {
-        return DB::transaction(function () use ($colis, $user, $statut, $commentaire) {
+        return DB::transaction(function () use ($colis, $actor, $statut, $commentaire) {
             /** @var Colis $locked */
             $locked = Colis::query()
                 ->whereKey($colis->id)
@@ -50,7 +52,8 @@ class ColisStatutService
 
             HistoriqueColis::create([
                 'colis_id' => $locked->id,
-                'user_id' => $user->id,
+                'actor_type' => $actor->getMorphClass(),
+                'actor_id' => $actor->getKey(),
                 'statut' => $next,
                 'commentaire' => $commentaire,
             ]);

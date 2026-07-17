@@ -43,11 +43,6 @@ class User extends Authenticatable
         ];
     }
 
-    public function agence(): HasOne
-    {
-        return $this->hasOne(Agence::class);
-    }
-
     public function client(): HasOne
     {
         return $this->hasOne(Client::class);
@@ -58,9 +53,9 @@ class User extends Authenticatable
         return in_array($this->role, ['admin', 'collaborateur']);
     }
 
-    public function isAgence(): bool
+    public function isStrictAdmin(): bool
     {
-        return in_array($this->role, ['agence', 'agent_agence']);
+        return $this->role === 'admin';
     }
 
     public function isClient(): bool

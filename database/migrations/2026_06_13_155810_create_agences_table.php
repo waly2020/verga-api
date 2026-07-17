@@ -10,7 +10,6 @@ return new class extends Migration
     {
         Schema::create('agences', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->foreignUuid('type_agence_id')->nullable()->constrained('type_agences')->nullOnDelete();
             $table->string('nom');
             $table->string('email')->unique();

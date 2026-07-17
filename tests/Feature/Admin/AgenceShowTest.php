@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Admin;
 
-use App\Models\Agence;
 use App\Models\Commande;
 use App\Models\Offre;
 use App\Models\Paiement;
 use App\Models\Reversement;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\CreatesTestAgences;
 use Tests\TestCase;
 
 class AgenceShowTest extends TestCase
 {
+    use CreatesTestAgences;
     use RefreshDatabase;
 
     public function test_admin_agence_show_displays_finance_stats_from_views(): void
@@ -24,13 +25,10 @@ class AgenceShowTest extends TestCase
             'email_verified_at' => now(),
         ]);
 
-        $agenceUser = User::factory()->create(['role' => 'agence']);
-        $agence = Agence::create([
-            'user_id' => $agenceUser->id,
+        ['agence' => $agence] = $this->createTestAgence([
             'nom' => 'Transit Libreville',
             'email' => 'libreville@transit.test',
             'telephone' => '0611111111',
-            'statut' => 'actif',
         ]);
 
         $offre = Offre::create([

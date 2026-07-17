@@ -4,7 +4,6 @@ namespace Tests\Feature\Admin;
 
 use App\Http\Integrations\BambooPay\BambooPayConnector;
 use App\Http\Integrations\BambooPay\Requests\CheckStatusRequest;
-use App\Models\Agence;
 use App\Models\Commande;
 use App\Models\Offre;
 use App\Models\Paiement;
@@ -14,10 +13,12 @@ use App\Services\CommandeCheckoutService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
+use Tests\Support\CreatesTestAgences;
 use Tests\TestCase;
 
 class PaiementTest extends TestCase
 {
+    use CreatesTestAgences;
     use RefreshDatabase;
 
     private function adminUser(): User
@@ -33,13 +34,10 @@ class PaiementTest extends TestCase
      */
     private function createPendingPayment(?string $bambooReference = null): array
     {
-        $user = User::factory()->create(['role' => 'agence']);
-        $agence = Agence::create([
-            'user_id' => $user->id,
+        ['agence' => $agence] = $this->createTestAgence([
             'nom' => 'Transit Test',
             'email' => 'agence@test.com',
             'telephone' => '0611111111',
-            'statut' => 'actif',
         ]);
 
         $offre = Offre::create([

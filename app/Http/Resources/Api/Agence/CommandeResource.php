@@ -2,7 +2,6 @@
 
 namespace App\Http\Resources\Api\Agence;
 
-use App\Http\Resources\Api\PaiementResource;
 use App\Models\Commande;
 use App\Support\CommandeClientPresenter;
 use App\Support\QuantiteFormatter;
@@ -27,9 +26,7 @@ class CommandeResource extends JsonResource
                 'quantite_payee' => $this->quantite_payee,
                 'quantite_restante' => $this->quantiteRestante(),
             ], $typeOffre),
-            'montant_sous_total' => $this->montant_sous_total,
-            'montant_commission_client' => $this->montant_commission_client,
-            'montant_total' => $this->montant_total,
+            'montant' => (float) $this->montant_sous_total,
             'statut' => $this->statut,
             'created_at' => $this->created_at?->toIso8601String(),
             'client' => CommandeClientPresenter::for($this->resource),

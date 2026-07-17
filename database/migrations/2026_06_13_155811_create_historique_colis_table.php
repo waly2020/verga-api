@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('historique_colis', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('colis_id')->constrained('colis')->cascadeOnDelete();
-            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->nullableMorphs('actor');
             $table->string('statut');
             $table->text('commentaire')->nullable();
             $table->timestamps();

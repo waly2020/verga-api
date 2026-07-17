@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api\Agence;
 use App\Http\Requests\Api\Agence\StoreTypeOffreRequest;
 use App\Http\Requests\Api\Agence\UpdateTypeOffreRequest;
 use App\Http\Resources\Api\TypeOffreResource;
+use App\Models\AgenceUser;
 use App\Models\TypeOffre;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,7 +20,13 @@ class TypeOffreController extends AgenceApiController
     {
         $query = TypeOffre::query()->orderBy('nom');
 
-        if ($agence = $request->user()?->agence) {
+        if ($request->user() instanceof AgenceUser) {
+            $agence = $request->user()->agence;
+        } else {
+            $agence = null;
+        }
+
+        if ($agence) {
             $query->where(function ($q) use ($agence) {
                 $q->where(function ($q) {
                     $q->platform()->actif();

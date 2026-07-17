@@ -283,46 +283,92 @@ Objectif : connecter chaque écran aux modèles, controllers et règles métier 
 
 Fonctionnalités validées en conception mais **non planifiées pour l’implémentation immédiate**.
 
-### Profilage multi-utilisateurs agence (équipe & permissions)
+### Comptes et rôles agence (refonte 2026-07-17)
 
-**Contexte** : aujourd’hui 1 agence = 1 compte gérant (`agences.user_id`). Le rôle `agent_agence` existe en base mais n’est pas exploité. Le back-office agence (Angular) doit permettre à une agence de créer des utilisateurs avec des accès limités.
+**Architecture cible** :
+- `users` : comptes internes VERGA (admin, collaborateur) et clients uniquement.
+- `agence_users` : tous les comptes back-office agence (propriétaire + employés), authentification Sanctum.
+- `agence_roles` : rôles définis par l’admin VERGA (`admin-agence` système + rôles métier).
+- **Pas de restriction API par rôle** : Angular utilise `role.slug`, `role.nom`, `role.description` pour l’affichage uniquement.
 
-**Objectif** : permettre au gérant de créer des agents (opérations, commercial, finance…) avec des droits différenciés sur l’API agence.
+#### Modèle de données
 
-#### Modèle de données envisagé
+- [x] Tables `agence_roles` et `agence_users`
+- [x] Schéma initial propre : aucune relation `agences.user_id` et aucun rôle agence dans `users`
+- [x] Historique colis polymorphe dès sa création (`actor_type` / `actor_id`)
+- [x] Aucune migration de reprise des anciennes données agence (environnement de développement)
 
-- [ ] Table **`agence_membres`** — pivot `user_id` + `agence_id` + profil + statut (`actif` / `suspendu`) + `est_proprietaire`
-- [ ] Contrainte unique `(agence_id, user_id)`
-- [ ] Migration des gérants existants → ligne `agence_membres` (profil `gerant`, `est_proprietaire = true`)
+#### API agence (`routes/api/agence.php`)
+
+- [x] `GET /agence/roles` — rôles actifs (lecture seule)
+- [x] `GET|POST|PATCH|DELETE /agence/users` — gestion équipe par l’agence
+- [x] Auth register/login/me sur `AgenceUser` (rôle `admin-agence` à l’inscription)
+
+#### Admin VERGA
+
+- [x] CRUD `/admin/agence-roles` (middleware `admin.strict`, réservé `users.role = admin`)
+- [x] Page React `admin/agence-roles/index`
+- [x] CRUD `/admin/agence-users` pour les collaborateurs agence (création, rôle, statut, suppression)
+- [x] Menu déroulant « Agences » : Agences, Rôles agence, Utilisateurs agence
+
+#### Refactoring technique
+
+- [x] `EnsureUserIsAgence` → `instanceof AgenceUser`
+- [x] `ColisStatutService` + `historique_colis` : acteur polymorphe (`actor_type` / `actor_id`)
+- [x] OpenAPI v1.4 — schémas `AgenceRoleResource`, `AgenceUserResource`, endpoints `/roles` et `/users`
+
+#### Front Angular (hors ce dépôt)
+
+- [ ] Menu / libellés selon `user.role` retourné par `/agence/me`
+- [ ] Module gestion utilisateurs agence (assignation rôle)
+
+#### Documentation & tests
+
+- [x] Swagger rôles / utilisateurs agence
+- [x] Tests Feature : auth, CRUD users, rôles admin, isolation, accès API identique par rôle
+
+**Référence** : rôles agence gérés comme les **Types d’offre** admin (CRUD Inertia, slug stable).
+
+---
+
+### ~~Profilage multi-utilisateurs agence (équipe & permissions)~~ — remplacé par refonte ci-dessus
+
+**Contexte historique** : ancienne approche `agence_membres` + profils statiques + middleware `agence.permission` — **supprimée** le 2026-07-17.
+
+#### Modèle de données envisagé (obsolète)
+
+- [x] ~~Table **`agence_membres`**~~ → remplacée par `agence_users`
+- [x] Contrainte unique `(agence_id, user_id)` + unique `user_id`
+- [x] Migration des gérants existants
 - [ ] Phase 2 (optionnel) : table **`agence_profils`** pour profils personnalisables par agence
 
 #### Profils MVP (enum ou config)
 
-- [ ] **Gérant** — accès total + gestion des membres
-- [ ] **Opérations** — colis (suivi, changement statut), commandes (lecture)
-- [ ] **Commercial** — offres (CRUD), commandes (lecture)
-- [ ] **Finance** — paiements, reversements (lecture)
+- [x] **Gérant**
+- [x] **Opérations**
+- [x] **Commercial**
+- [x] **Finance**
 
 #### Permissions (config PHP en V1)
 
-- [ ] Fichier `config/agence-permissions.php` — mapping profil → permissions (`colis.view`, `colis.update_statut`, `offres.create`, `membres.manage`, etc.)
-- [ ] Middleware / Gate `agence.permission` sur les routes API agence
+- [x] Fichier `config/agence-permissions.php`
+- [x] Middleware `agence.permission`
 
 #### API à prévoir (`routes/api/agence.php`)
 
-- [ ] `GET /agence/me` enrichi (profil + liste permissions)
+- [x] `GET /agence/me` enrichi (profil + liste permissions)
 - [ ] `GET /agence/membres` — liste l’équipe
-- [ ] `POST /agence/membres` — créer / inviter un agent
-- [ ] `PATCH /agence/membres/{membre}` — changer profil ou statut
-- [ ] `DELETE /agence/membres/{membre}` — retirer un membre
-- [ ] `GET /agence/profils` — profils disponibles (pour formulaires Angular)
+- [x] `POST /agence/membres` — créer un agent
+- [x] `PATCH /agence/membres/{membre}` — changer profil ou statut
+- [x] `DELETE /agence/membres/{membre}` — retirer un membre
+- [x] `GET /agence/profils` — profils disponibles (pour formulaires Angular)
 
 #### Refactoring technique
 
-- [ ] Remplacer `$user->agence` (HasOne gérant) par résolution via `agence_membres`
-- [ ] Adapter `EnsureUserIsAgence` pour gérant + `agent_agence` membre actif
+- [x] Remplacer `$user->agence` (HasOne gérant) par résolution via `agence_membres`
+- [x] Adapter `EnsureUserIsAgence` pour gérant + `agent_agence` membre actif
 - [ ] Adapter `AgenceApiController::agence()` — scope toujours sur l’agence du membre
-- [ ] Policies par ressource (colis, offres, commandes…) avec double vérif : appartenance agence + permission
+- [x] Permissions par route (middleware `agence.permission`)
 
 #### Front Angular (hors ce dépôt)
 
@@ -331,8 +377,8 @@ Fonctionnalités validées en conception mais **non planifiées pour l’implém
 
 #### Documentation & tests
 
-- [ ] Swagger — nouveaux endpoints membres / profils
-- [ ] Tests Feature : CRUD membres, refus accès sans permission, isolation entre agences
+- [x] Swagger membres / profils
+- [x] Tests Feature CRUD + permissions + isolation
 
 **Référence** : même pattern mental que les **Collaborateurs admin VERGA** (`/admin/collaborateurs`), mais scopé par `agence_id`.
 
@@ -342,7 +388,7 @@ Fonctionnalités validées en conception mais **non planifiées pour l’implém
 
 ## Journal de suivi
 
-> **Dernière session** : 2026-07-07 — poste **PPVTSGA006** — quantités unité, retour Bamboo, API paiements, recherches admin, client invité, CRUD types d'offre agence
+> **Dernière session** : 2026-07-17 — refonte comptes/rôles agence (`agence_users`, `agence_roles`, CRUD admin rôles, API `/users` + `/roles`)
 
 | Date | Poste | Module | Action | Statut |
 |------|-------|--------|--------|--------|
@@ -359,7 +405,7 @@ Fonctionnalités validées en conception mais **non planifiées pour l’implém
 | 2026-06-22 | — | API | Swagger (L5-Swagger) + doc OpenAPI agence + client (28 endpoints) | `[x]` |
 | 2026-06-23 | — | Admin | Configuration commissions globales (page /admin/commissions, 6 tests) | `[~]` validation |
 | 2026-06-24 | — | API Client | Checkout commande (invité/connecté) + settlement Bamboo + capacité offres (7 tests) | `[~]` validation |
-| 2026-07-05 | — | Backlog | Profilage multi-utilisateurs agence (`agence_membres`, profils, permissions) — conception documentée | `[ ]` backlog |
+| 2026-07-05 | — | Backlog | Profilage multi-utilisateurs agence — conception documentée | `[x]` implémenté 2026-07-17 |
 | 2026-07-07 | **PPVTSGA006** | Ops / Prod | Diagnostic erreur 500 API checkout : package Saloon absent (`composer install` requis sur le serveur) | `[x]` |
 | 2026-07-07 | **PPVTSGA006** | Admin | Page paiements : bouton « Vérifier » (Bamboo Pay via `bamboo_reference` ou code VERGA) + route `PATCH /admin/paiements/{paiement}/verifier-statut` | `[x]` |
 | 2026-07-07 | **PPVTSGA006** | API Client | Vérification statut paiement : lookup Bamboo avec `bamboo_reference` sinon `code` VERGA (`CommandeCheckoutService`) | `[x]` |
@@ -370,6 +416,8 @@ Fonctionnalités validées en conception mais **non planifiées pour l’implém
 | 2026-07-07 | **PPVTSGA006** | Admin | Barres de recherche fonctionnelles — agences, clients, commandes, colis (`paginationMeta` + fix `DataTable`) | `[x]` |
 | 2026-07-07 | **PPVTSGA006** | API | Commandes : `client` renseigné pour commandes invité (`CommandeClientPresenter`) | `[x]` |
 | 2026-07-07 | **PPVTSGA006** | API Agence | CRUD types d'offre personnalisés — migration `agence_id`, 5 endpoints, Swagger, `OffreTypeResolver` | `[x]` |
+| 2026-07-17 | — | API Agence | Refonte comptes/rôles — `agence_users`, `agence_roles`, auth Sanctum dédiée, CRUD `/users`, admin CRUD rôles, migration données | `[x]` |
+| 2026-07-17 | — | API Agence | ~~Équipe multi-utilisateurs — `agence_membres`…~~ remplacé par refonte ci-dessus | `[x]` |
 
 ---
 
@@ -379,7 +427,7 @@ Fonctionnalités validées en conception mais **non planifiées pour l’implém
 - **Séparation stricte** : `web.php` = admin VERGA (React) · `api.php` = agence Angular + apps externes. Ne pas mélanger.
 - **Découpage** : ne pas livrer un module entier d'un bloc ; cocher les sous-tâches une par une.
 - **Validation** : chaque fonctionnalité doit être validée par le client avant de passer à la suivante.
-- **API auth** : Sanctum Bearer token, préfixe `/api/v1/agence`, login via email du gérant (`users.email`).
+- **API auth agence** : Sanctum Bearer token ; comptes dans `agence_users` ; rôle retourné via `GET /agence/me` (`role.slug`, `role.nom`, `role.description`) — **sans permissions API** ; rôles créés par admin VERGA (`agence_roles`).
 - **Colis — flux logistique** : `chez_client` (création à la commande API) → `déposé` (dépôt agence) → `en_transit` → `arrivé` → `récupéré`. Le paiement validé ne fait pas avancer le statut colis automatiquement.
 - **Paiements admin** : vérification manuelle Bamboo Pay possible depuis `/admin/paiements` (paiements `en_attente`).
 - **Retour Bamboo Pay** : URL envoyée à Bamboo = `{APP_URL}/paiement/{code}/retour?ref={code}` ; middleware corrige les redirections mal formées (`&status=...` sans `?`).

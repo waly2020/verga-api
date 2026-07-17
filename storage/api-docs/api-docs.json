@@ -350,7 +350,7 @@
                     "Agence - Auth"
                 ],
                 "summary": "Inscription agence",
-                "description": "Crée un compte gérant (`role=agence`) et le profil agence associé. Retourne un token Bearer pour connexion immédiate.\n\nPeut être envoyé en `multipart/form-data` pour joindre un **logo** et des **documents** (pièce d'identité, registre de commerce, etc.).\n- `logo` : image (max 5 Mo)\n- `documents[i][fichier]` : fichier image/PDF (max 10 Mo)\n- `documents[i][type_document]` : libellé libre (ex. `piece_identite`, `registre_commerce`)",
+                "description": "Crée une agence et son compte propriétaire (`AgenceUser` avec rôle `admin-agence`). Retourne un token Bearer pour connexion immédiate.\n\nPeut être envoyé en `multipart/form-data` pour joindre un **logo** et des **documents** (pièce d'identité, registre de commerce, etc.).\n- `logo` : image (max 5 Mo)\n- `documents[i][fichier]` : fichier image/PDF (max 10 Mo)\n- `documents[i][type_document]` : libellé libre (ex. `piece_identite`, `registre_commerce`)",
                 "operationId": "agenceRegister",
                 "requestBody": {
                     "required": true,
@@ -542,8 +542,7 @@
                                                             "type": "string"
                                                         },
                                                         "role": {
-                                                            "type": "string",
-                                                            "example": "agence"
+                                                            "$ref": "#/components/schemas/AgenceRoleResource"
                                                         },
                                                         "agence": {
                                                             "type": "object"
@@ -581,7 +580,7 @@
                     "Agence - Auth"
                 ],
                 "summary": "Connexion agence",
-                "description": "Authentifie le gérant de l'agence (email du compte `users`) et retourne un token Bearer.",
+                "description": "Authentifie un utilisateur agence (`agence_users`) et retourne un token Bearer.",
                 "operationId": "agenceLogin",
                 "requestBody": {
                     "required": true,
@@ -637,8 +636,7 @@
                                                             "type": "string"
                                                         },
                                                         "role": {
-                                                            "type": "string",
-                                                            "example": "agence"
+                                                            "$ref": "#/components/schemas/AgenceRoleResource"
                                                         },
                                                         "agence": {
                                                             "type": "object"
@@ -882,7 +880,6 @@
                                 "required": [
                                     "titre",
                                     "prix",
-                                    "capacite_totale",
                                     "origine",
                                     "destination"
                                 ],
@@ -911,11 +908,17 @@
                                         "format": "float",
                                         "example": 8750
                                     },
+                                    "capacite_illimitee": {
+                                        "description": "Si true, pas de plafond de stock (capacite_totale ignorée)",
+                                        "type": "boolean",
+                                        "example": false
+                                    },
                                     "capacite_totale": {
-                                        "description": "Stock total (kg, m³ ou nombre de conteneurs)",
+                                        "description": "Stock total — requis sauf si capacite_illimitee=true",
                                         "type": "number",
                                         "format": "float",
-                                        "example": 30000
+                                        "example": 30000,
+                                        "nullable": true
                                     },
                                     "origine": {
                                         "type": "string",
@@ -1067,7 +1070,6 @@
                                 "required": [
                                     "titre",
                                     "prix",
-                                    "capacite_totale",
                                     "origine",
                                     "destination",
                                     "statut"
@@ -1094,11 +1096,17 @@
                                         "format": "float",
                                         "example": 8750
                                     },
+                                    "capacite_illimitee": {
+                                        "description": "Si true, pas de plafond de stock",
+                                        "type": "boolean",
+                                        "example": false
+                                    },
                                     "capacite_totale": {
-                                        "description": "Doit rester ≥ quantité déjà réservée sur l'offre",
+                                        "description": "Requis sauf si capacite_illimitee=true ; doit rester ≥ quantité déjà réservée",
                                         "type": "number",
                                         "format": "float",
-                                        "example": 30000
+                                        "example": 30000,
+                                        "nullable": true
                                     },
                                     "origine": {
                                         "type": "string",
@@ -1913,6 +1921,270 @@
                     },
                     "403": {
                         "description": "Accès réservé aux agences"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/agence/roles": {
+            "get": {
+                "tags": [
+                    "Agence - Utilisateurs"
+                ],
+                "summary": "Lister les rôles assignables",
+                "description": "Retourne les rôles actifs non système définis par VERGA. Le rôle propriétaire `admin-agence` n’est pas assignable. Consultation seule — les agences ne peuvent pas créer ni modifier les rôles.",
+                "operationId": "agenceListRoles",
+                "responses": {
+                    "200": {
+                        "description": "Rôles disponibles",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/AgenceRoleResource"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    },
+                    "403": {
+                        "description": "Accès réservé aux agences"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/agence/users": {
+            "get": {
+                "tags": [
+                    "Agence - Utilisateurs"
+                ],
+                "summary": "Lister les utilisateurs de l'agence",
+                "operationId": "agenceListUsers",
+                "responses": {
+                    "200": {
+                        "description": "Liste des utilisateurs",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/AgenceUserResource"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Accès réservé aux agences"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Agence - Utilisateurs"
+                ],
+                "summary": "Créer un utilisateur agence",
+                "operationId": "agenceCreateUser",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "email",
+                                    "password",
+                                    "password_confirmation",
+                                    "agence_role_id"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "telephone": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "password_confirmation": {
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "agence_role_id": {
+                                        "description": "Rôle actif non système défini par VERGA",
+                                        "type": "string",
+                                        "format": "uuid"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Utilisateur créé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AgenceUserResource"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation échouée"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/agence/users/{agenceUser}": {
+            "delete": {
+                "tags": [
+                    "Agence - Utilisateurs"
+                ],
+                "summary": "Retirer un utilisateur agence",
+                "operationId": "agenceDeleteUser",
+                "parameters": [
+                    {
+                        "name": "agenceUser",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Utilisateur retiré",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MessageResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Utilisateur introuvable"
+                    },
+                    "422": {
+                        "description": "Impossible de retirer le propriétaire"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Agence - Utilisateurs"
+                ],
+                "summary": "Modifier un utilisateur agence",
+                "operationId": "agenceUpdateUser",
+                "parameters": [
+                    {
+                        "name": "agenceUser",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "telephone": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "agence_role_id": {
+                                        "description": "Rôle actif non système défini par VERGA",
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "statut": {
+                                        "type": "string",
+                                        "enum": [
+                                            "actif",
+                                            "suspendu"
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Utilisateur mis à jour",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AgenceUserResource"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Utilisateur introuvable"
+                    },
+                    "422": {
+                        "description": "Validation échouée"
                     }
                 },
                 "security": [
@@ -3754,6 +4026,35 @@
                 },
                 "type": "object"
             },
+            "AgenceRoleResource": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "slug": {
+                        "type": "string",
+                        "example": "operations"
+                    },
+                    "nom": {
+                        "type": "string",
+                        "example": "Opérations"
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "actif": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "est_systeme": {
+                        "type": "boolean",
+                        "example": false
+                    }
+                },
+                "type": "object"
+            },
             "AgenceUserResource": {
                 "properties": {
                     "id": {
@@ -3770,9 +4071,20 @@
                         "type": "string",
                         "nullable": true
                     },
-                    "role": {
+                    "statut": {
                         "type": "string",
-                        "example": "agence"
+                        "example": "actif",
+                        "enum": [
+                            "actif",
+                            "suspendu"
+                        ]
+                    },
+                    "est_proprietaire": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "role": {
+                        "$ref": "#/components/schemas/AgenceRoleResource"
                     },
                     "agence": {
                         "oneOf": [
@@ -3837,10 +4149,14 @@
                         "format": "date-time",
                         "nullable": true
                     },
-                    "user": {
+                    "actor": {
                         "properties": {
                             "id": {
                                 "type": "integer"
+                            },
+                            "type": {
+                                "type": "string",
+                                "example": "agence_user"
                             },
                             "name": {
                                 "type": "string"
@@ -4296,15 +4612,21 @@
                         "format": "float",
                         "example": 2500
                     },
+                    "capacite_illimitee": {
+                        "type": "boolean",
+                        "example": false
+                    },
                     "capacite_totale": {
                         "type": "number",
                         "format": "float",
-                        "example": 1000
+                        "example": 1000,
+                        "nullable": true
                     },
                     "capacite_disponible": {
                         "type": "number",
                         "format": "float",
-                        "example": 750
+                        "example": 750,
+                        "nullable": true
                     },
                     "origine": {
                         "type": "string",
@@ -4406,9 +4728,11 @@
                         "example": 26250
                     },
                     "capacite_disponible": {
+                        "description": "Null si capacité illimitée",
                         "type": "number",
                         "format": "float",
-                        "example": 1000
+                        "example": 1000,
+                        "nullable": true
                     },
                     "stock_suffisant": {
                         "type": "boolean",
@@ -4588,15 +4912,21 @@
                         "format": "float",
                         "example": 2500
                     },
+                    "capacite_illimitee": {
+                        "type": "boolean",
+                        "example": false
+                    },
                     "capacite_totale": {
                         "type": "number",
                         "format": "float",
-                        "example": 1000
+                        "example": 1000,
+                        "nullable": true
                     },
                     "capacite_disponible": {
                         "type": "number",
                         "format": "float",
-                        "example": 750
+                        "example": 750,
+                        "nullable": true
                     },
                     "origine": {
                         "type": "string",
@@ -4669,15 +4999,8 @@
                         "example": "20 kg",
                         "nullable": true
                     },
-                    "montant_sous_total": {
-                        "type": "number",
-                        "format": "float"
-                    },
-                    "montant_commission_client": {
-                        "type": "number",
-                        "format": "float"
-                    },
-                    "montant_total": {
+                    "montant": {
+                        "description": "Montant net transport (hors commissions VERGA)",
                         "type": "number",
                         "format": "float"
                     },
@@ -4762,6 +5085,16 @@
                         "format": "float",
                         "example": 78750
                     },
+                    "statut": {
+                        "type": "string",
+                        "example": "validé",
+                        "enum": [
+                            "en_attente",
+                            "validé",
+                            "échec",
+                            "remboursé"
+                        ]
+                    },
                     "operateur": {
                         "description": "Opérateur mobile money (ex. moov_money, airtel_money)",
                         "type": "string",
@@ -4787,11 +5120,51 @@
                 "type": "object"
             },
             "AgencePaiementResource": {
-                "allOf": [
-                    {
-                        "$ref": "#/components/schemas/PaiementResource"
+                "properties": {
+                    "code": {
+                        "description": "Référence du paiement VERGA",
+                        "type": "string",
+                        "example": "PAY-ABCDEFGH"
+                    },
+                    "montant": {
+                        "description": "Montant net transport (hors commissions VERGA)",
+                        "type": "number",
+                        "format": "float",
+                        "example": 75000
+                    },
+                    "statut": {
+                        "type": "string",
+                        "example": "validé",
+                        "enum": [
+                            "en_attente",
+                            "validé",
+                            "échec",
+                            "remboursé"
+                        ]
+                    },
+                    "operateur": {
+                        "description": "Opérateur mobile money (ex. moov_money, airtel_money)",
+                        "type": "string",
+                        "example": "moov_money",
+                        "nullable": true
+                    },
+                    "bamboo_reference": {
+                        "type": "string",
+                        "example": "TXN-2025-000381",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "commande_code": {
+                        "type": "string",
+                        "example": "CMD-ABCDEFGH",
+                        "nullable": true
                     }
-                ]
+                },
+                "type": "object"
             },
             "ClientCommandeResource": {
                 "properties": {
@@ -5224,32 +5597,12 @@
                                         "type": "integer"
                                     },
                                     "total_paiements": {
-                                        "description": "Total payé par les clients",
-                                        "type": "number",
-                                        "format": "float"
-                                    },
-                                    "total_sous_total": {
-                                        "description": "Cumul sous-total transport",
-                                        "type": "number",
-                                        "format": "float"
-                                    },
-                                    "total_commissions_client": {
-                                        "description": "Commissions VERGA côté client",
-                                        "type": "number",
-                                        "format": "float"
-                                    },
-                                    "total_commissions_agence": {
-                                        "description": "Commissions VERGA côté agence",
-                                        "type": "number",
-                                        "format": "float"
-                                    },
-                                    "total_commissions": {
-                                        "description": "Alias de total_commissions_agence",
+                                        "description": "Cumul des montants nets transport (hors commissions)",
                                         "type": "number",
                                         "format": "float"
                                     },
                                     "revenu_net_estime": {
-                                        "description": "Sous-total transport − commission agence",
+                                        "description": "Montant net transport − commission agence VERGA",
                                         "type": "number",
                                         "format": "float"
                                     },
@@ -5304,7 +5657,7 @@
                     "data": {
                         "properties": {
                             "montant_paiements_valides": {
-                                "description": "Cumul des paiements validés (part agence)",
+                                "description": "Cumul des paiements validés nets (hors commissions)",
                                 "type": "number",
                                 "format": "float"
                             },
@@ -5314,7 +5667,7 @@
                                 "format": "float"
                             },
                             "montant_solde": {
-                                "description": "Paiements perçus − reversements effectués",
+                                "description": "Paiements nets perçus − reversements effectués",
                                 "type": "number",
                                 "format": "float"
                             },
@@ -5455,6 +5808,10 @@
         {
             "name": "Agence - Finance",
             "description": "Solde et reversements agence"
+        },
+        {
+            "name": "Agence - Utilisateurs",
+            "description": "Rôles et utilisateurs agence"
         }
     ]
 }

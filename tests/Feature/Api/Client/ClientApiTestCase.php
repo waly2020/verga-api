@@ -6,10 +6,12 @@ use App\Models\Client;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Tests\Support\CreatesTestAgences;
 use Tests\TestCase;
 
 abstract class ClientApiTestCase extends TestCase
 {
+    use CreatesTestAgences;
     use RefreshDatabase;
 
     /**

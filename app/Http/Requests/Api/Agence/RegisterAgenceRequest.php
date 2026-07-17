@@ -26,7 +26,7 @@ class RegisterAgenceRequest extends FormRequest
             'adresse' => ['nullable', 'string', 'max:255'],
             'pays' => ['nullable', 'string', 'max:100'],
             'gerant_name' => ['required', 'string', 'max:255'],
-            'gerant_email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'gerant_email' => ['required', 'email', 'max:255', 'unique:agence_users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'device_name' => ['nullable', 'string', 'max:255'],
             'logo' => ['nullable', 'image', 'max:5120'],

@@ -46,7 +46,7 @@ type Agence = {
     pays: string | null;
     statut: string;
     created_at: string;
-    user: { id: number; name: string; email: string } | null;
+    proprietaire: { id: number; name: string; email: string; telephone: string | null } | null;
     type_agence: { id: string; nom: string } | null;
     logo: AgenceMedia | null;
     documents: AgenceMedia[];
@@ -206,15 +206,15 @@ export default function AgenceShow({ agence, stats, offres, commandes }: Props) 
                             <CardTitle className="text-sm font-semibold">Gérant</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            {agence.user ? (
+                            {agence.proprietaire ? (
                                 <div className="space-y-3">
                                     <div className="flex items-center gap-2 text-sm">
                                         <User className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                        <span className="font-medium">{agence.user.name}</span>
+                                        <span className="font-medium">{agence.proprietaire.name}</span>
                                     </div>
                                     <div className="flex items-center gap-2 text-sm">
                                         <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                        <span>{agence.user.email}</span>
+                                        <span>{agence.proprietaire.email}</span>
                                     </div>
                                 </div>
                             ) : (
@@ -345,11 +345,17 @@ export default function AgenceShow({ agence, stats, offres, commandes }: Props) 
                                                 {Number(offre.prix).toLocaleString('fr-FR')} FCFA
                                             </TableCell>
                                             <TableCell className="tabular-nums text-sm">
-                                                {Number(offre.capacite_disponible).toLocaleString('fr-FR')}
-                                                <span className="text-muted-foreground">
-                                                    {' / '}
-                                                    {Number(offre.capacite_totale).toLocaleString('fr-FR')}
-                                                </span>
+                                                {offre.capacite_illimitee ? (
+                                                    <span className="text-muted-foreground">Illimitée</span>
+                                                ) : (
+                                                    <>
+                                                        {Number(offre.capacite_disponible).toLocaleString('fr-FR')}
+                                                        <span className="text-muted-foreground">
+                                                            {' / '}
+                                                            {Number(offre.capacite_totale).toLocaleString('fr-FR')}
+                                                        </span>
+                                                    </>
+                                                )}
                                             </TableCell>
                                             <TableCell className="text-sm text-muted-foreground">
                                                 {offre.origine} → {offre.destination}

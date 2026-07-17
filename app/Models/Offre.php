@@ -18,6 +18,7 @@ class Offre extends Model
         'type',
         'type_offre_id',
         'prix',
+        'capacite_illimitee',
         'capacite_totale',
         'capacite_disponible',
         'origine',
@@ -29,9 +30,15 @@ class Offre extends Model
     {
         return [
             'prix' => 'decimal:2',
+            'capacite_illimitee' => 'boolean',
             'capacite_totale' => 'decimal:3',
             'capacite_disponible' => 'decimal:3',
         ];
+    }
+
+    public function hasStockLimite(): bool
+    {
+        return ! $this->capacite_illimitee;
     }
 
     public function agence(): BelongsTo

@@ -36,7 +36,7 @@ class OrderPricingService
      *     montant_sous_total: float,
      *     montant_commission_client: float,
      *     montant_total: float,
-     *     capacite_disponible: float,
+     *     capacite_disponible: float|null,
      *     stock_suffisant: bool,
      *     commission: array{type: string, valeur: float, libelle: string|null}|null
      * }
@@ -45,6 +45,7 @@ class OrderPricingService
     {
         $pricing = $this->calculate($offre, $quantite);
         $config = ConfigurationCommission::pour('client');
+        $stockLimite = $offre->hasStockLimite();
 
         return [
             'offre_id' => $offre->id,
@@ -53,8 +54,8 @@ class OrderPricingService
             'montant_sous_total' => $pricing['montant_sous_total'],
             'montant_commission_client' => $pricing['montant_commission_client'],
             'montant_total' => $pricing['montant_total'],
-            'capacite_disponible' => (float) $offre->capacite_disponible,
-            'stock_suffisant' => (float) $offre->capacite_disponible >= $quantite,
+            'capacite_disponible' => $stockLimite ? (float) $offre->capacite_disponible : null,
+            'stock_suffisant' => ! $stockLimite || (float) $offre->capacite_disponible >= $quantite,
             'commission' => $config ? [
                 'type' => $config->type,
                 'valeur' => (float) $config->valeur,

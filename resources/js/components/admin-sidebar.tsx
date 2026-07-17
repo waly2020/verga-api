@@ -8,9 +8,11 @@ import {
     MessageSquareWarning,
     Package,
     Percent,
+    Shield,
     ShoppingCart,
     Tag,
     UserCircle,
+    UserRoundCog,
     Users,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
@@ -30,7 +32,20 @@ import type { NavItem } from '@/types';
 
 const adminNavItems: NavItem[] = [
     { title: 'Tableau de bord', href: admin.dashboard(), icon: LayoutGrid },
-    { title: 'Agences', href: admin.agences.index(), icon: Building2 },
+    {
+        title: 'Agences',
+        href: admin.agences.index(),
+        icon: Building2,
+        children: [
+            { title: 'Agences', href: admin.agences.index(), icon: Building2 },
+            { title: 'Rôles agence', href: admin.agenceRoles.index(), icon: Shield },
+            {
+                title: 'Utilisateurs agence',
+                href: admin.agenceUsers.index(),
+                icon: UserRoundCog,
+            },
+        ],
+    },
     { title: 'Clients', href: admin.clients.index(), icon: UserCircle },
     { title: 'Offres', href: admin.offres.index(), icon: Package },
     { title: "Types d'offre", href: admin.typesOffres.index(), icon: Tag },

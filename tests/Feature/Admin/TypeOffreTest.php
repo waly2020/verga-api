@@ -2,15 +2,16 @@
 
 namespace Tests\Feature\Admin;
 
-use App\Models\Agence;
 use App\Models\Offre;
 use App\Models\TypeOffre;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\CreatesTestAgences;
 use Tests\TestCase;
 
 class TypeOffreTest extends TestCase
 {
+    use CreatesTestAgences;
     use RefreshDatabase;
 
     private function adminUser(): User
@@ -86,13 +87,10 @@ class TypeOffreTest extends TestCase
     public function test_admin_cannot_delete_type_offre_linked_to_offres(): void
     {
         $type = TypeOffre::query()->where('slug', 'particulier')->firstOrFail();
-        $user = User::factory()->create(['role' => 'agence']);
-        $agence = Agence::create([
-            'user_id' => $user->id,
+        ['agence' => $agence] = $this->createTestAgence([
             'nom' => 'Test',
             'email' => 'test@agence.com',
             'telephone' => '0600000000',
-            'statut' => 'actif',
         ]);
 
         Offre::create([

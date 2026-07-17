@@ -70,7 +70,8 @@ class ColisStatutTest extends AgenceApiTestCase
 
             $this->assertDatabaseHas('historique_colis', [
                 'colis_id' => $colis->id,
-                'user_id' => $user->id,
+                'actor_type' => 'agence_user',
+                'actor_id' => $user->id,
                 'statut' => $step['to'],
             ]);
 

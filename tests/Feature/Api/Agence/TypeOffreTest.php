@@ -157,13 +157,9 @@ class TypeOffreTest extends AgenceApiTestCase
     {
         ['token' => $token] = $this->createAuthenticatedAgence();
 
-        $otherUser = \App\Models\User::factory()->create(['role' => 'agence']);
-        $otherAgence = \App\Models\Agence::create([
-            'user_id' => $otherUser->id,
+        ['agence' => $otherAgence] = $this->createTestAgence([
             'nom' => 'Autre Transit',
-            'email' => fake()->unique()->safeEmail(),
             'telephone' => '0699999999',
-            'statut' => 'actif',
         ]);
 
         $foreignType = TypeOffre::create([

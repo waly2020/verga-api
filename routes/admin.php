@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Admin\AgenceController;
+use App\Http\Controllers\Admin\AgenceRoleController;
+use App\Http\Controllers\Admin\AgenceUserController;
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ColisController;
 use App\Http\Controllers\Admin\CollaborateurController;
@@ -28,6 +30,18 @@ Route::middleware(['auth', 'verified', 'admin'])
         Route::get('agences/{agence}', [AgenceController::class, 'show'])->name('agences.show');
         Route::patch('agences/{agence}/statut', [AgenceController::class, 'updateStatut'])->name('agences.statut');
         Route::delete('agences/{agence}', [AgenceController::class, 'destroy'])->name('agences.destroy');
+
+        Route::middleware('admin.strict')->group(function () {
+            Route::get('agence-roles', [AgenceRoleController::class, 'index'])->name('agence-roles.index');
+            Route::post('agence-roles', [AgenceRoleController::class, 'store'])->name('agence-roles.store');
+            Route::patch('agence-roles/{agenceRole}', [AgenceRoleController::class, 'update'])->name('agence-roles.update');
+            Route::delete('agence-roles/{agenceRole}', [AgenceRoleController::class, 'destroy'])->name('agence-roles.destroy');
+
+            Route::get('agence-users', [AgenceUserController::class, 'index'])->name('agence-users.index');
+            Route::post('agence-users', [AgenceUserController::class, 'store'])->name('agence-users.store');
+            Route::patch('agence-users/{agenceUser}', [AgenceUserController::class, 'update'])->name('agence-users.update');
+            Route::delete('agence-users/{agenceUser}', [AgenceUserController::class, 'destroy'])->name('agence-users.destroy');
+        });
 
         Route::get('clients', [ClientController::class, 'index'])->name('clients.index');
         Route::get('clients/{client}', [ClientController::class, 'show'])->name('clients.show');
