@@ -935,6 +935,13 @@
                                         "example": "2026-07-20",
                                         "nullable": true
                                     },
+                                    "date_depot_colis": {
+                                        "description": "Date prévue pour déposer les colis en agence (optionnelle)",
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2026-07-19",
+                                        "nullable": true
+                                    },
                                     "description": {
                                         "type": "string",
                                         "nullable": true
@@ -1128,6 +1135,13 @@
                                         "type": "string",
                                         "format": "date",
                                         "example": "2026-07-20",
+                                        "nullable": true
+                                    },
+                                    "date_depot_colis": {
+                                        "description": "Date prévue pour déposer les colis en agence (optionnelle)",
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2026-07-19",
                                         "nullable": true
                                     },
                                     "description": {
@@ -4670,6 +4684,13 @@
                         "example": "2026-07-20",
                         "nullable": true
                     },
+                    "date_depot_colis": {
+                        "description": "Date prévue pour déposer les colis en agence",
+                        "type": "string",
+                        "format": "date",
+                        "example": "2026-07-19",
+                        "nullable": true
+                    },
                     "statut": {
                         "type": "string",
                         "example": "active",
@@ -4974,6 +4995,13 @@
                         "type": "string",
                         "format": "date",
                         "example": "2026-07-20",
+                        "nullable": true
+                    },
+                    "date_depot_colis": {
+                        "description": "Date prévue pour déposer les colis en agence",
+                        "type": "string",
+                        "format": "date",
+                        "example": "2026-07-19",
                         "nullable": true
                     },
                     "statut": {

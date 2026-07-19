@@ -67,6 +67,7 @@ class OffreTest extends TestCase
                 'origine' => 'Libreville',
                 'destination' => 'Paris',
                 'date_depart' => '2026-07-20',
+                'date_depot_colis' => '2026-07-19',
                 'statut' => 'active',
             ])
             ->assertRedirect()
@@ -81,6 +82,7 @@ class OffreTest extends TestCase
 
         $offre = Offre::where('titre', 'Nouvelle offre admin')->firstOrFail();
         $this->assertSame('2026-07-20', $offre->date_depart?->toDateString());
+        $this->assertSame('2026-07-19', $offre->date_depot_colis?->toDateString());
     }
 
     public function test_admin_can_create_offre_capacite_illimitee(): void

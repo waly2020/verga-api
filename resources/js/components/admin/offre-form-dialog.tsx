@@ -42,6 +42,7 @@ function emptyForm(typesOffres: TypeOffreApi[]): OffreFormData {
         origine: '',
         destination: '',
         date_depart: '',
+        date_depot_colis: '',
         description: '',
         statut: 'active',
     };
@@ -58,6 +59,7 @@ function toFormData(offre: OffreRow, typesOffres: TypeOffreApi[]): OffreFormData
         origine: offre.origine,
         destination: offre.destination,
         date_depart: offre.date_depart ?? '',
+        date_depot_colis: offre.date_depot_colis ?? '',
         description: offre.description ?? '',
         statut: offre.statut,
     };
@@ -292,19 +294,36 @@ export function OffreFormDialog({ open, onOpenChange, agences, typesOffres, offr
                         </div>
                     </div>
 
-                    <div className="space-y-1.5">
-                        <Label htmlFor="offre-date-depart">
-                            Date de départ
-                            <span className="ml-1 text-xs font-normal text-muted-foreground">(optionnel)</span>
-                        </Label>
-                        <Input
-                            id="offre-date-depart"
-                            type="date"
-                            value={data.date_depart}
-                            onChange={(e) => setData('date_depart', e.target.value)}
-                            className="w-56"
-                        />
-                        {errors.date_depart && <p className="text-xs text-destructive">{errors.date_depart}</p>}
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="offre-date-depot-colis">
+                                Date de dépôt des colis
+                                <span className="ml-1 text-xs font-normal text-muted-foreground">(optionnel)</span>
+                            </Label>
+                            <Input
+                                id="offre-date-depot-colis"
+                                type="date"
+                                value={data.date_depot_colis}
+                                onChange={(e) => setData('date_depot_colis', e.target.value)}
+                            />
+                            {errors.date_depot_colis && (
+                                <p className="text-xs text-destructive">{errors.date_depot_colis}</p>
+                            )}
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label htmlFor="offre-date-depart">
+                                Date de départ
+                                <span className="ml-1 text-xs font-normal text-muted-foreground">(optionnel)</span>
+                            </Label>
+                            <Input
+                                id="offre-date-depart"
+                                type="date"
+                                value={data.date_depart}
+                                onChange={(e) => setData('date_depart', e.target.value)}
+                            />
+                            {errors.date_depart && <p className="text-xs text-destructive">{errors.date_depart}</p>}
+                        </div>
                     </div>
 
                     <div className="space-y-1.5">

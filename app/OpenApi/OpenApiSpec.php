@@ -361,6 +361,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'origine', type: 'string', example: 'Libreville'),
         new OA\Property(property: 'destination', type: 'string', example: 'Paris'),
         new OA\Property(property: 'date_depart', type: 'string', format: 'date', nullable: true, example: '2026-07-20'),
+        new OA\Property(property: 'date_depot_colis', type: 'string', format: 'date', nullable: true, example: '2026-07-19', description: 'Date prévue pour déposer les colis en agence'),
         new OA\Property(property: 'statut', type: 'string', enum: ['active', 'inactive', 'archivée'], example: 'active'),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'agence', type: 'object', nullable: true, properties: [
@@ -439,6 +440,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'origine', type: 'string', example: 'Libreville'),
         new OA\Property(property: 'destination', type: 'string', example: 'Paris'),
         new OA\Property(property: 'date_depart', type: 'string', format: 'date', nullable: true, example: '2026-07-20'),
+        new OA\Property(property: 'date_depot_colis', type: 'string', format: 'date', nullable: true, example: '2026-07-19', description: 'Date prévue pour déposer les colis en agence'),
         new OA\Property(property: 'statut', type: 'string', enum: ['active', 'inactive', 'archivée'], example: 'active'),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', nullable: true),

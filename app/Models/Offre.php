@@ -24,6 +24,7 @@ class Offre extends Model
         'origine',
         'destination',
         'date_depart',
+        'date_depot_colis',
         'statut',
     ];
 
@@ -35,6 +36,7 @@ class Offre extends Model
             'capacite_totale' => 'decimal:3',
             'capacite_disponible' => 'decimal:3',
             'date_depart' => 'date',
+            'date_depot_colis' => 'date',
         ];
     }
 
