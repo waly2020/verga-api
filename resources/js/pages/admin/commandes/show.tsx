@@ -48,13 +48,20 @@ export default function CommandeShow({ commande }: Props) {
         ? Number(commande.montant_sous_total)
         : montantTotal;
     const commissionClient = Number(commande.montant_commission_client ?? 0);
-    const commissionMontant = commande.commission ? Number(commande.commission.montant) : 0;
-    const montantAgence = montantSousTotal - commissionMontant;
     const paiements = commande.paiements?.length
         ? commande.paiements
         : commande.paiement
             ? [commande.paiement]
             : [];
+    const paiementsValides = paiements.filter((paiement) => paiement.statut === 'validé');
+    const commissionAgence = paiementsValides.reduce(
+        (total, paiement) => total + Number(paiement.montant_commission_agence ?? 0),
+        0,
+    );
+    const montantAgence = paiementsValides.reduce(
+        (total, paiement) => total + Number(paiement.montant_agence ?? paiement.montant_sous_total ?? 0),
+        0,
+    );
 
     return (
         <>
@@ -106,12 +113,11 @@ export default function CommandeShow({ commande }: Props) {
                             <SummaryItem label="Total payé" value={fmtFcfa(montantTotal)} />
                             <SummaryItem
                                 label="Commission agence"
-                                value={commande.commission ? fmtFcfa(commande.commission.montant) : '—'}
-                                hint={commande.commission?.taux ? `Taux : ${commande.commission.taux} %` : undefined}
+                                value={commissionAgence > 0 ? fmtFcfa(commissionAgence) : '—'}
                             />
                             <SummaryItem
-                                label="Part agence (estimée)"
-                                value={commande.commission ? fmtFcfa(montantAgence) : '—'}
+                                label="Part agence"
+                                value={paiementsValides.length > 0 ? fmtFcfa(montantAgence) : '—'}
                             />
                         </div>
                     </CardContent>
@@ -251,7 +257,9 @@ export default function CommandeShow({ commande }: Props) {
                                             <TableHead>Code</TableHead>
                                             <TableHead className="text-right">Qté</TableHead>
                                             <TableHead className="text-right">Sous-total</TableHead>
-                                            <TableHead className="text-right">Commission</TableHead>
+                                            <TableHead className="text-right">Comm. client</TableHead>
+                                            <TableHead className="text-right">Comm. agence</TableHead>
+                                            <TableHead className="text-right">Part agence</TableHead>
                                             <TableHead className="text-right">Total</TableHead>
                                             <TableHead>Statut</TableHead>
                                         </TableRow>
@@ -278,6 +286,16 @@ export default function CommandeShow({ commande }: Props) {
                                                         ? fmtFcfa(paiement.montant_commission_client)
                                                         : '—'}
                                                 </TableCell>
+                                                <TableCell className="text-right tabular-nums">
+                                                    {paiement.montant_commission_agence != null
+                                                        ? fmtFcfa(paiement.montant_commission_agence)
+                                                        : '—'}
+                                                </TableCell>
+                                                <TableCell className="text-right font-medium tabular-nums">
+                                                    {paiement.montant_agence != null
+                                                        ? fmtFcfa(paiement.montant_agence)
+                                                        : '—'}
+                                                </TableCell>
                                                 <TableCell className="text-right font-medium tabular-nums">
                                                     {fmtFcfa(paiement.montant)}
                                                 </TableCell>
@@ -296,20 +314,18 @@ export default function CommandeShow({ commande }: Props) {
                         <CardHeader className="pb-3">
                             <CardTitle className="flex items-center gap-1.5 text-sm font-semibold">
                                 <Percent className="h-4 w-4 text-muted-foreground" />
-                                Commission VERGA
+                                Répartition agence
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            {commande.commission ? (
+                            {paiementsValides.length > 0 ? (
                                 <div className="space-y-3">
-                                    <Row label="Montant">{fmtFcfa(commande.commission.montant)}</Row>
-                                    <Row label="Taux">
-                                        {commande.commission.taux ? `${commande.commission.taux} %` : '—'}
-                                    </Row>
-                                    <Row label="Calculée le">{fmtDate(commande.commission.created_at, true)}</Row>
+                                    <Row label="Base hors commission client">{fmtFcfa(montantSousTotal)}</Row>
+                                    <Row label="Commission agence">{fmtFcfa(commissionAgence)}</Row>
+                                    <Row label="Part revenant à l'agence">{fmtFcfa(montantAgence)}</Row>
                                 </div>
                             ) : (
-                                <p className="text-sm text-muted-foreground">Aucune commission enregistrée pour cette commande.</p>
+                                <p className="text-sm text-muted-foreground">Aucun paiement validé pour cette commande.</p>
                             )}
                         </CardContent>
                     </Card>

@@ -31,6 +31,7 @@ export type ColisRow = {
 export type HistoriqueColisItem = {
     id: string;
     statut: string;
+    date_statut: string | null;
     commentaire: string | null;
     created_at: string;
     user: { id: number; name: string } | null;

@@ -18,8 +18,16 @@ class HistoriqueColis extends Model
         'actor_type',
         'actor_id',
         'statut',
+        'date_statut',
         'commentaire',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'date_statut' => 'date',
+        ];
+    }
 
     public function colis(): BelongsTo
     {

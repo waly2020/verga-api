@@ -23,6 +23,7 @@ class Offre extends Model
         'capacite_disponible',
         'origine',
         'destination',
+        'date_depart',
         'statut',
     ];
 
@@ -33,6 +34,7 @@ class Offre extends Model
             'capacite_illimitee' => 'boolean',
             'capacite_totale' => 'decimal:3',
             'capacite_disponible' => 'decimal:3',
+            'date_depart' => 'date',
         ];
     }
 

@@ -9,6 +9,10 @@ use Illuminate\Support\Facades\DB;
 
 class PaymentSettlementService
 {
+    public function __construct(
+        private readonly AgencePaymentAmountService $agenceAmounts,
+    ) {}
+
     /**
      * Applique un statut Bamboo final de manière idempotente.
      */
@@ -171,7 +175,12 @@ class PaymentSettlementService
 
     private function markCompleted(Paiement $paiement, ?string $bambooMessage = null): void
     {
-        $this->updatePaiementStatut($paiement, 'validé', $bambooMessage);
+        $this->updatePaiementStatut(
+            $paiement,
+            'validé',
+            $bambooMessage,
+            $this->agenceAmounts->calculate((float) $paiement->montant_sous_total),
+        );
 
         /** @var Commande $commande */
         $commande = Commande::query()
@@ -224,9 +233,16 @@ class PaymentSettlementService
         }
     }
 
-    private function updatePaiementStatut(Paiement $paiement, string $statut, ?string $bambooMessage = null): void
-    {
-        $attributes = ['statut' => $statut];
+    /**
+     * @param  array<string, float>  $amounts
+     */
+    private function updatePaiementStatut(
+        Paiement $paiement,
+        string $statut,
+        ?string $bambooMessage = null,
+        array $amounts = [],
+    ): void {
+        $attributes = ['statut' => $statut, ...$amounts];
 
         if ($bambooMessage !== null) {
             $attributes['bamboo_message'] = $bambooMessage;

@@ -41,6 +41,7 @@ function emptyForm(typesOffres: TypeOffreApi[]): OffreFormData {
         capacite_totale: '',
         origine: '',
         destination: '',
+        date_depart: '',
         description: '',
         statut: 'active',
     };
@@ -56,6 +57,7 @@ function toFormData(offre: OffreRow, typesOffres: TypeOffreApi[]): OffreFormData
         capacite_totale: offre.capacite_totale == null ? '' : String(offre.capacite_totale),
         origine: offre.origine,
         destination: offre.destination,
+        date_depart: offre.date_depart ?? '',
         description: offre.description ?? '',
         statut: offre.statut,
     };
@@ -288,6 +290,21 @@ export function OffreFormDialog({ open, onOpenChange, agences, typesOffres, offr
                             />
                             {errors.destination && <p className="text-xs text-destructive">{errors.destination}</p>}
                         </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <Label htmlFor="offre-date-depart">
+                            Date de départ
+                            <span className="ml-1 text-xs font-normal text-muted-foreground">(optionnel)</span>
+                        </Label>
+                        <Input
+                            id="offre-date-depart"
+                            type="date"
+                            value={data.date_depart}
+                            onChange={(e) => setData('date_depart', e.target.value)}
+                            className="w-56"
+                        />
+                        {errors.date_depart && <p className="text-xs text-destructive">{errors.date_depart}</p>}
                     </div>
 
                     <div className="space-y-1.5">

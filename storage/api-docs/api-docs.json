@@ -928,6 +928,13 @@
                                         "type": "string",
                                         "example": "Libreville"
                                     },
+                                    "date_depart": {
+                                        "description": "Date de départ (optionnelle)",
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2026-07-20",
+                                        "nullable": true
+                                    },
                                     "description": {
                                         "type": "string",
                                         "nullable": true
@@ -1115,6 +1122,13 @@
                                     "destination": {
                                         "type": "string",
                                         "example": "Libreville"
+                                    },
+                                    "date_depart": {
+                                        "description": "Date de départ (optionnelle)",
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2026-07-20",
+                                        "nullable": true
                                     },
                                     "description": {
                                         "type": "string",
@@ -1478,7 +1492,7 @@
                     "Agence - Colis"
                 ],
                 "summary": "Faire avancer le statut d'un colis (suivi logistique)",
-                "description": "Fait passer le colis à l'étape suivante du flux logistique et enregistre une entrée dans l'historique.\n\n**Flux autorisé** : `chez_client` → `déposé` → `en_transit` → `arrivé` → `récupéré`\n\n- Sans body : avance automatiquement au statut suivant\n- Avec `statut` : doit correspondre exactement au prochain statut attendu (utile pour le front)\n- `commentaire` optionnel : note visible dans l'historique\n\nRéponse : détail du colis mis à jour + `next_statut` (prochaine étape ou `null` si terminé).",
+                "description": "Fait passer le colis à l'étape suivante du flux logistique et enregistre une entrée dans l'historique.\n\n**Flux autorisé** : `chez_client` → `déposé` → `en_transit` → `arrivé` → `récupéré`\n\n- Sans body : avance automatiquement au statut suivant\n- Avec `statut` : doit correspondre exactement au prochain statut attendu (utile pour le front)\n- `commentaire` optionnel : note visible dans l'historique\n- `date_statut` optionnel : date saisie pour cette étape (distincte de l'horodatage d'enregistrement)\n\nRéponse : détail du colis mis à jour + `next_statut` (prochaine étape ou `null` si terminé).",
                 "operationId": "agenceUpdateColisStatut",
                 "parameters": [
                     {
@@ -1506,6 +1520,13 @@
                                             "arrivé",
                                             "récupéré"
                                         ]
+                                    },
+                                    "date_statut": {
+                                        "description": "Date saisie pour cette étape (optionnelle)",
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2026-07-20",
+                                        "nullable": true
                                     },
                                     "commentaire": {
                                         "type": "string",
@@ -4140,6 +4161,13 @@
                             "récupéré"
                         ]
                     },
+                    "date_statut": {
+                        "description": "Date saisie lors du changement de statut",
+                        "type": "string",
+                        "format": "date",
+                        "example": "2026-07-20",
+                        "nullable": true
+                    },
                     "commentaire": {
                         "type": "string",
                         "nullable": true
@@ -4636,6 +4664,12 @@
                         "type": "string",
                         "example": "Paris"
                     },
+                    "date_depart": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2026-07-20",
+                        "nullable": true
+                    },
                     "statut": {
                         "type": "string",
                         "example": "active",
@@ -4936,6 +4970,12 @@
                         "type": "string",
                         "example": "Paris"
                     },
+                    "date_depart": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2026-07-20",
+                        "nullable": true
+                    },
                     "statut": {
                         "type": "string",
                         "example": "active",
@@ -5000,7 +5040,7 @@
                         "nullable": true
                     },
                     "montant": {
-                        "description": "Montant net transport (hors commissions VERGA)",
+                        "description": "Part cumulée revenant à l’agence après déduction de la commission agence sur les paiements validés",
                         "type": "number",
                         "format": "float"
                     },
@@ -5127,10 +5167,11 @@
                         "example": "PAY-ABCDEFGH"
                     },
                     "montant": {
-                        "description": "Montant net transport (hors commissions VERGA)",
+                        "description": "Part revenant à l’agence après déduction de la commission agence. Null tant que le paiement n’est pas validé",
                         "type": "number",
                         "format": "float",
-                        "example": 75000
+                        "example": 71250,
+                        "nullable": true
                     },
                     "statut": {
                         "type": "string",
@@ -5597,12 +5638,12 @@
                                         "type": "integer"
                                     },
                                     "total_paiements": {
-                                        "description": "Cumul des montants nets transport (hors commissions)",
+                                        "description": "Cumul des parts revenant à l’agence sur les paiements validés",
                                         "type": "number",
                                         "format": "float"
                                     },
                                     "revenu_net_estime": {
-                                        "description": "Montant net transport − commission agence VERGA",
+                                        "description": "Part revenant à l’agence après commission agence",
                                         "type": "number",
                                         "format": "float"
                                     },

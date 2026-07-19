@@ -49,6 +49,8 @@ class SoldeTest extends AgenceApiTestCase
             'montant' => 50000,
             'montant_sous_total' => 47500,
             'montant_commission_client' => 2500,
+            'montant_commission_agence' => 2375,
+            'montant_agence' => 45125,
             'methode' => 'bamboo_redirect',
             'statut' => 'validé',
         ]);
@@ -71,11 +73,11 @@ class SoldeTest extends AgenceApiTestCase
         $this->withAgenceToken($token)
             ->getJson('/api/v1/agence/solde')
             ->assertOk()
-            ->assertJsonPath('data.montant_paiements_valides', 47500)
+            ->assertJsonPath('data.montant_paiements_valides', 45125)
             ->assertJsonPath('data.montant_reversements', 10000)
-            ->assertJsonPath('data.montant_solde', 37500)
+            ->assertJsonPath('data.montant_solde', 35125)
             ->assertJsonPath('data.montant_reversements_en_attente', 5000)
-            ->assertJsonPath('data.montant_disponible', 32500);
+            ->assertJsonPath('data.montant_disponible', 30125);
     }
 
     public function test_solde_is_isolated_between_agences(): void

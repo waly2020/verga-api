@@ -67,6 +67,11 @@ class ColisController extends Controller
 
     public function updateStatut(Request $request, Colis $colis): RedirectResponse
     {
+        $validated = $request->validate([
+            'date_statut' => ['nullable', 'date'],
+            'commentaire' => ['nullable', 'string', 'max:500'],
+        ]);
+
         $next = self::FLUX[$colis->statut] ?? null;
 
         if (! $next) {
@@ -80,7 +85,8 @@ class ColisController extends Controller
             'actor_type' => 'user',
             'actor_id' => $request->user()->id,
             'statut' => $next,
-            'commentaire' => $request->get('commentaire'),
+            'date_statut' => $validated['date_statut'] ?? null,
+            'commentaire' => $validated['commentaire'] ?? null,
         ]);
 
         $labels = [

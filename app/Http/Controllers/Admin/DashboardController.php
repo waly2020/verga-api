@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Agence;
 use App\Models\Commande;
-use App\Models\Commission;
 use App\Models\Reclamation;
 use App\Models\Reversement;
 use App\Services\Dashboard\AgenceFinanceViewStats;
@@ -24,16 +23,13 @@ class DashboardController extends Controller
 
         $paiements = ValidatedPaiementStats::aggregate($debut, $fin);
 
-        $soldeCommissionsAgence = (float) Commission::whereBetween('created_at', [$debut, $fin])
-            ->sum('montant');
-
         $stats = [
             'agences' => Agence::where('statut', 'actif')->count(),
             'commandes_total' => Commande::whereBetween('created_at', [$debut, $fin])->count(),
             'solde_paiements' => $paiements['total'],
             'solde_sous_total' => $paiements['sous_total'],
             'solde_commissions_client' => $paiements['commissions_client'],
-            'solde_commissions_agence' => $soldeCommissionsAgence,
+            'solde_commissions_agence' => $paiements['commissions_agence'],
             'reclamations_ouvertes' => Reclamation::where('statut', 'ouverte')->count(),
             'reversements_attente' => (float) Reversement::where('statut', 'en_attente')->sum('montant'),
             'soldes_agences_total' => AgenceFinanceViewStats::totalSoldes(),
@@ -48,7 +44,7 @@ class DashboardController extends Controller
         $parAgence = ValidatedPaiementStats::byAgence($debut, $fin);
 
         $paiementsParAgence = array_map(
-            fn (array $row) => ['nom' => $row['nom'], 'total' => $row['sous_total']],
+            fn (array $row) => ['nom' => $row['nom'], 'total' => $row['montant_agence']],
             $parAgence,
         );
 

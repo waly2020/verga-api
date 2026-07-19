@@ -17,6 +17,8 @@ class Paiement extends Model
         'montant',
         'montant_sous_total',
         'montant_commission_client',
+        'montant_commission_agence',
+        'montant_agence',
         'methode',
         'operateur',
         'reference',
@@ -32,6 +34,8 @@ class Paiement extends Model
             'montant' => 'decimal:2',
             'montant_sous_total' => 'decimal:2',
             'montant_commission_client' => 'decimal:2',
+            'montant_commission_agence' => 'decimal:2',
+            'montant_agence' => 'decimal:2',
         ];
     }
 

@@ -25,9 +25,9 @@ class ColisStatutService
         return self::FLUX[$statutActuel] ?? null;
     }
 
-    public function advance(Colis $colis, Model $actor, ?string $statut = null, ?string $commentaire = null): Colis
+    public function advance(Colis $colis, Model $actor, ?string $statut = null, ?string $commentaire = null, ?string $dateStatut = null): Colis
     {
-        return DB::transaction(function () use ($colis, $actor, $statut, $commentaire) {
+        return DB::transaction(function () use ($colis, $actor, $statut, $commentaire, $dateStatut) {
             /** @var Colis $locked */
             $locked = Colis::query()
                 ->whereKey($colis->id)
@@ -55,6 +55,7 @@ class ColisStatutService
                 'actor_type' => $actor->getMorphClass(),
                 'actor_id' => $actor->getKey(),
                 'statut' => $next,
+                'date_statut' => $dateStatut,
                 'commentaire' => $commentaire,
             ]);
 

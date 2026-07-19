@@ -3,7 +3,6 @@
 namespace App\Services\Dashboard;
 
 use App\Models\Agence;
-use App\Models\Commission;
 use App\Support\CommandeClientPresenter;
 use App\Support\PeriodeFilter;
 use Carbon\Carbon;
@@ -32,12 +31,6 @@ class AgenceDashboardService
                 ->where('commandes.agence_id', $agence->id),
         );
 
-        $totalCommissionsAgence = (float) Commission::query()
-            ->join('commandes', 'commissions.commande_id', '=', 'commandes.id')
-            ->where('commandes.agence_id', $agence->id)
-            ->whereBetween('commissions.created_at', [$debut, $fin])
-            ->sum('commissions.montant');
-
         return [
             'periode' => $periode,
             'debut' => $debut->toIso8601String(),
@@ -57,8 +50,8 @@ class AgenceDashboardService
                 'nb_commandes' => (clone $commandesQuery)->count(),
                 'nb_commandes_en_attente' => (clone $commandesQuery)->where('statut', 'en_attente')->count(),
                 'nb_commandes_confirmees' => (clone $commandesQuery)->where('statut', 'confirmée')->count(),
-                'total_paiements' => $paiements['sous_total'],
-                'revenu_net_estime' => $paiements['sous_total'] - $totalCommissionsAgence,
+                'total_paiements' => $paiements['montant_agence'],
+                'revenu_net_estime' => $paiements['montant_agence'],
                 'reversements_en_attente' => (float) $agence->reversements()->where('statut', 'en_attente')->sum('montant'),
                 'nb_colis' => (clone $colisQuery)->count(),
                 'nb_colis_en_transit' => (clone $colisQuery)->where('statut', 'en_transit')->count(),

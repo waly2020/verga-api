@@ -5,6 +5,7 @@ namespace Tests\Feature\Api\Client;
 use App\Models\Client;
 use App\Models\Colis;
 use App\Models\Commande;
+use App\Models\HistoriqueColis;
 use App\Models\Offre;
 use App\Models\Paiement;
 use App\Models\User;
@@ -188,6 +189,61 @@ class ClientResourcesTest extends ClientApiTestCase
             ->assertJsonPath('data.0.commande_code', 'CMD-CLIENT-001')
             ->assertJsonMissingPath('data.0.montant_commission_client')
             ->assertJsonMissingPath('data.0.montant_sous_total');
+    }
+
+    public function test_client_colis_detail_exposes_date_statut_in_historique(): void
+    {
+        ['client' => $client, 'token' => $token] = $this->createAuthenticatedClient();
+
+        ['agence' => $agence] = $this->createTestAgence([
+            'nom' => 'Transit Suivi',
+            'email' => 'suivi@test.com',
+            'telephone' => '0611111112',
+        ]);
+
+        $offre = Offre::create([
+            'agence_id' => $agence->id,
+            'titre' => 'Offre suivi',
+            'type' => 'particulier',
+            'prix' => 8750,
+            'capacite_totale' => 1000,
+            'capacite_disponible' => 1000,
+            'origine' => 'Chine',
+            'destination' => 'Libreville',
+            'statut' => 'active',
+        ]);
+
+        $commande = Commande::create([
+            'client_id' => $client->id,
+            'offre_id' => $offre->id,
+            'agence_id' => $agence->id,
+            'code' => 'CMD-SUIVI-001',
+            'quantite' => 2,
+            'montant_total' => 17500,
+            'statut' => 'confirmée',
+        ]);
+
+        $colis = Colis::create([
+            'commande_id' => $commande->id,
+            'agence_id' => $agence->id,
+            'reference' => 'COL-SUIVI-001',
+            'statut' => 'déposé',
+        ]);
+
+        HistoriqueColis::create([
+            'colis_id' => $colis->id,
+            'statut' => 'déposé',
+            'date_statut' => '2026-07-20',
+            'commentaire' => 'Déposé à l\'agence',
+        ]);
+
+        $this->withClientToken($token)
+            ->getJson("/api/v1/client/colis/{$colis->id}")
+            ->assertOk()
+            ->assertJsonPath('data.reference', 'COL-SUIVI-001')
+            ->assertJsonPath('data.historique.0.statut', 'déposé')
+            ->assertJsonPath('data.historique.0.date_statut', '2026-07-20')
+            ->assertJsonPath('data.historique.0.commentaire', 'Déposé à l\'agence');
     }
 
     public function test_client_can_create_reclamation(): void

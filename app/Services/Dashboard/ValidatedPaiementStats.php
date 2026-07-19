@@ -9,7 +9,13 @@ use Illuminate\Database\Eloquent\Builder;
 class ValidatedPaiementStats
 {
     /**
-     * @return array{total: float, sous_total: float, commissions_client: float}
+     * @return array{
+     *     total: float,
+     *     sous_total: float,
+     *     commissions_client: float,
+     *     commissions_agence: float,
+     *     montant_agence: float
+     * }
      */
     public static function aggregate(Carbon $debut, Carbon $fin, ?callable $scope = null): array
     {
@@ -23,17 +29,28 @@ class ValidatedPaiementStats
             ->selectRaw('COALESCE(SUM(paiements.montant), 0) as total')
             ->selectRaw('COALESCE(SUM(paiements.montant_sous_total), 0) as sous_total')
             ->selectRaw('COALESCE(SUM(paiements.montant_commission_client), 0) as commissions_client')
+            ->selectRaw('COALESCE(SUM(paiements.montant_commission_agence), 0) as commissions_agence')
+            ->selectRaw('COALESCE(SUM(COALESCE(paiements.montant_agence, paiements.montant_sous_total)), 0) as montant_agence')
             ->first();
 
         return [
             'total' => (float) $row->total,
             'sous_total' => (float) $row->sous_total,
             'commissions_client' => (float) $row->commissions_client,
+            'commissions_agence' => (float) $row->commissions_agence,
+            'montant_agence' => (float) $row->montant_agence,
         ];
     }
 
     /**
-     * @return array<int, array{nom: string, total: float, sous_total: float, commissions_client: float}>
+     * @return array<int, array{
+     *     nom: string,
+     *     total: float,
+     *     sous_total: float,
+     *     commissions_client: float,
+     *     commissions_agence: float,
+     *     montant_agence: float
+     * }>
      */
     public static function byAgence(Carbon $debut, Carbon $fin, int $limit = 10): array
     {
@@ -46,8 +63,10 @@ class ValidatedPaiementStats
             ->selectRaw('COALESCE(SUM(paiements.montant), 0) as total')
             ->selectRaw('COALESCE(SUM(paiements.montant_sous_total), 0) as sous_total')
             ->selectRaw('COALESCE(SUM(paiements.montant_commission_client), 0) as commissions_client')
+            ->selectRaw('COALESCE(SUM(paiements.montant_commission_agence), 0) as commissions_agence')
+            ->selectRaw('COALESCE(SUM(COALESCE(paiements.montant_agence, paiements.montant_sous_total)), 0) as montant_agence')
             ->groupBy('agences.id', 'agences.nom')
-            ->orderByDesc('sous_total')
+            ->orderByDesc('montant_agence')
             ->limit($limit)
             ->get()
             ->map(fn ($row) => [
@@ -55,6 +74,8 @@ class ValidatedPaiementStats
                 'total' => (float) $row->total,
                 'sous_total' => (float) $row->sous_total,
                 'commissions_client' => (float) $row->commissions_client,
+                'commissions_agence' => (float) $row->commissions_agence,
+                'montant_agence' => (float) $row->montant_agence,
             ])
             ->values()
             ->all();

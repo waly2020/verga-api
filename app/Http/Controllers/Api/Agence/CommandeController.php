@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\Agence;
 
 use App\Http\Requests\Api\Agence\UpdateCommandeStatutRequest;
 use App\Http\Resources\Api\Agence\CommandeResource;
+use App\Models\Paiement;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -20,6 +22,7 @@ class CommandeController extends AgenceApiController
         $query = $this->agence($request)
             ->commandes()
             ->with(['client:id,nom,prenom,email,telephone', 'offre.typeOffre'])
+            ->addSelect(['montant_agence' => $this->montantAgenceSubquery()])
             ->latest();
 
         if ($search = $request->get('search')) {
@@ -40,6 +43,7 @@ class CommandeController extends AgenceApiController
         $model = $this->agence($request)
             ->commandes()
             ->with(['client:id,nom,prenom,email,telephone', 'offre.typeOffre', 'paiement', 'colis.photos'])
+            ->addSelect(['montant_agence' => $this->montantAgenceSubquery()])
             ->findOrFail($commande);
 
         return CommandeResource::make($model);
@@ -47,7 +51,10 @@ class CommandeController extends AgenceApiController
 
     public function updateStatut(UpdateCommandeStatutRequest $request, string $commande): CommandeResource|JsonResponse
     {
-        $model = $this->agence($request)->commandes()->findOrFail($commande);
+        $model = $this->agence($request)
+            ->commandes()
+            ->addSelect(['montant_agence' => $this->montantAgenceSubquery()])
+            ->findOrFail($commande);
 
         $allowed = self::TRANSITIONS[$model->statut] ?? [];
 
@@ -62,5 +69,13 @@ class CommandeController extends AgenceApiController
         $model->load(['client:id,nom,prenom,email', 'offre.typeOffre']);
 
         return CommandeResource::make($model);
+    }
+
+    private function montantAgenceSubquery(): Builder
+    {
+        return Paiement::query()
+            ->selectRaw('SUM(COALESCE(montant_agence, montant_sous_total))')
+            ->whereColumn('commande_id', 'commandes.id')
+            ->where('statut', 'validé');
     }
 }

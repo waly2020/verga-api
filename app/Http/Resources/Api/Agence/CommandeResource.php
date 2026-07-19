@@ -26,7 +26,7 @@ class CommandeResource extends JsonResource
                 'quantite_payee' => $this->quantite_payee,
                 'quantite_restante' => $this->quantiteRestante(),
             ], $typeOffre),
-            'montant' => (float) $this->montant_sous_total,
+            'montant' => (float) ($this->montant_agence ?? $this->montant_sous_total),
             'statut' => $this->statut,
             'created_at' => $this->created_at?->toIso8601String(),
             'client' => CommandeClientPresenter::for($this->resource),

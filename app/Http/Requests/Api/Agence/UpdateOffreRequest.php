@@ -28,6 +28,7 @@ class UpdateOffreRequest extends FormRequest
             'capacite_totale' => ['required_unless:capacite_illimitee,true', 'nullable', 'numeric', 'min:0.001'],
             'origine' => ['required', 'string', 'max:255'],
             'destination' => ['required', 'string', 'max:255'],
+            'date_depart' => ['nullable', 'date'],
             'description' => ['nullable', 'string'],
             'statut' => ['required', Rule::in(['active', 'inactive', 'archivée'])],
         ];
