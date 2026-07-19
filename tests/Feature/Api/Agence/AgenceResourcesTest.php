@@ -111,12 +111,14 @@ class AgenceResourcesTest extends AgenceApiTestCase
                 'origine' => 'Libreville',
                 'destination' => 'Port-Gentil',
                 'date_depart' => '2026-07-20',
+                'date_depot_colis' => '2026-07-19',
             ])
             ->assertCreated()
             ->assertJsonPath('data.capacite_illimitee', true)
             ->assertJsonPath('data.capacite_totale', null)
             ->assertJsonPath('data.capacite_disponible', null)
-            ->assertJsonPath('data.date_depart', '2026-07-20');
+            ->assertJsonPath('data.date_depart', '2026-07-20')
+            ->assertJsonPath('data.date_depot_colis', '2026-07-19');
 
         $this->assertDatabaseHas('offres', [
             'agence_id' => $agence->id,
@@ -128,6 +130,7 @@ class AgenceResourcesTest extends AgenceApiTestCase
 
         $offre = Offre::where('titre', '2000 F / colis Port-Gentil')->firstOrFail();
         $this->assertSame('2026-07-20', $offre->date_depart?->toDateString());
+        $this->assertSame('2026-07-19', $offre->date_depot_colis?->toDateString());
     }
 
     public function test_agence_can_update_offre(): void

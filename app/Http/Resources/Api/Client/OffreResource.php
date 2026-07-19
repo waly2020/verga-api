@@ -29,6 +29,7 @@ class OffreResource extends JsonResource
             'origine' => $this->origine,
             'destination' => $this->destination,
             'date_depart' => $this->date_depart?->toDateString(),
+            'date_depot_colis' => $this->date_depot_colis?->toDateString(),
             'statut' => $this->statut,
             'created_at' => $this->created_at?->toIso8601String(),
             'agence' => $this->whenLoaded('agence', fn () => [

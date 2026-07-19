@@ -54,6 +54,8 @@ class OffreCatalogTest extends ClientApiTestCase
                     'capacite_disponible',
                     'origine',
                     'destination',
+                    'date_depart',
+                    'date_depot_colis',
                     'statut',
                     'created_at',
                     'agence',

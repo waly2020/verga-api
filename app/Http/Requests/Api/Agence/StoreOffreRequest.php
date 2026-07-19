@@ -28,6 +28,7 @@ class StoreOffreRequest extends FormRequest
             'origine' => ['required', 'string', 'max:255'],
             'destination' => ['required', 'string', 'max:255'],
             'date_depart' => ['nullable', 'date'],
+            'date_depot_colis' => ['nullable', 'date'],
             'description' => ['nullable', 'string'],
             'statut' => ['sometimes', Rule::in(['active', 'inactive'])],
         ];
