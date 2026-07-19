@@ -59,6 +59,7 @@ class ColisController extends AgenceApiController
             actor: $request->user(),
             statut: $request->validated('statut'),
             commentaire: $request->validated('commentaire'),
+            dateStatut: $request->validated('date_statut'),
         );
 
         $updated->load([

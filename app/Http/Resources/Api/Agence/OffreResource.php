@@ -28,6 +28,7 @@ class OffreResource extends JsonResource
             'capacite_disponible' => $this->capacite_disponible !== null ? (float) $this->capacite_disponible : null,
             'origine' => $this->origine,
             'destination' => $this->destination,
+            'date_depart' => $this->date_depart?->toDateString(),
             'statut' => $this->statut,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),

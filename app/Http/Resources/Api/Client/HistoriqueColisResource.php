@@ -17,6 +17,7 @@ class HistoriqueColisResource extends JsonResource
         return [
             'id' => $this->id,
             'statut' => $this->statut,
+            'date_statut' => $this->date_statut?->toDateString(),
             'commentaire' => $this->commentaire,
             'created_at' => $this->created_at?->toIso8601String(),
         ];

@@ -64,7 +64,7 @@ class AgenceSoldeService
         $montantSolde = (float) ($solde->montant_solde ?? 0);
 
         return [
-            'montant_paiements_valides' => (float) ($paiements->montant_sous_total ?? 0),
+            'montant_paiements_valides' => (float) ($paiements->montant_agence ?? 0),
             'montant_reversements' => (float) ($reversements->montant ?? 0),
             'montant_solde' => $montantSolde,
             'montant_reversements_en_attente' => $enAttente,

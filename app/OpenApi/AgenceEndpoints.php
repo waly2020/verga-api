@@ -399,6 +399,7 @@ Peut être envoyé en `multipart/form-data` pour joindre un **logo** et des **do
                     new OA\Property(property: 'capacite_totale', type: 'number', format: 'float', nullable: true, example: 30000, description: 'Stock total — requis sauf si capacite_illimitee=true'),
                     new OA\Property(property: 'origine', type: 'string', example: 'Chine'),
                     new OA\Property(property: 'destination', type: 'string', example: 'Libreville'),
+                    new OA\Property(property: 'date_depart', type: 'string', format: 'date', nullable: true, example: '2026-07-20', description: 'Date de départ (optionnelle)'),
                     new OA\Property(property: 'description', type: 'string', nullable: true),
                     new OA\Property(property: 'statut', type: 'string', enum: ['active', 'inactive'], default: 'active'),
                 ]
@@ -449,6 +450,7 @@ Peut être envoyé en `multipart/form-data` pour joindre un **logo** et des **do
                     new OA\Property(property: 'capacite_totale', type: 'number', format: 'float', nullable: true, example: 30000, description: 'Requis sauf si capacite_illimitee=true ; doit rester ≥ quantité déjà réservée'),
                     new OA\Property(property: 'origine', type: 'string', example: 'Chine'),
                     new OA\Property(property: 'destination', type: 'string', example: 'Libreville'),
+                    new OA\Property(property: 'date_depart', type: 'string', format: 'date', nullable: true, example: '2026-07-20', description: 'Date de départ (optionnelle)'),
                     new OA\Property(property: 'description', type: 'string', nullable: true),
                     new OA\Property(property: 'statut', type: 'string', enum: ['active', 'inactive', 'archivée']),
                 ]
@@ -642,6 +644,7 @@ Peut être envoyé en `multipart/form-data` pour joindre un **logo** et des **do
 - Sans body : avance automatiquement au statut suivant
 - Avec `statut` : doit correspondre exactement au prochain statut attendu (utile pour le front)
 - `commentaire` optionnel : note visible dans l\'historique
+- `date_statut` optionnel : date saisie pour cette étape (distincte de l\'horodatage d\'enregistrement)
 
 Réponse : détail du colis mis à jour + `next_statut` (prochaine étape ou `null` si terminé).',
         tags: ['Agence - Colis'],
@@ -653,6 +656,7 @@ Réponse : détail du colis mis à jour + `next_statut` (prochaine étape ou `nu
             content: new OA\JsonContent(
                 properties: [
                     new OA\Property(property: 'statut', type: 'string', enum: ['déposé', 'en_transit', 'arrivé', 'récupéré'], nullable: true, description: 'Prochain statut attendu (optionnel si avance automatique)'),
+                    new OA\Property(property: 'date_statut', type: 'string', format: 'date', nullable: true, example: '2026-07-20', description: 'Date saisie pour cette étape (optionnelle)'),
                     new OA\Property(property: 'commentaire', type: 'string', maxLength: 500, nullable: true, example: 'Colis embarqué à Libreville'),
                 ]
             )

@@ -5,7 +5,6 @@ namespace Tests\Feature\Api\Agence;
 use App\Models\Agence;
 use App\Models\Colis;
 use App\Models\Commande;
-use App\Models\Commission;
 use App\Models\Offre;
 use App\Models\Paiement;
 use App\Models\Reclamation;
@@ -33,7 +32,7 @@ class DashboardTest extends AgenceApiTestCase
             ->assertJsonPath('data.stats.nb_offres_actives', 1)
             ->assertJsonPath('data.stats.nb_commandes', 2)
             ->assertJsonPath('data.stats.nb_commandes_en_attente', 1)
-            ->assertJsonPath('data.stats.total_paiements', 47500)
+            ->assertJsonPath('data.stats.total_paiements', 45000)
             ->assertJsonPath('data.stats.revenu_net_estime', 45000)
             ->assertJsonPath('data.stats.reversements_en_attente', 10000)
             ->assertJsonMissingPath('data.stats.total_commissions_client')
@@ -142,14 +141,10 @@ class DashboardTest extends AgenceApiTestCase
             'montant' => 50000,
             'montant_sous_total' => 47500,
             'montant_commission_client' => 2500,
+            'montant_commission_agence' => 2500,
+            'montant_agence' => 45000,
             'methode' => 'bamboo_redirect',
             'statut' => 'validé',
-        ]);
-
-        Commission::create([
-            'commande_id' => $commandeConfirmee->id,
-            'montant' => 2500,
-            'taux' => 5,
         ]);
 
         Colis::create([

@@ -110,11 +110,13 @@ class AgenceResourcesTest extends AgenceApiTestCase
                 'capacite_illimitee' => true,
                 'origine' => 'Libreville',
                 'destination' => 'Port-Gentil',
+                'date_depart' => '2026-07-20',
             ])
             ->assertCreated()
             ->assertJsonPath('data.capacite_illimitee', true)
             ->assertJsonPath('data.capacite_totale', null)
-            ->assertJsonPath('data.capacite_disponible', null);
+            ->assertJsonPath('data.capacite_disponible', null)
+            ->assertJsonPath('data.date_depart', '2026-07-20');
 
         $this->assertDatabaseHas('offres', [
             'agence_id' => $agence->id,
@@ -123,6 +125,9 @@ class AgenceResourcesTest extends AgenceApiTestCase
             'capacite_totale' => null,
             'capacite_disponible' => null,
         ]);
+
+        $offre = Offre::where('titre', '2000 F / colis Port-Gentil')->firstOrFail();
+        $this->assertSame('2026-07-20', $offre->date_depart?->toDateString());
     }
 
     public function test_agence_can_update_offre(): void
@@ -507,6 +512,8 @@ class AgenceResourcesTest extends AgenceApiTestCase
             'code' => 'PAY-001',
             'montant_sous_total' => 17500,
             'montant_commission_client' => 875,
+            'montant_commission_agence' => 875,
+            'montant_agence' => 16625,
             'montant' => 18375,
             'methode' => 'mobile_money',
             'operateur' => 'moov_money',
@@ -519,7 +526,7 @@ class AgenceResourcesTest extends AgenceApiTestCase
             ->getJson('/api/v1/agence/paiements')
             ->assertOk()
             ->assertJsonPath('data.0.code', 'PAY-001')
-            ->assertJsonPath('data.0.montant', 17500)
+            ->assertJsonPath('data.0.montant', 16625)
             ->assertJsonPath('data.0.statut', 'validé')
             ->assertJsonPath('data.0.operateur', 'moov_money')
             ->assertJsonPath('data.0.bamboo_reference', 'TXN-AGENCE-001')

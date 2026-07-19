@@ -12,11 +12,14 @@ import {
     Truck,
     User,
 } from 'lucide-react';
+import { useState } from 'react';
 import { ConfirmDialog } from '@/components/admin/confirm-dialog';
 import { StatusBadge } from '@/components/admin/status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import admin from '@/routes/admin';
 import { formatQuantite } from '@/lib/format-quantite';
 import type { ColisDetail } from '@/types';
@@ -76,8 +79,24 @@ const STEPS = [
 export default function ColisShow({ colis, next_statut }: Props) {
     const stepIndex = STEPS.findIndex((s) => s.key === colis.statut);
 
+    const [dateStatut, setDateStatut] = useState('');
+    const [commentaire, setCommentaire] = useState('');
+
     const avancerStatut = () =>
-        router.patch(admin.colis.statut(colis.id).url, {}, { preserveState: false });
+        router.patch(
+            admin.colis.statut(colis.id).url,
+            {
+                date_statut: dateStatut || null,
+                commentaire: commentaire || null,
+            },
+            {
+                preserveState: false,
+                onSuccess: () => {
+                    setDateStatut('');
+                    setCommentaire('');
+                },
+            },
+        );
 
     const nextAction = next_statut ? NEXT_ACTION[next_statut] : null;
 
@@ -123,7 +142,29 @@ export default function ColisShow({ colis, next_statut }: Props) {
                                 description={`Colis ${colis.reference} — le statut passera à "${STATUT_LABELS[next_statut!]}" et un historique sera enregistré.`}
                                 confirmLabel={nextAction.label}
                                 onConfirm={avancerStatut}
-                            />
+                            >
+                                <div className="grid gap-4 py-2">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="date_statut">Date de l'étape (optionnelle)</Label>
+                                        <Input
+                                            id="date_statut"
+                                            type="date"
+                                            value={dateStatut}
+                                            onChange={(e) => setDateStatut(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="commentaire">Commentaire (optionnel)</Label>
+                                        <Input
+                                            id="commentaire"
+                                            type="text"
+                                            placeholder="Note visible dans l'historique"
+                                            value={commentaire}
+                                            onChange={(e) => setCommentaire(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            </ConfirmDialog>
                         )}
                     </div>
                 </div>
@@ -321,15 +362,27 @@ export default function ColisShow({ colis, next_statut }: Props) {
                                                     )}
                                                 </div>
 
-                                                <p className="mt-1 text-xs text-muted-foreground">
-                                                    {new Date(h.created_at).toLocaleDateString('fr-FR', {
-                                                        day: 'numeric', month: 'long', year: 'numeric',
-                                                        hour: '2-digit', minute: '2-digit',
-                                                    })}
-                                                    {h.user && (
-                                                        <span className="ml-2">— par <strong className="font-medium text-foreground">{h.user.name}</strong></span>
-                                                    )}
+                                                <p className="mt-1 text-sm font-medium text-foreground">
+                                                    {formatDateStatut(h.date_statut) ?? formatDateTime(h.created_at)}
                                                 </p>
+
+                                                {h.date_statut && (
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Enregistré le {formatDateTime(h.created_at)}
+                                                        {h.user && (
+                                                            <span className="ml-2">
+                                                                — par{' '}
+                                                                <strong className="font-medium text-foreground">{h.user.name}</strong>
+                                                            </span>
+                                                        )}
+                                                    </p>
+                                                )}
+
+                                                {!h.date_statut && h.user && (
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Par <strong className="font-medium text-foreground">{h.user.name}</strong>
+                                                    </p>
+                                                )}
 
                                                 {h.commentaire && (
                                                     <p className="mt-1 text-sm text-muted-foreground italic">
@@ -367,4 +420,31 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
             <span>{children}</span>
         </div>
     );
+}
+
+function formatDateStatut(value: string | null): string | null {
+    if (!value) {
+        return null;
+    }
+
+    const [year, month, day] = value.slice(0, 10).split('-').map(Number);
+    if (!year || !month || !day) {
+        return null;
+    }
+
+    return new Date(year, month - 1, day).toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+    });
+}
+
+function formatDateTime(value: string): string {
+    return new Date(value).toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
 }

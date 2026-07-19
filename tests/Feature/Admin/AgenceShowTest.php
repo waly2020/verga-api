@@ -61,6 +61,8 @@ class AgenceShowTest extends TestCase
             'montant' => 50000,
             'montant_sous_total' => 47500,
             'montant_commission_client' => 2500,
+            'montant_commission_agence' => 2375,
+            'montant_agence' => 45125,
             'methode' => 'bamboo_redirect',
             'statut' => 'validé',
         ]);
@@ -79,9 +81,9 @@ class AgenceShowTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('admin/agences/show')
                 ->where('agence.id', $agence->id)
-                ->where('stats.montant_paiements_valides', 47500)
+                ->where('stats.montant_paiements_valides', 45125)
                 ->where('stats.montant_reversements', 15000)
-                ->where('stats.montant_solde', 32500)
+                ->where('stats.montant_solde', 30125)
             );
     }
 }

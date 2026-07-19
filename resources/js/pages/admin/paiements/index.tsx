@@ -39,11 +39,33 @@ const columns: Column<PaiementRow>[] = [
     },
     {
         key: 'montant_commission_client',
-        label: 'Commission VERGA',
+        label: 'Commission client',
         render: (r) => (
             <span className="tabular-nums text-muted-foreground">
                 {r.montant_commission_client != null && Number(r.montant_commission_client) > 0
                     ? `${Number(r.montant_commission_client).toLocaleString('fr-FR')} FCFA`
+                    : '—'}
+            </span>
+        ),
+    },
+    {
+        key: 'montant_commission_agence',
+        label: 'Commission agence',
+        render: (r) => (
+            <span className="tabular-nums text-muted-foreground">
+                {r.montant_commission_agence != null
+                    ? `${Number(r.montant_commission_agence).toLocaleString('fr-FR')} FCFA`
+                    : '—'}
+            </span>
+        ),
+    },
+    {
+        key: 'montant_agence',
+        label: 'Part agence',
+        render: (r) => (
+            <span className="font-medium tabular-nums">
+                {r.montant_agence != null
+                    ? `${Number(r.montant_agence).toLocaleString('fr-FR')} FCFA`
                     : '—'}
             </span>
         ),

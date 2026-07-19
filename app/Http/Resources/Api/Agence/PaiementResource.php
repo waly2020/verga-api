@@ -16,7 +16,9 @@ class PaiementResource extends JsonResource
     {
         return [
             'code' => $this->code,
-            'montant' => (float) $this->montant_sous_total,
+            'montant' => $this->statut === 'validé'
+                ? (float) ($this->montant_agence ?? $this->montant_sous_total)
+                : null,
             'statut' => $this->statut,
             'operateur' => $this->operateur,
             'bamboo_reference' => $this->bamboo_reference,

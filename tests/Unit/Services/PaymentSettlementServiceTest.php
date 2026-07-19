@@ -3,6 +3,7 @@
 namespace Tests\Unit\Services;
 
 use App\Models\Commande;
+use App\Models\ConfigurationCommission;
 use App\Models\Offre;
 use App\Models\Paiement;
 use App\Services\PaymentSettlementService;
@@ -127,6 +128,51 @@ class PaymentSettlementServiceTest extends TestCase
             'id' => $paiement->id,
             'statut' => 'en_attente',
             'bamboo_message' => 'Paiement en cours de traitement',
+        ]);
+    }
+
+    public function test_completed_payment_calculates_agence_amount_from_subtotal_only(): void
+    {
+        ConfigurationCommission::create([
+            'destinataire' => 'agence',
+            'type' => 'pourcentage',
+            'valeur' => 5,
+            'actif' => true,
+            'libelle' => 'Commission agence',
+        ]);
+
+        $paiement = $this->createPendingPayment();
+        $paiement->update([
+            'montant_commission_client' => 1250,
+            'montant' => 26250,
+        ]);
+
+        $service = app(PaymentSettlementService::class);
+        $service->settleFromBambooStatus($paiement, 'completed');
+        $service->settleFromBambooStatus($paiement->fresh(), 'completed');
+
+        $this->assertDatabaseHas('paiements', [
+            'id' => $paiement->id,
+            'statut' => 'validé',
+            'montant_sous_total' => 25000,
+            'montant_commission_client' => 1250,
+            'montant_commission_agence' => 1250,
+            'montant_agence' => 23750,
+            'montant' => 26250,
+        ]);
+    }
+
+    public function test_completed_payment_without_agence_commission_returns_full_subtotal_to_agence(): void
+    {
+        $paiement = $this->createPendingPayment();
+
+        app(PaymentSettlementService::class)
+            ->settleFromBambooStatus($paiement, 'completed');
+
+        $this->assertDatabaseHas('paiements', [
+            'id' => $paiement->id,
+            'montant_commission_agence' => 0,
+            'montant_agence' => 25000,
         ]);
     }
 }

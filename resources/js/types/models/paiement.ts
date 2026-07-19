@@ -10,6 +10,8 @@ export type PaiementRow = {
     quantite?: string | null;
     montant_sous_total?: string | null;
     montant_commission_client?: string | null;
+    montant_commission_agence?: string | null;
+    montant_agence?: string | null;
     montant: string;
     methode: string;
     statut: PaiementStatut | string;
@@ -19,7 +21,7 @@ export type PaiementRow = {
 /** Réponse API client / agence — liste paiements */
 export type PaiementApi = {
     code: string;
-    montant: number;
+    montant: number | null;
     statut: PaiementStatut | string;
     operateur?: string | null;
     bamboo_reference: string | null;
@@ -35,6 +37,8 @@ export type PaiementInfo = {
     quantite_label?: string | null;
     montant_sous_total?: string | null;
     montant_commission_client?: string | null;
+    montant_commission_agence?: string | null;
+    montant_agence?: string | null;
     montant: string;
     methode: string;
     reference: string | null;

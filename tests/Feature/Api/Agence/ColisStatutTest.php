@@ -89,6 +89,25 @@ class ColisStatutTest extends AgenceApiTestCase
             ->assertJsonPath('data.statut', 'déposé');
     }
 
+    public function test_agence_can_capture_date_statut_on_status_change(): void
+    {
+        ['token' => $token, 'colis' => $colis] = $this->createColisForAgence();
+
+        $this->withAgenceToken($token)
+            ->patchJson("/api/v1/agence/colis/{$colis->id}/statut", [
+                'statut' => 'déposé',
+                'date_statut' => '2026-07-20',
+                'commentaire' => 'Déposé le 20',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.historique.0.date_statut', '2026-07-20');
+
+        $historique = $colis->historique()->where('statut', 'déposé')->first();
+
+        $this->assertNotNull($historique);
+        $this->assertSame('2026-07-20', $historique->date_statut?->toDateString());
+    }
+
     public function test_cannot_advance_when_final_statut_reached(): void
     {
         ['token' => $token, 'colis' => $colis] = $this->createColisForAgence('récupéré');

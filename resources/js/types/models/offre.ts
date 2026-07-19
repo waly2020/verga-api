@@ -18,6 +18,7 @@ export type OffreRow = OffreCapacite & {
     prix: string;
     origine: string;
     destination: string;
+    date_depart?: string | null;
     statut: OffreStatut | string;
     description?: string | null;
 };
@@ -36,6 +37,7 @@ export type OffreInfo = OffreSummary &
     OffreCapacite & {
         origine: string | null;
         destination: string | null;
+        date_depart?: string | null;
         statut: string;
         type_offre?: TypeOffreSummary | null;
     };
@@ -50,6 +52,7 @@ export type OffreApi = OffreCapacite & {
     prix: string | number;
     origine: string;
     destination: string;
+    date_depart?: string | null;
     statut: string;
     created_at: string | null;
     agence?: (AgenceSummary & { ville?: string | null }) | null;
@@ -75,6 +78,7 @@ export type OffreFormData = {
     capacite_totale: string;
     origine: string;
     destination: string;
+    date_depart: string;
     description: string;
     statut: string;
 };

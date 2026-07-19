@@ -28,6 +28,8 @@ class AgenceFinanceViewsTest extends TestCase
             'montant' => 25000,
             'montant_sous_total' => 23750,
             'montant_commission_client' => 1250,
+            'montant_commission_agence' => 1187.50,
+            'montant_agence' => 22562.50,
             'methode' => 'bamboo_redirect',
             'statut' => 'validé',
         ]);
@@ -48,6 +50,8 @@ class AgenceFinanceViewsTest extends TestCase
 
         $this->assertNotNull($row);
         $this->assertSame(23750.0, (float) $row->montant_sous_total);
+        $this->assertSame(1187.5, (float) $row->montant_commission_agence);
+        $this->assertSame(22562.5, (float) $row->montant_agence);
         $this->assertSame(1, (int) $row->nb_paiements);
     }
 
@@ -90,6 +94,8 @@ class AgenceFinanceViewsTest extends TestCase
             'montant' => 50000,
             'montant_sous_total' => 47500,
             'montant_commission_client' => 2500,
+            'montant_commission_agence' => 2375,
+            'montant_agence' => 45125,
             'methode' => 'bamboo_redirect',
             'statut' => 'validé',
         ]);
@@ -107,9 +113,9 @@ class AgenceFinanceViewsTest extends TestCase
             ->first();
 
         $this->assertNotNull($row);
-        $this->assertSame(47500.0, (float) $row->montant_paiements_valides);
+        $this->assertSame(45125.0, (float) $row->montant_paiements_valides);
         $this->assertSame(15000.0, (float) $row->montant_reversements);
-        $this->assertSame(32500.0, (float) $row->montant_solde);
+        $this->assertSame(30125.0, (float) $row->montant_solde);
     }
 
     public function test_agence_without_activity_has_zero_balances_in_views(): void
@@ -129,6 +135,7 @@ class AgenceFinanceViewsTest extends TestCase
             ->first();
 
         $this->assertSame(0.0, (float) $paiements->montant_sous_total);
+        $this->assertSame(0.0, (float) $paiements->montant_agence);
         $this->assertSame(0.0, (float) $reversements->montant);
         $this->assertSame(0.0, (float) $solde->montant_solde);
     }
