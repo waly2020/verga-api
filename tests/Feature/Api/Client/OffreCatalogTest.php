@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api\Client;
 
+use App\Models\Logo;
 use App\Models\Offre;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -10,7 +11,7 @@ class OffreCatalogTest extends ClientApiTestCase
 {
     use RefreshDatabase;
 
-    private function createOffre(array $attributes = []): Offre
+    private function createOffre(array $attributes = [], bool $withLogo = false): Offre
     {
         static $counter = 0;
         $counter++;
@@ -20,6 +21,14 @@ class OffreCatalogTest extends ClientApiTestCase
             'email' => "agence{$counter}@test.com",
             'telephone' => '0611111111',
         ]);
+
+        if ($withLogo) {
+            Logo::create([
+                'agence_id' => $agence->id,
+                'chemin' => "logos/{$agence->id}/logo.png",
+                'nom_original' => 'logo.png',
+            ]);
+        }
 
         return Offre::create(array_merge([
             'agence_id' => $agence->id,
@@ -58,13 +67,43 @@ class OffreCatalogTest extends ClientApiTestCase
                     'date_depot_colis',
                     'statut',
                     'created_at',
-                    'agence',
+                    'agence' => [
+                        'id',
+                        'nom',
+                        'ville',
+                        'logo',
+                    ],
                 ]],
                 'links',
                 'meta' => ['current_page', 'last_page', 'per_page', 'total'],
             ]);
 
         $this->assertEquals(2, $response->json('meta.total'));
+    }
+
+    public function test_includes_agence_logo_when_present(): void
+    {
+        $offre = $this->createOffre(['titre' => 'Offre logo'], withLogo: true);
+
+        $response = $this->getJson('/api/v1/client/offres')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $offre->id)
+            ->assertJsonPath('data.0.agence.logo.chemin', "logos/{$offre->agence_id}/logo.png")
+            ->assertJsonPath('data.0.agence.logo.nom_original', 'logo.png');
+
+        $this->assertStringContainsString(
+            "logos/{$offre->agence_id}/logo.png",
+            (string) $response->json('data.0.agence.logo.url'),
+        );
+    }
+
+    public function test_agence_logo_is_null_when_missing(): void
+    {
+        $this->createOffre(['titre' => 'Sans logo']);
+
+        $this->getJson('/api/v1/client/offres')
+            ->assertOk()
+            ->assertJsonPath('data.0.agence.logo', null);
     }
 
     public function test_excludes_inactive_or_empty_stock_offres(): void

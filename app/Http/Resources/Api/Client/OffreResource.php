@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api\Client;
 
+use App\Http\Resources\Api\LogoResource;
 use App\Http\Resources\Api\TypeOffreResource;
 use App\Models\Offre;
 use Illuminate\Http\Request;
@@ -36,6 +37,9 @@ class OffreResource extends JsonResource
                 'id' => $this->agence?->id,
                 'nom' => $this->agence?->nom,
                 'ville' => $this->agence?->ville,
+                'logo' => $this->agence?->relationLoaded('logo')
+                    ? LogoResource::make($this->agence->logo)
+                    : null,
             ]),
         ];
     }

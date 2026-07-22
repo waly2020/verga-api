@@ -13,6 +13,13 @@ export type AgenceSummary = {
     nom: string;
 };
 
+export type LogoApi = {
+    id: string;
+    chemin: string;
+    url: string;
+    nom_original: string | null;
+};
+
 export type AgenceDetail = AgenceSummary & {
     email?: string;
     ville?: string | null;

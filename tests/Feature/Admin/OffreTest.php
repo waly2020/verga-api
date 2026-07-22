@@ -5,6 +5,7 @@ namespace Tests\Feature\Admin;
 use App\Models\Agence;
 use App\Models\Client;
 use App\Models\Commande;
+use App\Models\Logo;
 use App\Models\Offre;
 use App\Models\TypeOffre;
 use App\Models\User;
@@ -49,6 +50,41 @@ class OffreTest extends TestCase
                 ->has('offres.data')
                 ->has('agences')
                 ->has('types_offres')
+            );
+    }
+
+    public function test_admin_offres_page_includes_agence_logo(): void
+    {
+        ['agence' => $agence] = $this->createAgence();
+        $type = TypeOffre::query()->where('slug', 'particulier')->firstOrFail();
+
+        Logo::create([
+            'agence_id' => $agence->id,
+            'chemin' => "logos/{$agence->id}/logo.png",
+            'nom_original' => 'logo.png',
+        ]);
+
+        Offre::create([
+            'agence_id' => $agence->id,
+            'type_offre_id' => $type->id,
+            'titre' => 'Offre avec logo',
+            'type' => 'particulier',
+            'prix' => 5000,
+            'capacite_totale' => 100,
+            'capacite_disponible' => 100,
+            'origine' => 'Libreville',
+            'destination' => 'Paris',
+            'statut' => 'active',
+        ]);
+
+        $this->actingAs($this->adminUser())
+            ->get('/admin/offres')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('admin/offres/index')
+                ->where('offres.data.0.agence.nom', 'Transit Test')
+                ->where('offres.data.0.agence.logo.chemin', "logos/{$agence->id}/logo.png")
+                ->where('offres.data.0.agence.logo.nom_original', 'logo.png')
             );
     }
 

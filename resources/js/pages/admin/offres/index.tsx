@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { Pencil, PlusCircle, Trash2 } from 'lucide-react';
+import { Building2, Pencil, PlusCircle, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { ConfirmDialog } from '@/components/admin/confirm-dialog';
 import { DataTable } from '@/components/admin/data-table';
@@ -30,7 +30,32 @@ interface Props {
 
 const columns: Column<OffreRow>[] = [
     { key: 'titre', label: 'Offre', render: (r) => <span className="font-medium">{r.titre}</span> },
-    { key: 'agence', label: 'Agence', render: (r) => r.agence?.nom ?? '—' },
+    {
+        key: 'agence',
+        label: 'Agence',
+        render: (r) => {
+            if (!r.agence) {
+                return '—';
+            }
+
+            return (
+                <div className="flex items-center gap-2">
+                    {r.agence.logo?.url ? (
+                        <img
+                            src={r.agence.logo.url}
+                            alt={`Logo ${r.agence.nom}`}
+                            className="h-8 w-8 rounded-md border object-cover"
+                        />
+                    ) : (
+                        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
+                            <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                        </div>
+                    )}
+                    <span>{r.agence.nom}</span>
+                </div>
+            );
+        },
+    },
     { key: 'type', label: 'Type', render: (r) => typeLabel(r) },
     { key: 'prix', label: 'Prix', render: (r) => `${Number(r.prix).toLocaleString('fr-FR')} FCFA` },
     {

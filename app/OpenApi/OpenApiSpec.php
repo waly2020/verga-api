@@ -368,6 +368,7 @@ use OpenApi\Attributes as OA;
             new OA\Property(property: 'id', type: 'string', format: 'uuid'),
             new OA\Property(property: 'nom', type: 'string'),
             new OA\Property(property: 'ville', type: 'string', nullable: true),
+            new OA\Property(property: 'logo', ref: '#/components/schemas/LogoResource', nullable: true),
         ]),
     ]
 )]

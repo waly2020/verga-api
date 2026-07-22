@@ -1,4 +1,4 @@
-import type { AgenceSummary, OffreStatut, OffreType } from './common';
+import type { AgenceSummary, LogoApi, OffreStatut, OffreType } from './common';
 import type { TypeOffreApi, TypeOffreSummary } from './type-offre';
 
 export type OffreCapacite = {
@@ -11,7 +11,7 @@ export type OffreRow = OffreCapacite & {
     id: string;
     agence_id: string;
     titre: string;
-    agence: AgenceSummary | null;
+    agence: (AgenceSummary & { logo?: LogoApi | null }) | null;
     type: OffreType | string;
     type_offre_id?: string | null;
     type_offre?: TypeOffreSummary | null;
@@ -58,7 +58,10 @@ export type OffreApi = OffreCapacite & {
     date_depot_colis?: string | null;
     statut: string;
     created_at: string | null;
-    agence?: (AgenceSummary & { ville?: string | null }) | null;
+    agence?: (AgenceSummary & {
+        ville?: string | null;
+        logo?: LogoApi | null;
+    }) | null;
 };
 
 export type ListClientOffresFilters = {

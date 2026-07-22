@@ -24,7 +24,7 @@ class OffreController extends Controller
 
     public function index(Request $request): Response
     {
-        $query = Offre::with(['agence:id,nom', 'typeOffre:id,slug,nom,unite_label']);
+        $query = Offre::with(['agence:id,nom', 'agence.logo', 'typeOffre:id,slug,nom,unite_label']);
 
         if ($search = $request->get('search')) {
             $query->where('titre', 'like', "%{$search}%");
