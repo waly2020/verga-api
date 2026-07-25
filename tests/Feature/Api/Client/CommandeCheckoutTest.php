@@ -46,15 +46,14 @@ class CommandeCheckoutTest extends ClientApiTestCase
             'telephone' => '0611111111',
         ]);
 
-        $offre = Offre::create([
-            'agence_id' => $agence->id,
+        $offre = $this->createOffreForAgence($agence, [
             'titre' => 'Groupage Paris',
             'type' => 'particulier',
             'prix' => 2500,
             'capacite_totale' => $capacite,
             'capacite_disponible' => $capacite,
-            'origine' => 'Libreville',
-            'destination' => 'Paris',
+            'depart' => 'Libreville',
+            'arrivee' => 'Paris',
             'statut' => 'active',
         ]);
 
@@ -515,16 +514,15 @@ class CommandeCheckoutTest extends ClientApiTestCase
             'telephone' => '0611111199',
         ]);
 
-        $offre = Offre::create([
-            'agence_id' => $agence->id,
+        $offre = $this->createOffreForAgence($agence, [
             'titre' => 'Offre illimitée',
             'type' => 'particulier',
             'prix' => 2000,
             'capacite_illimitee' => true,
             'capacite_totale' => null,
             'capacite_disponible' => null,
-            'origine' => 'Libreville',
-            'destination' => 'Port-Gentil',
+            'depart' => 'Libreville',
+            'arrivee' => 'Port-Gentil',
             'statut' => 'active',
         ]);
 

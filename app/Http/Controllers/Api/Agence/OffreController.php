@@ -24,11 +24,20 @@ class OffreController extends AgenceApiController
     {
         $query = $this->agence($request)
             ->offres()
-            ->with('typeOffre:id,slug,nom,unite_label')
+            ->with([
+                'typeOffre:id,slug,nom,unite_label',
+                'destination:id,depart,arrivee,montant,commission_pourcentage,appliquer_configuration,actif',
+            ])
             ->latest();
 
         if ($search = $request->get('search')) {
-            $query->where('titre', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search) {
+                $q->where('titre', 'like', "%{$search}%")
+                    ->orWhereHas('destination', function ($dq) use ($search) {
+                        $dq->where('depart', 'like', "%{$search}%")
+                            ->orWhere('arrivee', 'like', "%{$search}%");
+                    });
+            });
         }
 
         if ($statut = $request->get('statut')) {
@@ -44,7 +53,7 @@ class OffreController extends AgenceApiController
     {
         $model = $this->agence($request)
             ->offres()
-            ->with('typeOffre')
+            ->with(['typeOffre', 'destination'])
             ->findOrFail($offre);
 
         return OffreResource::make($model);
@@ -59,7 +68,7 @@ class OffreController extends AgenceApiController
         $offre = $this->agence($request)
             ->offres()
             ->create($data)
-            ->load('typeOffre');
+            ->load(['typeOffre', 'destination']);
 
         return OffreResource::make($offre)
             ->response()
@@ -75,7 +84,7 @@ class OffreController extends AgenceApiController
 
         $model->update($data);
 
-        return OffreResource::make($model->fresh('typeOffre'));
+        return OffreResource::make($model->fresh(['typeOffre', 'destination']));
     }
 
     public function destroy(Request $request, string $offre): JsonResponse

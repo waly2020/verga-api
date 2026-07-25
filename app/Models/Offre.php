@@ -13,6 +13,7 @@ class Offre extends Model
 
     protected $fillable = [
         'agence_id',
+        'destination_id',
         'titre',
         'description',
         'type',
@@ -21,8 +22,6 @@ class Offre extends Model
         'capacite_illimitee',
         'capacite_totale',
         'capacite_disponible',
-        'origine',
-        'destination',
         'date_depart',
         'date_depot_colis',
         'statut',
@@ -48,6 +47,11 @@ class Offre extends Model
     public function agence(): BelongsTo
     {
         return $this->belongsTo(Agence::class);
+    }
+
+    public function destination(): BelongsTo
+    {
+        return $this->belongsTo(Destination::class);
     }
 
     public function typeOffre(): BelongsTo

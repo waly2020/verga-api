@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreOffreRequest;
 use App\Http\Requests\Admin\UpdateOffreRequest;
 use App\Models\Agence;
+use App\Models\Destination;
 use App\Models\Offre;
 use App\Models\TypeOffre;
+use App\Services\DestinationResolver;
 use App\Services\OffreCapaciteService;
 use App\Services\OffreTypeResolver;
 use Illuminate\Http\RedirectResponse;
@@ -20,25 +22,56 @@ class OffreController extends Controller
     public function __construct(
         private readonly OffreTypeResolver $typeResolver,
         private readonly OffreCapaciteService $capacite,
+        private readonly DestinationResolver $destinationResolver,
     ) {}
 
     public function index(Request $request): Response
     {
-        $query = Offre::with(['agence:id,nom', 'typeOffre:id,slug,nom,unite_label']);
+        $query = Offre::with([
+            'agence:id,nom',
+            'agence.logo',
+            'typeOffre:id,slug,nom,unite_label',
+            'destination:id,depart,arrivee,montant,commission_pourcentage,appliquer_configuration,actif',
+        ]);
 
         if ($search = $request->get('search')) {
-            $query->where('titre', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search) {
+                $q->where('titre', 'like', "%{$search}%")
+                    ->orWhereHas('destination', function ($dq) use ($search) {
+                        $dq->where('depart', 'like', "%{$search}%")
+                            ->orWhere('arrivee', 'like', "%{$search}%");
+                    });
+            });
         }
 
         if ($statut = $request->get('statut')) {
             $query->where('statut', $statut);
         }
 
+        $offres = $query->latest()->paginate(15)->withQueryString();
+
+        $destinationIdsOnPage = $offres->getCollection()
+            ->pluck('destination_id')
+            ->filter()
+            ->unique()
+            ->values();
+
         return Inertia::render('admin/offres/index', [
-            'offres' => $query->latest()->paginate(15)->withQueryString(),
+            'offres' => $offres,
             'filters' => $request->only(['search', 'statut']),
             'agences' => Agence::where('statut', 'actif')->orderBy('nom')->get(['id', 'nom']),
             'types_offres' => TypeOffre::query()->actif()->orderBy('nom')->get(),
+            'destinations' => Destination::query()
+                ->where(function ($q) use ($destinationIdsOnPage) {
+                    $q->where('actif', true);
+
+                    if ($destinationIdsOnPage->isNotEmpty()) {
+                        $q->orWhereIn('id', $destinationIdsOnPage);
+                    }
+                })
+                ->orderBy('depart')
+                ->orderBy('arrivee')
+                ->get(['id', 'depart', 'arrivee', 'montant', 'commission_pourcentage', 'appliquer_configuration', 'actif']),
         ]);
     }
 
@@ -46,6 +79,9 @@ class OffreController extends Controller
     {
         $data = $this->typeResolver->resolveForCreate($request->validated());
         $data = $this->capacite->normalizeForCreate($data);
+
+        $destination = Destination::query()->findOrFail($data['destination_id']);
+        $this->destinationResolver->attachToAgence($destination, $data['agence_id']);
 
         Offre::create($data);
 
@@ -56,6 +92,9 @@ class OffreController extends Controller
     {
         $data = $this->typeResolver->resolveForUpdate($request->validated());
         $data = $this->capacite->applyTotaleUpdate($offre, $data);
+
+        $destination = Destination::query()->findOrFail($data['destination_id']);
+        $this->destinationResolver->attachToAgence($destination, $data['agence_id']);
 
         $offre->update($data);
 

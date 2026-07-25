@@ -8,6 +8,8 @@ use App\Models\AgenceUser;
 
 trait CreatesTestAgences
 {
+    use CreatesTestDestinations;
+
     /**
      * @return array{agence: Agence, owner: AgenceUser}
      */

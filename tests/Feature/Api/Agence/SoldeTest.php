@@ -3,7 +3,6 @@
 namespace Tests\Feature\Api\Agence;
 
 use App\Models\Commande;
-use App\Models\Offre;
 use App\Models\Paiement;
 use App\Models\Reversement;
 
@@ -19,15 +18,14 @@ class SoldeTest extends AgenceApiTestCase
     {
         ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
 
-        $offre = Offre::create([
-            'agence_id' => $agence->id,
+        $offre = $this->createOffreForAgence($agence, [
             'titre' => 'Offre solde',
             'type' => 'particulier',
             'prix' => 8750,
             'capacite_totale' => 100,
             'capacite_disponible' => 100,
-            'origine' => 'Chine',
-            'destination' => 'Libreville',
+            'depart' => 'Chine',
+            'arrivee' => 'Libreville',
             'statut' => 'active',
         ]);
 
@@ -88,15 +86,14 @@ class SoldeTest extends AgenceApiTestCase
             'nom' => 'Autre Agence',
         ]);
 
-        $offre = Offre::create([
-            'agence_id' => $agenceB->id,
+        $offre = $this->createOffreForAgence($agenceB, [
             'titre' => 'Offre B',
             'type' => 'particulier',
             'prix' => 8750,
             'capacite_totale' => 100,
             'capacite_disponible' => 100,
-            'origine' => 'Chine',
-            'destination' => 'Libreville',
+            'depart' => 'Chine',
+            'arrivee' => 'Libreville',
             'statut' => 'active',
         ]);
 

@@ -4717,6 +4717,14 @@
                             "ville": {
                                 "type": "string",
                                 "nullable": true
+                            },
+                            "logo": {
+                                "oneOf": [
+                                    {
+                                        "$ref": "#/components/schemas/LogoResource"
+                                    }
+                                ],
+                                "nullable": true
                             }
                         },
                         "type": "object",

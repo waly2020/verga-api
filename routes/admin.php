@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\CollaborateurController;
 use App\Http\Controllers\Admin\CommandeController;
 use App\Http\Controllers\Admin\ConfigurationCommissionController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DestinationController;
 use App\Http\Controllers\Admin\OffreController;
 use App\Http\Controllers\Admin\PaiementController;
 use App\Http\Controllers\Admin\ReclamationController;
@@ -55,6 +56,11 @@ Route::middleware(['auth', 'verified', 'admin'])
         Route::post('types-offres', [TypeOffreController::class, 'store'])->name('types-offres.store');
         Route::patch('types-offres/{typeOffre}', [TypeOffreController::class, 'update'])->name('types-offres.update');
         Route::delete('types-offres/{typeOffre}', [TypeOffreController::class, 'destroy'])->name('types-offres.destroy');
+
+        Route::get('destinations', [DestinationController::class, 'index'])->name('destinations.index');
+        Route::post('destinations', [DestinationController::class, 'store'])->name('destinations.store');
+        Route::patch('destinations/{destination}', [DestinationController::class, 'update'])->name('destinations.update');
+        Route::delete('destinations/{destination}', [DestinationController::class, 'destroy'])->name('destinations.destroy');
 
         Route::get('commandes', [CommandeController::class, 'index'])->name('commandes.index');
         Route::get('commandes/{commande}', [CommandeController::class, 'show'])->name('commandes.show');

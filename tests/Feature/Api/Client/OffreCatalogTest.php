@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api\Client;
 
+use App\Models\Logo;
 use App\Models\Offre;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -10,7 +11,7 @@ class OffreCatalogTest extends ClientApiTestCase
 {
     use RefreshDatabase;
 
-    private function createOffre(array $attributes = []): Offre
+    private function createOffre(array $attributes = [], bool $withLogo = false): Offre
     {
         static $counter = 0;
         $counter++;
@@ -21,23 +22,34 @@ class OffreCatalogTest extends ClientApiTestCase
             'telephone' => '0611111111',
         ]);
 
-        return Offre::create(array_merge([
-            'agence_id' => $agence->id,
+        if ($withLogo) {
+            Logo::create([
+                'agence_id' => $agence->id,
+                'chemin' => "logos/{$agence->id}/logo.png",
+                'nom_original' => 'logo.png',
+            ]);
+        }
+
+        $depart = $attributes['depart'] ?? $attributes['origine'] ?? 'Libreville';
+        $arrivee = $attributes['arrivee'] ?? $attributes['destination'] ?? 'Paris';
+        unset($attributes['destination'], $attributes['origine'], $attributes['depart'], $attributes['arrivee']);
+
+        return $this->createOffreForAgence($agence, array_merge([
             'titre' => 'Groupage Paris',
             'type' => 'particulier',
             'prix' => 2500,
             'capacite_totale' => 1000,
             'capacite_disponible' => 500,
-            'origine' => 'Libreville',
-            'destination' => 'Paris',
             'statut' => 'active',
+            'depart' => $depart,
+            'arrivee' => $arrivee,
         ], $attributes));
     }
 
     public function test_lists_active_offres_with_pagination(): void
     {
         $this->createOffre(['titre' => 'Offre A']);
-        $this->createOffre(['titre' => 'Offre B', 'destination' => 'Lyon']);
+        $this->createOffre(['titre' => 'Offre B', 'arrivee' => 'Lyon']);
 
         $response = $this->getJson('/api/v1/client/offres?per_page=1')
             ->assertOk()
@@ -52,13 +64,25 @@ class OffreCatalogTest extends ClientApiTestCase
                     'prix',
                     'capacite_totale',
                     'capacite_disponible',
-                    'origine',
-                    'destination',
+                    'destination_id',
+                    'destination' => [
+                        'id',
+                        'depart',
+                        'arrivee',
+                        'montant',
+                        'commission_pourcentage',
+                        'appliquer_configuration',
+                    ],
                     'date_depart',
                     'date_depot_colis',
                     'statut',
                     'created_at',
-                    'agence',
+                    'agence' => [
+                        'id',
+                        'nom',
+                        'ville',
+                        'logo',
+                    ],
                 ]],
                 'links',
                 'meta' => ['current_page', 'last_page', 'per_page', 'total'],
@@ -67,11 +91,52 @@ class OffreCatalogTest extends ClientApiTestCase
         $this->assertEquals(2, $response->json('meta.total'));
     }
 
+    public function test_includes_agence_logo_when_present(): void
+    {
+        $offre = $this->createOffre(['titre' => 'Offre logo'], withLogo: true);
+
+        $response = $this->getJson('/api/v1/client/offres')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $offre->id)
+            ->assertJsonPath('data.0.agence.logo.chemin', "logos/{$offre->agence_id}/logo.png")
+            ->assertJsonPath('data.0.agence.logo.nom_original', 'logo.png');
+
+        $this->assertStringContainsString(
+            "logos/{$offre->agence_id}/logo.png",
+            (string) $response->json('data.0.agence.logo.url'),
+        );
+    }
+
+    public function test_agence_logo_is_null_when_missing(): void
+    {
+        $this->createOffre(['titre' => 'Sans logo']);
+
+        $this->getJson('/api/v1/client/offres')
+            ->assertOk()
+            ->assertJsonPath('data.0.agence.logo', null);
+    }
+
     public function test_excludes_inactive_or_empty_stock_offres(): void
     {
         $active = $this->createOffre();
         $this->createOffre(['statut' => 'inactive']);
         $this->createOffre(['capacite_disponible' => 0, 'titre' => 'Pleine']);
+
+        $this->getJson('/api/v1/client/offres')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $active->id);
+    }
+
+    public function test_excludes_offres_with_inactive_destination(): void
+    {
+        $active = $this->createOffre(['titre' => 'Visible']);
+        $hidden = $this->createOffre([
+            'titre' => 'Cachée',
+            'depart' => 'inactive-dep',
+            'arrivee' => 'inactive-arr',
+        ]);
+        $hidden->destination->update(['actif' => false]);
 
         $this->getJson('/api/v1/client/offres')
             ->assertOk()
@@ -100,7 +165,7 @@ class OffreCatalogTest extends ClientApiTestCase
     public function test_filters_by_search(): void
     {
         $match = $this->createOffre(['titre' => 'Express Douala']);
-        $this->createOffre(['titre' => 'Autre trajet', 'destination' => 'Marseille']);
+        $this->createOffre(['titre' => 'Autre trajet', 'arrivee' => 'Marseille']);
 
         $this->getJson('/api/v1/client/offres?search=Douala')
             ->assertOk()
@@ -110,8 +175,8 @@ class OffreCatalogTest extends ClientApiTestCase
 
     public function test_filters_by_destination(): void
     {
-        $paris = $this->createOffre(['destination' => 'Paris']);
-        $this->createOffre(['destination' => 'Lyon']);
+        $paris = $this->createOffre(['arrivee' => 'Paris']);
+        $this->createOffre(['arrivee' => 'Lyon']);
 
         $this->getJson('/api/v1/client/offres?destination=Paris')
             ->assertOk()

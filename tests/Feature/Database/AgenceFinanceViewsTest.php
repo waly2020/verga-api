@@ -4,7 +4,6 @@ namespace Tests\Feature\Database;
 
 use App\Models\Agence;
 use App\Models\Commande;
-use App\Models\Offre;
 use App\Models\Paiement;
 use App\Models\Reversement;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -152,15 +151,14 @@ class AgenceFinanceViewsTest extends TestCase
 
     private function createCommande(Agence $agence): Commande
     {
-        $offre = Offre::create([
-            'agence_id' => $agence->id,
+        $offre = $this->createOffreForAgence($agence, [
             'titre' => 'Offre views',
             'type' => 'particulier',
             'prix' => 8750,
             'capacite_totale' => 100,
             'capacite_disponible' => 100,
-            'origine' => 'Chine',
-            'destination' => 'Libreville',
+            'depart' => 'Chine',
+            'arrivee' => 'Libreville',
             'statut' => 'active',
         ]);
 

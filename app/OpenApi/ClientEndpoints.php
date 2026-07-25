@@ -13,16 +13,16 @@ class ClientEndpoints
         description: 'Catalogue public des offres actives avec capacité disponible > 0. Aucune authentification requise.
 
 Filtres disponibles :
-- `search` : titre, origine, destination, description
-- `destination` : filtre sur la destination (partiel)
+- `search` : titre, départ/arrivée destination, description
+- `destination` : filtre sur départ ou arrivée (partiel)
 - `type` : particulier, metre_cube, conteneur (legacy)
 - `type_offre_id` : UUID du type d\'offre (recommandé)
 - `date_debut` / `date_fin` : plage de dates de publication (`created_at`, format `YYYY-MM-DD`)
 - `page` / `per_page` : pagination (défaut 15, max 100)',
         tags: ['Client - Offres'],
         parameters: [
-            new OA\QueryParameter(name: 'search', description: 'Recherche titre, origine, destination, description', schema: new OA\Schema(type: 'string', example: 'Paris')),
-            new OA\QueryParameter(name: 'destination', description: 'Filtre destination (correspondance partielle)', schema: new OA\Schema(type: 'string', example: 'Libreville')),
+            new OA\QueryParameter(name: 'search', description: 'Recherche titre, départ/arrivée, description', schema: new OA\Schema(type: 'string', example: 'Paris')),
+            new OA\QueryParameter(name: 'destination', description: 'Filtre départ ou arrivée (correspondance partielle)', schema: new OA\Schema(type: 'string', example: 'Libreville')),
             new OA\QueryParameter(name: 'type', schema: new OA\Schema(type: 'string', enum: ['particulier', 'metre_cube', 'conteneur'])),
             new OA\QueryParameter(name: 'type_offre_id', description: 'Filtre par type d\'offre (UUID)', schema: new OA\Schema(type: 'string', format: 'uuid')),
             new OA\QueryParameter(name: 'date_debut', description: 'Date de publication minimum (inclus)', schema: new OA\Schema(type: 'string', format: 'date', example: '2026-06-01')),

@@ -56,7 +56,11 @@
     @if($offre)
         <h2>Offre</h2>
         <p><strong>{{ $offre['titre'] }}</strong></p>
-        <p class="muted">{{ $offre['origine'] }} → {{ $offre['destination'] }}</p>
+        <p class="muted">
+            @if(!empty($offre['destination']))
+                {{ $offre['destination']['depart'] }} → {{ $offre['destination']['arrivee'] }}
+            @endif
+        </p>
         <p>Prix unitaire : {{ number_format($offre['prix'], 0, ',', ' ') }} FCFA</p>
     @endif
 

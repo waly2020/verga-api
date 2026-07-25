@@ -4,7 +4,6 @@ namespace Tests\Unit\Services;
 
 use App\Models\Commande;
 use App\Models\ConfigurationCommission;
-use App\Models\Offre;
 use App\Models\Paiement;
 use App\Services\PaymentSettlementService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -24,15 +23,14 @@ class PaymentSettlementServiceTest extends TestCase
             'telephone' => '0611111111',
         ]);
 
-        $offre = Offre::create([
-            'agence_id' => $agence->id,
+        $offre = $this->createOffreForAgence($agence, [
             'titre' => 'Groupage Paris',
             'type' => 'particulier',
             'prix' => 2500,
             'capacite_totale' => 100,
             'capacite_disponible' => 100,
-            'origine' => 'Libreville',
-            'destination' => 'Paris',
+            'depart' => 'Libreville',
+            'arrivee' => 'Paris',
             'statut' => 'active',
         ]);
 
@@ -173,6 +171,78 @@ class PaymentSettlementServiceTest extends TestCase
             'id' => $paiement->id,
             'montant_commission_agence' => 0,
             'montant_agence' => 25000,
+        ]);
+    }
+
+    public function test_completed_payment_uses_destination_commission_over_global(): void
+    {
+        ConfigurationCommission::create([
+            'destinataire' => 'agence',
+            'type' => 'pourcentage',
+            'valeur' => 5,
+            'actif' => true,
+            'libelle' => 'Commission agence globale',
+        ]);
+
+        ['agence' => $agence] = $this->createTestAgence([
+            'nom' => 'Transit Dest',
+            'email' => 'dest@test.com',
+            'telephone' => '0611111112',
+        ]);
+
+        $destination = $this->createDestination([
+            'depart' => 'france',
+            'arrivee' => 'gabon',
+            'appliquer_configuration' => true,
+            'montant' => 8500,
+            'commission_pourcentage' => 2.5,
+        ], $agence);
+
+        $offre = $this->createOffreForAgence($agence, [
+            'destination_id' => $destination->id,
+            'titre' => 'Offre France Gabon',
+            'type' => 'particulier',
+            'prix' => 8500,
+            'capacite_totale' => 100,
+            'capacite_disponible' => 100,
+            'statut' => 'active',
+        ]);
+
+        $commande = Commande::create([
+            'offre_id' => $offre->id,
+            'agence_id' => $agence->id,
+            'code' => 'CMD-DEST-001',
+            'nom' => 'Test',
+            'prenom' => 'User',
+            'telephone' => '0612345678',
+            'quantite' => 10,
+            'quantite_payee' => 0,
+            'montant_sous_total' => 0,
+            'montant_commission_client' => 0,
+            'montant_total' => 0,
+            'capacite_bloquee' => false,
+            'statut' => 'en_attente',
+        ]);
+
+        $paiement = Paiement::create([
+            'commande_id' => $commande->id,
+            'code' => 'PAY-DEST-001',
+            'quantite' => 10,
+            'montant_sous_total' => 85000,
+            'montant_commission_client' => 0,
+            'montant' => 85000,
+            'methode' => 'bamboo_redirect',
+            'statut' => 'en_attente',
+        ]);
+
+        app(PaymentSettlementService::class)
+            ->settleFromBambooStatus($paiement, 'completed');
+
+        $this->assertDatabaseHas('paiements', [
+            'id' => $paiement->id,
+            'statut' => 'validé',
+            'montant_commission_agence' => 2125,
+            'montant_agence' => 82875,
         ]);
     }
 }

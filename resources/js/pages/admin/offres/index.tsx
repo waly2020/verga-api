@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { Pencil, PlusCircle, Trash2 } from 'lucide-react';
+import { Building2, Pencil, PlusCircle, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { ConfirmDialog } from '@/components/admin/confirm-dialog';
 import { DataTable } from '@/components/admin/data-table';
@@ -9,7 +9,7 @@ import { OffreFormDialog } from '@/components/admin/offre-form-dialog';
 import { StatusBadge } from '@/components/admin/status-badge';
 import { Button } from '@/components/ui/button';
 import admin from '@/routes/admin';
-import type { AgenceSummary, OffreRow, Paginated, TypeOffreApi } from '@/types';
+import type { AgenceSummary, DestinationSummary, OffreRow, Paginated, TypeOffreApi } from '@/types';
 
 const TYPE_LABELS: Record<string, string> = {
     particulier: 'Au kg',
@@ -21,16 +21,50 @@ function typeLabel(row: OffreRow): string {
     return row.type_offre?.nom ?? TYPE_LABELS[row.type] ?? row.type;
 }
 
+function trajetLabel(row: OffreRow): string {
+    if (!row.destination) {
+        return '—';
+    }
+
+    return `${row.destination.depart} → ${row.destination.arrivee}`;
+}
+
 interface Props {
     offres: Paginated<OffreRow>;
     filters: { search?: string; statut?: string };
     agences: AgenceSummary[];
     types_offres: TypeOffreApi[];
+    destinations: DestinationSummary[];
 }
 
 const columns: Column<OffreRow>[] = [
     { key: 'titre', label: 'Offre', render: (r) => <span className="font-medium">{r.titre}</span> },
-    { key: 'agence', label: 'Agence', render: (r) => r.agence?.nom ?? '—' },
+    {
+        key: 'agence',
+        label: 'Agence',
+        render: (r) => {
+            if (!r.agence) {
+                return '—';
+            }
+
+            return (
+                <div className="flex items-center gap-2">
+                    {r.agence.logo?.url ? (
+                        <img
+                            src={r.agence.logo.url}
+                            alt={`Logo ${r.agence.nom}`}
+                            className="h-8 w-8 rounded-md border object-cover"
+                        />
+                    ) : (
+                        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
+                            <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                        </div>
+                    )}
+                    <span>{r.agence.nom}</span>
+                </div>
+            );
+        },
+    },
     { key: 'type', label: 'Type', render: (r) => typeLabel(r) },
     { key: 'prix', label: 'Prix', render: (r) => `${Number(r.prix).toLocaleString('fr-FR')} FCFA` },
     {
@@ -52,8 +86,7 @@ const columns: Column<OffreRow>[] = [
             </span>
         ),
     },
-    { key: 'origine', label: 'Origine' },
-    { key: 'destination', label: 'Destination' },
+    { key: 'destination', label: 'Trajet', render: (r) => trajetLabel(r) },
     { key: 'statut', label: 'Statut', render: (r) => <StatusBadge status={r.statut} /> },
 ];
 
@@ -63,7 +96,7 @@ const filterOptions = [
     { label: 'Archivée', value: 'archivée' },
 ];
 
-export default function OffresIndex({ offres, filters, agences, types_offres }: Props) {
+export default function OffresIndex({ offres, filters, agences, types_offres, destinations }: Props) {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editing, setEditing] = useState<OffreRow | null>(null);
 
@@ -158,6 +191,7 @@ export default function OffresIndex({ offres, filters, agences, types_offres }: 
                 onOpenChange={handleDialogOpenChange}
                 agences={agences}
                 typesOffres={types_offres}
+                destinations={destinations}
                 offre={editing}
             />
         </>

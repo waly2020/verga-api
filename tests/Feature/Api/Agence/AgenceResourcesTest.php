@@ -5,25 +5,235 @@ namespace Tests\Feature\Api\Agence;
 use App\Models\Colis;
 use App\Models\ColisPhoto;
 use App\Models\Commande;
+use App\Models\Destination;
 use App\Models\Offre;
 use App\Models\Paiement;
 use App\Models\TypeOffre;
 
 class AgenceResourcesTest extends AgenceApiTestCase
 {
+    public function test_agence_can_list_and_create_destinations(): void
+    {
+        ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
+
+        $attached = $this->createDestination([
+            'depart' => 'chine',
+            'arrivee' => 'libreville',
+        ], $agence);
+
+        $global = $this->createDestination([
+            'depart' => 'france',
+            'arrivee' => 'gabon',
+            'appliquer_configuration' => true,
+            'montant' => 8500,
+            'commission_pourcentage' => 2.5,
+        ]);
+
+        $inactive = $this->createDestination([
+            'depart' => 'inactive',
+            'arrivee' => 'ville',
+            'actif' => false,
+        ]);
+
+        $this->withAgenceToken($token)
+            ->getJson('/api/v1/agence/destinations')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonStructure([
+                'data' => [[
+                    'id',
+                    'depart',
+                    'arrivee',
+                    'montant',
+                    'commission_pourcentage',
+                    'appliquer_configuration',
+                    'actif',
+                    'rattachee',
+                ]],
+            ])
+            ->assertJsonFragment(['id' => $attached->id, 'rattachee' => true])
+            ->assertJsonFragment(['id' => $global->id, 'rattachee' => false])
+            ->assertJsonMissing(['id' => $inactive->id]);
+
+        $this->withAgenceToken($token)
+            ->postJson('/api/v1/agence/destinations', [
+                'depart' => 'France',
+                'arrivee' => 'Port-Gentil',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.depart', 'france')
+            ->assertJsonPath('data.arrivee', 'port-gentil')
+            ->assertJsonPath('data.appliquer_configuration', false)
+            ->assertJsonPath('data.rattachee', true);
+
+        $this->assertDatabaseHas('destinations', [
+            'depart' => 'france',
+            'arrivee' => 'port-gentil',
+        ]);
+
+        $this->withAgenceToken($token)
+            ->getJson('/api/v1/agence/destinations')
+            ->assertOk()
+            ->assertJsonCount(3, 'data');
+    }
+
+    public function test_agence_can_list_destinations_paginated(): void
+    {
+        ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
+
+        $this->createDestination(['depart' => 'a', 'arrivee' => 'b'], $agence);
+        $this->createDestination(['depart' => 'c', 'arrivee' => 'd']);
+        $this->createDestination(['depart' => 'e', 'arrivee' => 'f']);
+
+        $this->withAgenceToken($token)
+            ->getJson('/api/v1/agence/destinations/paginated?per_page=2')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('meta.per_page', 2)
+            ->assertJsonPath('meta.total', 3)
+            ->assertJsonStructure([
+                'data' => [['id', 'depart', 'arrivee', 'rattachee']],
+                'links',
+                'meta',
+            ]);
+    }
+
+    public function test_agence_destination_creation_deduplicates_and_attaches(): void
+    {
+        ['agence' => $agenceA, 'token' => $tokenA] = $this->createAuthenticatedAgence([
+            'email' => 'agence-a@test.com',
+        ]);
+        ['agence' => $agenceB, 'token' => $tokenB] = $this->createAuthenticatedAgence([
+            'email' => 'agence-b@test.com',
+        ]);
+
+        $existing = $this->createDestination([
+            'depart' => 'france',
+            'arrivee' => 'gabon',
+            'appliquer_configuration' => true,
+            'montant' => 8500,
+            'commission_pourcentage' => 2.5,
+        ], $agenceA);
+
+        $this->withAgenceToken($tokenB)
+            ->postJson('/api/v1/agence/destinations', [
+                'depart' => 'France',
+                'arrivee' => 'Gabon',
+                'appliquer_configuration' => true,
+                'montant' => 1,
+                'commission_pourcentage' => 99,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.id', $existing->id)
+            ->assertJsonPath('data.appliquer_configuration', true)
+            ->assertJsonPath('data.montant', 8500);
+
+        $this->assertSame(1, Destination::query()->where('depart', 'france')->where('arrivee', 'gabon')->count());
+        $this->assertTrue($existing->fresh()->agences()->where('agences.id', $agenceB->id)->exists());
+    }
+
+    public function test_agence_can_create_offre_with_global_destination_and_auto_attaches(): void
+    {
+        ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
+        $global = $this->createDestination([
+            'depart' => 'tokyo',
+            'arrivee' => 'libreville',
+        ]);
+
+        $this->withAgenceToken($token)
+            ->postJson('/api/v1/agence/offres', [
+                'destination_id' => $global->id,
+                'titre' => 'Offre globale',
+                'type' => 'particulier',
+                'prix' => 1000,
+                'capacite_totale' => 10,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.destination_id', $global->id);
+
+        $this->assertTrue($global->fresh()->agences()->where('agences.id', $agence->id)->exists());
+    }
+
+    public function test_agence_cannot_create_offre_with_inactive_destination(): void
+    {
+        ['token' => $token] = $this->createAuthenticatedAgence();
+        $inactive = $this->createDestination([
+            'depart' => 'tokyo',
+            'arrivee' => 'libreville',
+            'actif' => false,
+        ]);
+
+        $this->withAgenceToken($token)
+            ->postJson('/api/v1/agence/offres', [
+                'destination_id' => $inactive->id,
+                'titre' => 'Offre interdite',
+                'type' => 'particulier',
+                'prix' => 1000,
+                'capacite_totale' => 10,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['destination_id']);
+    }
+
+    public function test_agence_cannot_attach_inactive_destination_via_store(): void
+    {
+        ['token' => $token] = $this->createAuthenticatedAgence();
+
+        $this->createDestination([
+            'depart' => 'france',
+            'arrivee' => 'gabon',
+            'actif' => false,
+        ]);
+
+        $this->withAgenceToken($token)
+            ->postJson('/api/v1/agence/destinations', [
+                'depart' => 'France',
+                'arrivee' => 'Gabon',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['depart']);
+    }
+
+    public function test_agence_forces_prix_when_destination_has_configuration(): void
+    {
+        ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
+        $destination = $this->createDestination([
+            'depart' => 'chine',
+            'arrivee' => 'libreville',
+            'appliquer_configuration' => true,
+            'montant' => 8750,
+            'commission_pourcentage' => 10,
+        ], $agence);
+
+        $this->withAgenceToken($token)
+            ->postJson('/api/v1/agence/offres', [
+                'destination_id' => $destination->id,
+                'titre' => 'Offre forcée',
+                'type' => 'particulier',
+                'prix' => 1,
+                'capacite_totale' => 100,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.prix', 8750);
+
+        $this->assertDatabaseHas('offres', [
+            'titre' => 'Offre forcée',
+            'prix' => 8750,
+        ]);
+    }
+
     public function test_agence_can_list_and_create_offres(): void
     {
         ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
 
-        Offre::create([
-            'agence_id' => $agence->id,
+        $this->createOffreForAgence($agence, [
             'titre' => 'Offre existante',
             'type' => 'particulier',
             'prix' => 8750,
             'capacite_totale' => 1000,
             'capacite_disponible' => 1000,
-            'origine' => 'Chine',
-            'destination' => 'Libreville',
+            'depart' => 'Chine',
+            'arrivee' => 'Libreville',
             'statut' => 'active',
         ]);
 
@@ -41,31 +251,44 @@ class AgenceResourcesTest extends AgenceApiTestCase
                     'prix',
                     'capacite_totale',
                     'capacite_disponible',
-                    'origine',
-                    'destination',
+                    'destination_id',
+                    'destination' => [
+                        'id',
+                        'depart',
+                        'arrivee',
+                        'montant',
+                        'commission_pourcentage',
+                        'appliquer_configuration',
+                    ],
                     'statut',
                     'created_at',
                     'updated_at',
                 ]],
             ]);
 
+        $destination = $this->createDestination([
+            'depart' => 'france',
+            'arrivee' => 'libreville',
+        ], $agence);
+
         $this->withAgenceToken($token)
             ->postJson('/api/v1/agence/offres', [
+                'destination_id' => $destination->id,
                 'titre' => 'Nouvelle offre',
                 'type' => 'conteneur',
                 'prix' => 225000,
                 'capacite_totale' => 1,
-                'origine' => 'France',
-                'destination' => 'Libreville',
                 'description' => 'Conteneur complet',
             ])
             ->assertCreated()
             ->assertJsonPath('data.titre', 'Nouvelle offre')
             ->assertJsonPath('data.type', 'conteneur')
-            ->assertJsonStructure(['data' => ['type_offre_id', 'type_offre']]);
+            ->assertJsonPath('data.destination_id', $destination->id)
+            ->assertJsonStructure(['data' => ['type_offre_id', 'type_offre', 'destination']]);
 
         $this->assertDatabaseHas('offres', [
             'agence_id' => $agence->id,
+            'destination_id' => $destination->id,
             'titre' => 'Nouvelle offre',
             'type' => 'conteneur',
         ]);
@@ -76,22 +299,27 @@ class AgenceResourcesTest extends AgenceApiTestCase
         ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
 
         $typeOffre = TypeOffre::query()->where('slug', 'metre_cube')->firstOrFail();
+        $destination = $this->createDestination([
+            'depart' => 'libreville',
+            'arrivee' => 'paris',
+        ], $agence);
 
         $this->withAgenceToken($token)
             ->postJson('/api/v1/agence/offres', [
+                'destination_id' => $destination->id,
                 'titre' => 'Offre m³',
                 'type_offre_id' => $typeOffre->id,
                 'prix' => 15000,
                 'capacite_totale' => 50,
-                'origine' => 'Libreville',
-                'destination' => 'Paris',
             ])
             ->assertCreated()
             ->assertJsonPath('data.type', 'metre_cube')
-            ->assertJsonPath('data.type_offre_id', $typeOffre->id);
+            ->assertJsonPath('data.type_offre_id', $typeOffre->id)
+            ->assertJsonPath('data.destination_id', $destination->id);
 
         $this->assertDatabaseHas('offres', [
             'agence_id' => $agence->id,
+            'destination_id' => $destination->id,
             'titre' => 'Offre m³',
             'type' => 'metre_cube',
             'type_offre_id' => $typeOffre->id,
@@ -102,14 +330,18 @@ class AgenceResourcesTest extends AgenceApiTestCase
     {
         ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
 
+        $destination = $this->createDestination([
+            'depart' => 'libreville',
+            'arrivee' => 'port-gentil',
+        ], $agence);
+
         $this->withAgenceToken($token)
             ->postJson('/api/v1/agence/offres', [
+                'destination_id' => $destination->id,
                 'titre' => '2000 F / colis Port-Gentil',
                 'type' => 'particulier',
                 'prix' => 2000,
                 'capacite_illimitee' => true,
-                'origine' => 'Libreville',
-                'destination' => 'Port-Gentil',
                 'date_depart' => '2026-07-20',
                 'date_depot_colis' => '2026-07-19',
             ])
@@ -118,10 +350,12 @@ class AgenceResourcesTest extends AgenceApiTestCase
             ->assertJsonPath('data.capacite_totale', null)
             ->assertJsonPath('data.capacite_disponible', null)
             ->assertJsonPath('data.date_depart', '2026-07-20')
-            ->assertJsonPath('data.date_depot_colis', '2026-07-19');
+            ->assertJsonPath('data.date_depot_colis', '2026-07-19')
+            ->assertJsonPath('data.destination_id', $destination->id);
 
         $this->assertDatabaseHas('offres', [
             'agence_id' => $agence->id,
+            'destination_id' => $destination->id,
             'titre' => '2000 F / colis Port-Gentil',
             'capacite_illimitee' => true,
             'capacite_totale' => null,
@@ -137,26 +371,29 @@ class AgenceResourcesTest extends AgenceApiTestCase
     {
         ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
 
-        $offre = Offre::create([
-            'agence_id' => $agence->id,
+        $offre = $this->createOffreForAgence($agence, [
             'titre' => 'Offre initiale',
             'type' => 'particulier',
             'prix' => 8750,
             'capacite_totale' => 1000,
             'capacite_disponible' => 800,
-            'origine' => 'Chine',
-            'destination' => 'Libreville',
+            'depart' => 'Chine',
+            'arrivee' => 'Libreville',
             'statut' => 'active',
         ]);
 
+        $newDestination = $this->createDestination([
+            'depart' => 'france',
+            'arrivee' => 'port-gentil',
+        ], $agence);
+
         $this->withAgenceToken($token)
             ->patchJson("/api/v1/agence/offres/{$offre->id}", [
+                'destination_id' => $newDestination->id,
                 'titre' => 'Offre mise à jour',
                 'type' => 'particulier',
                 'prix' => 9000,
                 'capacite_totale' => 1200,
-                'origine' => 'France',
-                'destination' => 'Port-Gentil',
                 'description' => 'Nouvelle description',
                 'statut' => 'inactive',
             ])
@@ -164,10 +401,12 @@ class AgenceResourcesTest extends AgenceApiTestCase
             ->assertJsonPath('data.titre', 'Offre mise à jour')
             ->assertJsonPath('data.capacite_totale', 1200)
             ->assertJsonPath('data.capacite_disponible', 1000)
-            ->assertJsonPath('data.statut', 'inactive');
+            ->assertJsonPath('data.statut', 'inactive')
+            ->assertJsonPath('data.destination_id', $newDestination->id);
 
         $this->assertDatabaseHas('offres', [
             'id' => $offre->id,
+            'destination_id' => $newDestination->id,
             'titre' => 'Offre mise à jour',
             'capacite_disponible' => 1000,
         ]);
@@ -177,26 +416,24 @@ class AgenceResourcesTest extends AgenceApiTestCase
     {
         ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
 
-        $offre = Offre::create([
-            'agence_id' => $agence->id,
+        $offre = $this->createOffreForAgence($agence, [
             'titre' => 'Offre stock partiel',
             'type' => 'particulier',
             'prix' => 8750,
             'capacite_totale' => 1000,
             'capacite_disponible' => 700,
-            'origine' => 'Chine',
-            'destination' => 'Libreville',
+            'depart' => 'Chine',
+            'arrivee' => 'Libreville',
             'statut' => 'active',
         ]);
 
         $this->withAgenceToken($token)
             ->patchJson("/api/v1/agence/offres/{$offre->id}", [
+                'destination_id' => $offre->destination_id,
                 'titre' => 'Offre stock partiel',
                 'type' => 'particulier',
                 'prix' => 8750,
                 'capacite_totale' => 200,
-                'origine' => 'Chine',
-                'destination' => 'Libreville',
                 'statut' => 'active',
             ])
             ->assertUnprocessable()
@@ -207,15 +444,14 @@ class AgenceResourcesTest extends AgenceApiTestCase
     {
         ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
 
-        $offre = Offre::create([
-            'agence_id' => $agence->id,
+        $offre = $this->createOffreForAgence($agence, [
             'titre' => 'À supprimer',
             'type' => 'particulier',
             'prix' => 1000,
             'capacite_totale' => 100,
             'capacite_disponible' => 100,
-            'origine' => 'A',
-            'destination' => 'B',
+            'depart' => 'A',
+            'arrivee' => 'B',
             'statut' => 'active',
         ]);
 
@@ -232,15 +468,14 @@ class AgenceResourcesTest extends AgenceApiTestCase
         ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
         $client = $this->createClient();
 
-        $offre = Offre::create([
-            'agence_id' => $agence->id,
+        $offre = $this->createOffreForAgence($agence, [
             'titre' => 'Offre liée',
             'type' => 'particulier',
             'prix' => 1000,
             'capacite_totale' => 100,
             'capacite_disponible' => 100,
-            'origine' => 'A',
-            'destination' => 'B',
+            'depart' => 'A',
+            'arrivee' => 'B',
             'statut' => 'active',
         ]);
 
@@ -272,15 +507,14 @@ class AgenceResourcesTest extends AgenceApiTestCase
             'telephone' => '0699999999',
         ]);
 
-        $offre = Offre::create([
-            'agence_id' => $otherAgence->id,
+        $offre = $this->createOffreForAgence($otherAgence, [
             'titre' => 'Offre privée',
             'type' => 'particulier',
             'prix' => 1000,
             'capacite_totale' => 100,
             'capacite_disponible' => 100,
-            'origine' => 'Chine',
-            'destination' => 'Libreville',
+            'depart' => 'Chine',
+            'arrivee' => 'Libreville',
             'statut' => 'active',
         ]);
 
@@ -294,15 +528,14 @@ class AgenceResourcesTest extends AgenceApiTestCase
         ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
 
         $client = $this->createClient();
-        $offre = Offre::create([
-            'agence_id' => $agence->id,
+        $offre = $this->createOffreForAgence($agence, [
             'titre' => 'Offre test',
             'type' => 'particulier',
             'prix' => 8750,
             'capacite_totale' => 1000,
             'capacite_disponible' => 1000,
-            'origine' => 'Chine',
-            'destination' => 'Libreville',
+            'depart' => 'Chine',
+            'arrivee' => 'Libreville',
             'statut' => 'active',
         ]);
 
@@ -342,15 +575,14 @@ class AgenceResourcesTest extends AgenceApiTestCase
     {
         ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
 
-        $offre = Offre::create([
-            'agence_id' => $agence->id,
+        $offre = $this->createOffreForAgence($agence, [
             'titre' => 'Offre invité',
             'type' => 'particulier',
             'prix' => 5000,
             'capacite_totale' => 100,
             'capacite_disponible' => 100,
-            'origine' => 'Paris',
-            'destination' => 'Libreville',
+            'depart' => 'Paris',
+            'arrivee' => 'Libreville',
             'statut' => 'active',
         ]);
 
@@ -387,15 +619,14 @@ class AgenceResourcesTest extends AgenceApiTestCase
         ['agence' => $agence, 'user' => $user, 'token' => $token] = $this->createAuthenticatedAgence();
 
         $client = $this->createClient();
-        $offre = Offre::create([
-            'agence_id' => $agence->id,
+        $offre = $this->createOffreForAgence($agence, [
             'titre' => 'Offre colis',
             'type' => 'particulier',
             'prix' => 8750,
             'capacite_totale' => 1000,
             'capacite_disponible' => 1000,
-            'origine' => 'Chine',
-            'destination' => 'Libreville',
+            'depart' => 'Chine',
+            'arrivee' => 'Libreville',
             'statut' => 'active',
         ]);
 
@@ -488,15 +719,14 @@ class AgenceResourcesTest extends AgenceApiTestCase
         ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
 
         $client = $this->createClient();
-        $offre = Offre::create([
-            'agence_id' => $agence->id,
+        $offre = $this->createOffreForAgence($agence, [
             'titre' => 'Offre paiement',
             'type' => 'particulier',
             'prix' => 8750,
             'capacite_totale' => 1000,
             'capacite_disponible' => 1000,
-            'origine' => 'Chine',
-            'destination' => 'Libreville',
+            'depart' => 'Chine',
+            'arrivee' => 'Libreville',
             'statut' => 'active',
         ]);
 

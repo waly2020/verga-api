@@ -175,18 +175,23 @@ class PaymentSettlementService
 
     private function markCompleted(Paiement $paiement, ?string $bambooMessage = null): void
     {
-        $this->updatePaiementStatut(
-            $paiement,
-            'validé',
-            $bambooMessage,
-            $this->agenceAmounts->calculate((float) $paiement->montant_sous_total),
-        );
-
         /** @var Commande $commande */
         $commande = Commande::query()
             ->whereKey($paiement->commande_id)
             ->lockForUpdate()
             ->firstOrFail();
+
+        $commande->load('offre.destination');
+
+        $this->updatePaiementStatut(
+            $paiement,
+            'validé',
+            $bambooMessage,
+            $this->agenceAmounts->calculate(
+                (float) $paiement->montant_sous_total,
+                $commande->offre,
+            ),
+        );
 
         if ($commande->statut === 'confirmée') {
             return;

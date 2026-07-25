@@ -1,4 +1,5 @@
-import type { AgenceSummary, OffreStatut, OffreType } from './common';
+import type { AgenceSummary, LogoApi, OffreStatut, OffreType } from './common';
+import type { DestinationSummary } from './destination';
 import type { TypeOffreApi, TypeOffreSummary } from './type-offre';
 
 export type OffreCapacite = {
@@ -10,14 +11,14 @@ export type OffreCapacite = {
 export type OffreRow = OffreCapacite & {
     id: string;
     agence_id: string;
+    destination_id: string;
     titre: string;
-    agence: AgenceSummary | null;
+    agence: (AgenceSummary & { logo?: LogoApi | null }) | null;
     type: OffreType | string;
     type_offre_id?: string | null;
     type_offre?: TypeOffreSummary | null;
+    destination?: DestinationSummary | null;
     prix: string;
-    origine: string;
-    destination: string;
     date_depart?: string | null;
     date_depot_colis?: string | null;
     statut: OffreStatut | string;
@@ -36,8 +37,7 @@ export type OffreSummary = {
 
 export type OffreInfo = OffreSummary &
     OffreCapacite & {
-        origine: string | null;
-        destination: string | null;
+        destination?: DestinationSummary | null;
         date_depart?: string | null;
         date_depot_colis?: string | null;
         statut: string;
@@ -52,13 +52,16 @@ export type OffreApi = OffreCapacite & {
     type_offre_id?: string | null;
     type_offre?: TypeOffreApi | null;
     prix: string | number;
-    origine: string;
-    destination: string;
+    destination_id: string;
+    destination?: DestinationSummary | null;
     date_depart?: string | null;
     date_depot_colis?: string | null;
     statut: string;
     created_at: string | null;
-    agence?: (AgenceSummary & { ville?: string | null }) | null;
+    agence?: (AgenceSummary & {
+        ville?: string | null;
+        logo?: LogoApi | null;
+    }) | null;
 };
 
 export type ListClientOffresFilters = {
@@ -74,13 +77,12 @@ export type ListClientOffresFilters = {
 
 export type OffreFormData = {
     agence_id: string;
+    destination_id: string;
     titre: string;
     type_offre_id: string;
     prix: string;
     capacite_illimitee: boolean;
     capacite_totale: string;
-    origine: string;
-    destination: string;
     date_depart: string;
     date_depot_colis: string;
     description: string;

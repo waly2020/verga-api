@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Admin;
 
-use App\Models\Offre;
 use App\Models\TypeOffre;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -93,16 +92,15 @@ class TypeOffreTest extends TestCase
             'telephone' => '0600000000',
         ]);
 
-        Offre::create([
-            'agence_id' => $agence->id,
+        $this->createOffreForAgence($agence, [
             'titre' => 'Offre test',
             'type' => 'particulier',
             'type_offre_id' => $type->id,
             'prix' => 1000,
             'capacite_totale' => 100,
             'capacite_disponible' => 100,
-            'origine' => 'A',
-            'destination' => 'B',
+            'depart' => 'A',
+            'arrivee' => 'B',
             'statut' => 'active',
         ]);
 

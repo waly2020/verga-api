@@ -389,16 +389,15 @@ Peut être envoyé en `multipart/form-data` pour joindre un **logo** et des **do
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['titre', 'prix', 'origine', 'destination'],
+                required: ['titre', 'prix', 'destination_id'],
                 properties: [
                     new OA\Property(property: 'titre', type: 'string', example: 'Forfait Particulier Chine → Libreville'),
                     new OA\Property(property: 'type_offre_id', type: 'string', format: 'uuid', description: 'Type d\'offre (recommandé)'),
                     new OA\Property(property: 'type', type: 'string', enum: ['particulier', 'metre_cube', 'conteneur'], description: 'Legacy — requis si type_offre_id absent'),
-                    new OA\Property(property: 'prix', type: 'number', format: 'float', example: 8750, description: 'Prix unitaire (FCFA/kg, FCFA/m³ ou FCFA/conteneur)'),
+                    new OA\Property(property: 'prix', type: 'number', format: 'float', example: 8750, description: 'Prix unitaire (FCFA/kg, FCFA/m³ ou FCFA/conteneur) — forcé si destination.appliquer_configuration'),
                     new OA\Property(property: 'capacite_illimitee', type: 'boolean', example: false, description: 'Si true, pas de plafond de stock (capacite_totale ignorée)'),
                     new OA\Property(property: 'capacite_totale', type: 'number', format: 'float', nullable: true, example: 30000, description: 'Stock total — requis sauf si capacite_illimitee=true'),
-                    new OA\Property(property: 'origine', type: 'string', example: 'Chine'),
-                    new OA\Property(property: 'destination', type: 'string', example: 'Libreville'),
+                    new OA\Property(property: 'destination_id', type: 'string', format: 'uuid', description: 'Destination active du catalogue (rattachée automatiquement à l\'agence)'),
                     new OA\Property(property: 'date_depart', type: 'string', format: 'date', nullable: true, example: '2026-07-20', description: 'Date de départ (optionnelle)'),
                     new OA\Property(property: 'date_depot_colis', type: 'string', format: 'date', nullable: true, example: '2026-07-19', description: 'Date prévue pour déposer les colis en agence (optionnelle)'),
                     new OA\Property(property: 'description', type: 'string', nullable: true),
@@ -441,16 +440,15 @@ Peut être envoyé en `multipart/form-data` pour joindre un **logo** et des **do
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['titre', 'prix', 'origine', 'destination', 'statut'],
+                required: ['titre', 'prix', 'destination_id', 'statut'],
                 properties: [
                     new OA\Property(property: 'titre', type: 'string', example: 'Forfait Particulier Chine → Libreville'),
                     new OA\Property(property: 'type_offre_id', type: 'string', format: 'uuid'),
                     new OA\Property(property: 'type', type: 'string', enum: ['particulier', 'metre_cube', 'conteneur']),
-                    new OA\Property(property: 'prix', type: 'number', format: 'float', example: 8750),
+                    new OA\Property(property: 'prix', type: 'number', format: 'float', example: 8750, description: 'Forcé si destination.appliquer_configuration'),
                     new OA\Property(property: 'capacite_illimitee', type: 'boolean', example: false, description: 'Si true, pas de plafond de stock'),
                     new OA\Property(property: 'capacite_totale', type: 'number', format: 'float', nullable: true, example: 30000, description: 'Requis sauf si capacite_illimitee=true ; doit rester ≥ quantité déjà réservée'),
-                    new OA\Property(property: 'origine', type: 'string', example: 'Chine'),
-                    new OA\Property(property: 'destination', type: 'string', example: 'Libreville'),
+                    new OA\Property(property: 'destination_id', type: 'string', format: 'uuid', description: 'Destination active du catalogue (rattachée automatiquement à l\'agence)'),
                     new OA\Property(property: 'date_depart', type: 'string', format: 'date', nullable: true, example: '2026-07-20', description: 'Date de départ (optionnelle)'),
                     new OA\Property(property: 'date_depot_colis', type: 'string', format: 'date', nullable: true, example: '2026-07-19', description: 'Date prévue pour déposer les colis en agence (optionnelle)'),
                     new OA\Property(property: 'description', type: 'string', nullable: true),
