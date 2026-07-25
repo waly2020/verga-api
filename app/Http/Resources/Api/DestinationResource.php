@@ -5,27 +5,8 @@ namespace App\Http\Resources\Api;
 use App\Models\Destination;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use OpenApi\Attributes as OA;
 
 /** @mixin Destination */
-#[OA\Schema(
-    schema: 'DestinationResource',
-    properties: [
-        new OA\Property(property: 'id', type: 'string', format: 'uuid'),
-        new OA\Property(property: 'depart', type: 'string', example: 'chine'),
-        new OA\Property(property: 'arrivee', type: 'string', example: 'libreville'),
-        new OA\Property(property: 'montant', type: 'number', format: 'float', nullable: true, example: 8750),
-        new OA\Property(property: 'commission_pourcentage', type: 'number', format: 'float', nullable: true, example: 10),
-        new OA\Property(property: 'appliquer_configuration', type: 'boolean', example: false),
-        new OA\Property(property: 'actif', type: 'boolean', example: true),
-        new OA\Property(
-            property: 'rattachee',
-            type: 'boolean',
-            description: 'Présent sur les endpoints agence : true si la destination est déjà liée à l\'agence authentifiée',
-            example: true
-        ),
-    ]
-)]
 class DestinationResource extends JsonResource
 {
     /**

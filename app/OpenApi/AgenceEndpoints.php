@@ -186,6 +186,123 @@ class AgenceEndpoints
     )]
     public function deleteTypeOffre(): void {}
 
+    #[OA\Get(
+        path: '/agence/destinations',
+        operationId: 'agenceListDestinations',
+        summary: 'Lister toutes les destinations (sans pagination)',
+        description: 'Retourne le catalogue global des destinations actives. Chaque élément expose le booléen rattachee (liée ou non à l\'agence).',
+        tags: ['Agence - Destinations'],
+        security: [['sanctum' => []]],
+        parameters: [
+            new OA\Parameter(
+                name: 'search',
+                in: 'query',
+                required: false,
+                schema: new OA\Schema(type: 'string'),
+                description: 'Filtre sur départ ou arrivée'
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Liste complète des destinations',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(ref: '#/components/schemas/DestinationResource')
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Non authentifié'),
+        ]
+    )]
+    public function listDestinations(): void {}
+
+    #[OA\Get(
+        path: '/agence/destinations/paginated',
+        operationId: 'agenceListDestinationsPaginated',
+        summary: 'Lister les destinations (paginé)',
+        description: 'Retourne le catalogue global des destinations actives, paginé. Chaque élément expose le booléen rattachee.',
+        tags: ['Agence - Destinations'],
+        security: [['sanctum' => []]],
+        parameters: [
+            new OA\Parameter(
+                name: 'per_page',
+                in: 'query',
+                required: false,
+                schema: new OA\Schema(type: 'integer', default: 15, minimum: 1, maximum: 100)
+            ),
+            new OA\Parameter(
+                name: 'page',
+                in: 'query',
+                required: false,
+                schema: new OA\Schema(type: 'integer', default: 1, minimum: 1)
+            ),
+            new OA\Parameter(
+                name: 'search',
+                in: 'query',
+                required: false,
+                schema: new OA\Schema(type: 'string'),
+                description: 'Filtre sur départ ou arrivée'
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Liste paginée des destinations',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(ref: '#/components/schemas/DestinationResource')
+                        ),
+                        new OA\Property(property: 'links', type: 'object'),
+                        new OA\Property(property: 'meta', ref: '#/components/schemas/PaginationMeta'),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Non authentifié'),
+        ]
+    )]
+    public function listDestinationsPaginated(): void {}
+
+    #[OA\Post(
+        path: '/agence/destinations',
+        operationId: 'agenceCreateDestination',
+        summary: 'Créer ou rattacher une destination',
+        description: 'Find-or-create une destination (sans configuration forcée) puis l\'attache à l\'agence. Body : depart, arrivee uniquement.',
+        tags: ['Agence - Destinations'],
+        security: [['sanctum' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['depart', 'arrivee'],
+                properties: [
+                    new OA\Property(property: 'depart', type: 'string', example: 'Chine'),
+                    new OA\Property(property: 'arrivee', type: 'string', example: 'Libreville'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: 'Destination créée ou rattachée',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'data', ref: '#/components/schemas/DestinationResource'),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Non authentifié'),
+            new OA\Response(response: 422, description: 'Validation échouée'),
+        ]
+    )]
+    public function createDestination(): void {}
+
     #[OA\Post(
         path: '/agence/register',
         operationId: 'agenceRegister',
