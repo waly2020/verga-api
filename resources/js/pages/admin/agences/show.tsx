@@ -358,7 +358,9 @@ export default function AgenceShow({ agence, stats, offres, commandes }: Props) 
                                                 )}
                                             </TableCell>
                                             <TableCell className="text-sm text-muted-foreground">
-                                                {offre.origine} → {offre.destination}
+                                                {offre.destination
+                                                    ? `${offre.destination.depart} → ${offre.destination.arrivee}`
+                                                    : '—'}
                                             </TableCell>
                                             <TableCell><StatusBadge status={offre.statut} /></TableCell>
                                         </TableRow>

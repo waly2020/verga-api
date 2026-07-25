@@ -8,11 +8,6 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('offres', function (Blueprint $table) {
-            $table->decimal('capacite_totale', 12, 3)->default(0)->after('prix');
-            $table->decimal('capacite_disponible', 12, 3)->default(0)->after('capacite_totale');
-        });
-
         Schema::table('commandes', function (Blueprint $table) {
             $table->dropForeign(['client_id']);
         });
@@ -63,10 +58,6 @@ return new class extends Migration
         Schema::table('commandes', function (Blueprint $table) {
             $table->uuid('client_id')->nullable(false)->change();
             $table->foreign('client_id')->references('id')->on('clients')->cascadeOnDelete();
-        });
-
-        Schema::table('offres', function (Blueprint $table) {
-            $table->dropColumn(['capacite_totale', 'capacite_disponible']);
         });
     }
 };

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api\Agence;
 
+use App\Http\Resources\Api\DestinationResource;
 use App\Http\Resources\Api\TypeOffreResource;
 use App\Models\Offre;
 use Illuminate\Http\Request;
@@ -26,8 +27,8 @@ class OffreResource extends JsonResource
             'capacite_illimitee' => (bool) $this->capacite_illimitee,
             'capacite_totale' => $this->capacite_totale !== null ? (float) $this->capacite_totale : null,
             'capacite_disponible' => $this->capacite_disponible !== null ? (float) $this->capacite_disponible : null,
-            'origine' => $this->origine,
-            'destination' => $this->destination,
+            'destination_id' => $this->destination_id,
+            'destination' => DestinationResource::make($this->whenLoaded('destination')),
             'date_depart' => $this->date_depart?->toDateString(),
             'date_depot_colis' => $this->date_depot_colis?->toDateString(),
             'statut' => $this->statut,

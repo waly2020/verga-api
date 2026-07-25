@@ -4,7 +4,6 @@ namespace Tests\Feature\Api\Agence;
 
 use App\Models\Colis;
 use App\Models\Commande;
-use App\Models\Offre;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class ColisStatutTest extends AgenceApiTestCase
@@ -15,15 +14,14 @@ class ColisStatutTest extends AgenceApiTestCase
     {
         ['agence' => $agence, 'user' => $user, 'token' => $token] = $this->createAuthenticatedAgence();
 
-        $offre = Offre::create([
-            'agence_id' => $agence->id,
+        $offre = $this->createOffreForAgence($agence, [
             'titre' => 'Offre colis',
             'type' => 'particulier',
             'prix' => 8750,
             'capacite_totale' => 1000,
             'capacite_disponible' => 1000,
-            'origine' => 'Chine',
-            'destination' => 'Libreville',
+            'depart' => 'Chine',
+            'arrivee' => 'Libreville',
             'statut' => 'active',
         ]);
 

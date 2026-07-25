@@ -9,7 +9,7 @@ import { OffreFormDialog } from '@/components/admin/offre-form-dialog';
 import { StatusBadge } from '@/components/admin/status-badge';
 import { Button } from '@/components/ui/button';
 import admin from '@/routes/admin';
-import type { AgenceSummary, OffreRow, Paginated, TypeOffreApi } from '@/types';
+import type { AgenceSummary, DestinationSummary, OffreRow, Paginated, TypeOffreApi } from '@/types';
 
 const TYPE_LABELS: Record<string, string> = {
     particulier: 'Au kg',
@@ -21,11 +21,20 @@ function typeLabel(row: OffreRow): string {
     return row.type_offre?.nom ?? TYPE_LABELS[row.type] ?? row.type;
 }
 
+function trajetLabel(row: OffreRow): string {
+    if (!row.destination) {
+        return '—';
+    }
+
+    return `${row.destination.depart} → ${row.destination.arrivee}`;
+}
+
 interface Props {
     offres: Paginated<OffreRow>;
     filters: { search?: string; statut?: string };
     agences: AgenceSummary[];
     types_offres: TypeOffreApi[];
+    destinations: DestinationSummary[];
 }
 
 const columns: Column<OffreRow>[] = [
@@ -77,8 +86,7 @@ const columns: Column<OffreRow>[] = [
             </span>
         ),
     },
-    { key: 'origine', label: 'Origine' },
-    { key: 'destination', label: 'Destination' },
+    { key: 'destination', label: 'Trajet', render: (r) => trajetLabel(r) },
     { key: 'statut', label: 'Statut', render: (r) => <StatusBadge status={r.statut} /> },
 ];
 
@@ -88,7 +96,7 @@ const filterOptions = [
     { label: 'Archivée', value: 'archivée' },
 ];
 
-export default function OffresIndex({ offres, filters, agences, types_offres }: Props) {
+export default function OffresIndex({ offres, filters, agences, types_offres, destinations }: Props) {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editing, setEditing] = useState<OffreRow | null>(null);
 
@@ -183,6 +191,7 @@ export default function OffresIndex({ offres, filters, agences, types_offres }: 
                 onOpenChange={handleDialogOpenChange}
                 agences={agences}
                 typesOffres={types_offres}
+                destinations={destinations}
                 offre={editing}
             />
         </>

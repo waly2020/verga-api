@@ -6,7 +6,6 @@ use App\Models\Client;
 use App\Models\Colis;
 use App\Models\Commande;
 use App\Models\HistoriqueColis;
-use App\Models\Offre;
 use App\Models\Paiement;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -130,15 +129,14 @@ class ClientResourcesTest extends ClientApiTestCase
             'telephone' => '0611111111',
         ]);
 
-        $offre = Offre::create([
-            'agence_id' => $agence->id,
+        $offre = $this->createOffreForAgence($agence, [
             'titre' => 'Offre',
             'type' => 'particulier',
             'prix' => 8750,
             'capacite_totale' => 1000,
             'capacite_disponible' => 1000,
-            'origine' => 'Chine',
-            'destination' => 'Libreville',
+            'depart' => 'Chine',
+            'arrivee' => 'Libreville',
             'statut' => 'active',
         ]);
 
@@ -201,15 +199,14 @@ class ClientResourcesTest extends ClientApiTestCase
             'telephone' => '0611111112',
         ]);
 
-        $offre = Offre::create([
-            'agence_id' => $agence->id,
+        $offre = $this->createOffreForAgence($agence, [
             'titre' => 'Offre suivi',
             'type' => 'particulier',
             'prix' => 8750,
             'capacite_totale' => 1000,
             'capacite_disponible' => 1000,
-            'origine' => 'Chine',
-            'destination' => 'Libreville',
+            'depart' => 'Chine',
+            'arrivee' => 'Libreville',
             'statut' => 'active',
         ]);
 
@@ -282,15 +279,14 @@ class ClientResourcesTest extends ClientApiTestCase
             'telephone' => '0611111111',
         ]);
 
-        $offre = Offre::create([
-            'agence_id' => $agence->id,
+        $offre = $this->createOffreForAgence($agence, [
             'titre' => 'O',
             'type' => 'particulier',
             'prix' => 100,
             'capacite_totale' => 100,
             'capacite_disponible' => 100,
-            'origine' => 'X',
-            'destination' => 'Y',
+            'depart' => 'X',
+            'arrivee' => 'Y',
             'statut' => 'active',
         ]);
 

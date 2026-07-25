@@ -44,6 +44,7 @@ class PaiementRecapService
             'commande.client:id,nom,prenom,email,telephone',
             'commande.agence:id,nom,email,telephone,ville',
             'commande.offre.typeOffre',
+            'commande.offre.destination',
             'commande.colis:id,commande_id,reference,description,statut',
         ];
     }
@@ -105,8 +106,18 @@ class PaiementRecapService
             ] : null,
             'offre' => $offre ? [
                 'titre' => $offre->titre,
-                'origine' => $offre->origine,
-                'destination' => $offre->destination,
+                'destination' => $offre->destination ? [
+                    'id' => $offre->destination->id,
+                    'depart' => $offre->destination->depart,
+                    'arrivee' => $offre->destination->arrivee,
+                    'montant' => $offre->destination->montant !== null
+                        ? (float) $offre->destination->montant
+                        : null,
+                    'commission_pourcentage' => $offre->destination->commission_pourcentage !== null
+                        ? (float) $offre->destination->commission_pourcentage
+                        : null,
+                    'appliquer_configuration' => (bool) $offre->destination->appliquer_configuration,
+                ] : null,
                 'prix' => (float) $offre->prix,
                 'type_offre' => $typeOffre ? [
                     'nom' => $typeOffre->nom,

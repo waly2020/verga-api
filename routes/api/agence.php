@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Agence\AuthController;
 use App\Http\Controllers\Api\Agence\ColisController;
 use App\Http\Controllers\Api\Agence\CommandeController;
 use App\Http\Controllers\Api\Agence\DashboardController;
+use App\Http\Controllers\Api\Agence\DestinationController;
 use App\Http\Controllers\Api\Agence\OffreController;
 use App\Http\Controllers\Api\Agence\PaiementController;
 use App\Http\Controllers\Api\Agence\PasswordController;
@@ -52,6 +53,10 @@ Route::prefix('agence')->name('api.agence.')->group(function () {
         Route::get('types-offres/{typeOffre}', [TypeOffreController::class, 'show'])->name('types-offres.show');
         Route::patch('types-offres/{typeOffre}', [TypeOffreController::class, 'update'])->name('types-offres.update');
         Route::delete('types-offres/{typeOffre}', [TypeOffreController::class, 'destroy'])->name('types-offres.destroy');
+
+        Route::get('destinations', [DestinationController::class, 'index'])->name('destinations.index');
+        Route::get('destinations/paginated', [DestinationController::class, 'paginated'])->name('destinations.paginated');
+        Route::post('destinations', [DestinationController::class, 'store'])->name('destinations.store');
 
         Route::get('offres', [OffreController::class, 'index'])->name('offres.index');
         Route::post('offres', [OffreController::class, 'store'])->name('offres.store');

@@ -214,11 +214,9 @@ export default function CommandeShow({ commande }: Props) {
                                             ? 'Illimitée'
                                             : `${Number(commande.offre.capacite_disponible).toLocaleString('fr-FR')} / ${Number(commande.offre.capacite_totale).toLocaleString('fr-FR')}`}
                                     </Row>
-                                    {(commande.offre.origine || commande.offre.destination) && (
+                                    {commande.offre.destination && (
                                         <Row label="Trajet">
-                                            {[commande.offre.origine, commande.offre.destination]
-                                                .filter(Boolean)
-                                                .join(' → ')}
+                                            {`${commande.offre.destination.depart} → ${commande.offre.destination.arrivee}`}
                                         </Row>
                                     )}
                                     <Row label="Statut offre">

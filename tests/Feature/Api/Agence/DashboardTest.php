@@ -5,7 +5,6 @@ namespace Tests\Feature\Api\Agence;
 use App\Models\Agence;
 use App\Models\Colis;
 use App\Models\Commande;
-use App\Models\Offre;
 use App\Models\Paiement;
 use App\Models\Reclamation;
 use App\Models\Reversement;
@@ -85,27 +84,25 @@ class DashboardTest extends AgenceApiTestCase
     {
         $client = $this->createClient();
 
-        $offreActive = Offre::create([
-            'agence_id' => $agence->id,
+        $offreActive = $this->createOffreForAgence($agence, [
             'titre' => 'Offre active',
             'type' => 'particulier',
             'prix' => 8750,
             'capacite_totale' => 1000,
             'capacite_disponible' => 800,
-            'origine' => 'Chine',
-            'destination' => 'Libreville',
+            'depart' => 'Chine',
+            'arrivee' => 'Libreville',
             'statut' => 'active',
         ]);
 
-        Offre::create([
-            'agence_id' => $agence->id,
+        $this->createOffreForAgence($agence, [
             'titre' => 'Offre inactive',
             'type' => 'conteneur',
             'prix' => 500000,
             'capacite_totale' => 5,
             'capacite_disponible' => 5,
-            'origine' => 'France',
-            'destination' => 'Port-Gentil',
+            'depart' => 'France',
+            'arrivee' => 'Port-Gentil',
             'statut' => 'inactive',
         ]);
 

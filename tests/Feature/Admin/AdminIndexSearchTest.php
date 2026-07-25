@@ -7,7 +7,6 @@ namespace Tests\Feature\Admin;
 use App\Models\Client;
 use App\Models\Colis;
 use App\Models\Commande;
-use App\Models\Offre;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\CreatesTestAgences;
@@ -51,15 +50,14 @@ class AdminIndexSearchTest extends TestCase
             'statut' => 'actif',
         ]);
 
-        $offre = Offre::create([
-            'agence_id' => $agence->id,
+        $offre = $this->createOffreForAgence($agence, [
             'titre' => 'Groupage',
             'type' => 'particulier',
             'prix' => 5000,
             'capacite_totale' => 100,
             'capacite_disponible' => 100,
-            'origine' => 'Paris',
-            'destination' => 'Libreville',
+            'depart' => 'Paris',
+            'arrivee' => 'Libreville',
             'statut' => 'active',
         ]);
 

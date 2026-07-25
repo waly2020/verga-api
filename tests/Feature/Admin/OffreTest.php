@@ -50,6 +50,7 @@ class OffreTest extends TestCase
                 ->has('offres.data')
                 ->has('agences')
                 ->has('types_offres')
+                ->has('destinations')
             );
     }
 
@@ -64,16 +65,15 @@ class OffreTest extends TestCase
             'nom_original' => 'logo.png',
         ]);
 
-        Offre::create([
-            'agence_id' => $agence->id,
+        $this->createOffreForAgence($agence, [
             'type_offre_id' => $type->id,
             'titre' => 'Offre avec logo',
             'type' => 'particulier',
             'prix' => 5000,
             'capacite_totale' => 100,
             'capacite_disponible' => 100,
-            'origine' => 'Libreville',
-            'destination' => 'Paris',
+            'depart' => 'Libreville',
+            'arrivee' => 'Paris',
             'statut' => 'active',
         ]);
 
@@ -92,16 +92,19 @@ class OffreTest extends TestCase
     {
         ['agence' => $agence] = $this->createAgence();
         $type = TypeOffre::query()->where('slug', 'particulier')->firstOrFail();
+        $destination = $this->createDestination([
+            'depart' => 'libreville',
+            'arrivee' => 'paris',
+        ]);
 
         $this->actingAs($this->adminUser())
             ->post('/admin/offres', [
                 'agence_id' => $agence->id,
+                'destination_id' => $destination->id,
                 'titre' => 'Nouvelle offre admin',
                 'type_offre_id' => $type->id,
                 'prix' => 5000,
                 'capacite_totale' => 1000,
-                'origine' => 'Libreville',
-                'destination' => 'Paris',
                 'date_depart' => '2026-07-20',
                 'date_depot_colis' => '2026-07-19',
                 'statut' => 'active',
@@ -111,10 +114,15 @@ class OffreTest extends TestCase
 
         $this->assertDatabaseHas('offres', [
             'agence_id' => $agence->id,
+            'destination_id' => $destination->id,
             'titre' => 'Nouvelle offre admin',
             'type' => 'particulier',
             'capacite_illimitee' => false,
         ]);
+
+        $this->assertTrue(
+            $destination->agences()->where('agences.id', $agence->id)->exists()
+        );
 
         $offre = Offre::where('titre', 'Nouvelle offre admin')->firstOrFail();
         $this->assertSame('2026-07-20', $offre->date_depart?->toDateString());
@@ -125,16 +133,19 @@ class OffreTest extends TestCase
     {
         ['agence' => $agence] = $this->createAgence();
         $type = TypeOffre::query()->where('slug', 'particulier')->firstOrFail();
+        $destination = $this->createDestination([
+            'depart' => 'libreville',
+            'arrivee' => 'port-gentil',
+        ]);
 
         $this->actingAs($this->adminUser())
             ->post('/admin/offres', [
                 'agence_id' => $agence->id,
+                'destination_id' => $destination->id,
                 'titre' => 'Offre illimitée',
                 'type_offre_id' => $type->id,
                 'prix' => 2000,
                 'capacite_illimitee' => true,
-                'origine' => 'Libreville',
-                'destination' => 'Port-Gentil',
                 'statut' => 'active',
             ])
             ->assertRedirect()
@@ -149,31 +160,89 @@ class OffreTest extends TestCase
         ]);
     }
 
+    public function test_admin_forces_prix_when_destination_has_configuration(): void
+    {
+        ['agence' => $agence] = $this->createAgence();
+        $type = TypeOffre::query()->where('slug', 'particulier')->firstOrFail();
+        $destination = $this->createDestination([
+            'depart' => 'chine',
+            'arrivee' => 'libreville',
+            'appliquer_configuration' => true,
+            'montant' => 8750,
+            'commission_pourcentage' => 10,
+        ]);
+
+        $this->actingAs($this->adminUser())
+            ->post('/admin/offres', [
+                'agence_id' => $agence->id,
+                'destination_id' => $destination->id,
+                'titre' => 'Offre config forcée',
+                'type_offre_id' => $type->id,
+                'prix' => 1,
+                'capacite_totale' => 100,
+                'statut' => 'active',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('offres', [
+            'titre' => 'Offre config forcée',
+            'prix' => 8750,
+        ]);
+    }
+
+    public function test_admin_cannot_create_offre_with_inactive_destination(): void
+    {
+        ['agence' => $agence] = $this->createAgence();
+        $type = TypeOffre::query()->where('slug', 'particulier')->firstOrFail();
+        $destination = $this->createDestination([
+            'depart' => 'inactive',
+            'arrivee' => 'ville',
+            'actif' => false,
+        ]);
+
+        $this->actingAs($this->adminUser())
+            ->post('/admin/offres', [
+                'agence_id' => $agence->id,
+                'destination_id' => $destination->id,
+                'titre' => 'Offre inactive',
+                'type_offre_id' => $type->id,
+                'prix' => 1000,
+                'capacite_totale' => 10,
+                'statut' => 'active',
+            ])
+            ->assertRedirect()
+            ->assertSessionHasErrors('destination_id');
+    }
+
     public function test_admin_can_update_offre(): void
     {
         ['agence' => $agence] = $this->createAgence();
 
-        $offre = Offre::create([
-            'agence_id' => $agence->id,
+        $offre = $this->createOffreForAgence($agence, [
             'titre' => 'Offre initiale',
             'type' => 'particulier',
             'prix' => 5000,
             'capacite_totale' => 1000,
             'capacite_disponible' => 800,
-            'origine' => 'Libreville',
-            'destination' => 'Paris',
+            'depart' => 'Libreville',
+            'arrivee' => 'Paris',
             'statut' => 'active',
+        ]);
+
+        $newDestination = $this->createDestination([
+            'depart' => 'france',
+            'arrivee' => 'port-gentil',
         ]);
 
         $this->actingAs($this->adminUser())
             ->patch("/admin/offres/{$offre->id}", [
                 'agence_id' => $agence->id,
+                'destination_id' => $newDestination->id,
                 'titre' => 'Offre modifiée',
                 'type' => 'particulier',
                 'prix' => 6000,
                 'capacite_totale' => 1200,
-                'origine' => 'France',
-                'destination' => 'Port-Gentil',
                 'statut' => 'inactive',
             ])
             ->assertRedirect()
@@ -181,6 +250,7 @@ class OffreTest extends TestCase
 
         $this->assertDatabaseHas('offres', [
             'id' => $offre->id,
+            'destination_id' => $newDestination->id,
             'titre' => 'Offre modifiée',
             'capacite_disponible' => 1000,
             'statut' => 'inactive',
@@ -191,15 +261,14 @@ class OffreTest extends TestCase
     {
         ['agence' => $agence] = $this->createAgence();
 
-        $offre = Offre::create([
-            'agence_id' => $agence->id,
+        $offre = $this->createOffreForAgence($agence, [
             'titre' => 'À supprimer',
             'type' => 'particulier',
             'prix' => 1000,
             'capacite_totale' => 100,
             'capacite_disponible' => 100,
-            'origine' => 'A',
-            'destination' => 'B',
+            'depart' => 'A',
+            'arrivee' => 'B',
             'statut' => 'active',
         ]);
 
@@ -223,15 +292,14 @@ class OffreTest extends TestCase
             'telephone' => '0622222222',
         ]);
 
-        $offre = Offre::create([
-            'agence_id' => $agence->id,
+        $offre = $this->createOffreForAgence($agence, [
             'titre' => 'Offre liée',
             'type' => 'particulier',
             'prix' => 1000,
             'capacite_totale' => 100,
             'capacite_disponible' => 100,
-            'origine' => 'A',
-            'destination' => 'B',
+            'depart' => 'A',
+            'arrivee' => 'B',
             'statut' => 'active',
         ]);
 

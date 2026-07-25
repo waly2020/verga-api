@@ -46,8 +46,14 @@ type Props = {
     } | null;
     offre: {
         titre: string;
-        origine: string;
-        destination: string;
+        destination: {
+            id: string;
+            depart: string;
+            arrivee: string;
+            montant: number | null;
+            commission_pourcentage: number | null;
+            appliquer_configuration: boolean;
+        } | null;
         prix: number;
         type_offre: { nom: string; unite_label: string } | null;
     } | null;
@@ -184,7 +190,11 @@ export default function PaiementRetour({
                         </CardHeader>
                         <CardContent className="space-y-3">
                             <p className="font-medium">{offre.titre}</p>
-                            <Row label="Trajet">{`${offre.origine} → ${offre.destination}`}</Row>
+                            <Row label="Trajet">
+                                {offre.destination
+                                    ? `${offre.destination.depart} → ${offre.destination.arrivee}`
+                                    : '—'}
+                            </Row>
                             <Row label="Prix unitaire">{fmtFcfa(offre.prix)}</Row>
                             {offre.type_offre && (
                                 <Row label="Type">{offre.type_offre.nom}</Row>

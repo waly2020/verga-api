@@ -6,7 +6,6 @@ namespace Tests\Feature\Web;
 
 use App\Models\Colis;
 use App\Models\Commande;
-use App\Models\Offre;
 use App\Models\Paiement;
 use App\Support\PaiementReturnUrl;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -30,15 +29,14 @@ class PaiementRetourTest extends TestCase
             'ville' => 'Libreville',
         ]);
 
-        $offre = Offre::create([
-            'agence_id' => $agence->id,
+        $offre = $this->createOffreForAgence($agence, [
             'titre' => 'Groupage Paris',
             'type' => 'particulier',
             'prix' => 2500,
             'capacite_totale' => 1000,
             'capacite_disponible' => 1000,
-            'origine' => 'Libreville',
-            'destination' => 'Paris',
+            'depart' => 'Libreville',
+            'arrivee' => 'Paris',
             'statut' => 'active',
         ]);
 

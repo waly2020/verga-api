@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Feature\Admin;
 
 use App\Models\Commande;
-use App\Models\Offre;
 use App\Models\Paiement;
 use App\Models\Reversement;
 use App\Models\User;
@@ -31,15 +30,14 @@ class AgenceShowTest extends TestCase
             'telephone' => '0611111111',
         ]);
 
-        $offre = Offre::create([
-            'agence_id' => $agence->id,
+        $offre = $this->createOffreForAgence($agence, [
             'titre' => 'Groupage',
             'type' => 'particulier',
             'prix' => 5000,
             'capacite_totale' => 100,
             'capacite_disponible' => 100,
-            'origine' => 'Chine',
-            'destination' => 'Libreville',
+            'depart' => 'Chine',
+            'arrivee' => 'Libreville',
             'statut' => 'active',
         ]);
 

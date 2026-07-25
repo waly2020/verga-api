@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api\Agence;
 
-use App\Models\Offre;
 use App\Models\TypeOffre;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -125,14 +124,18 @@ class TypeOffreTest extends AgenceApiTestCase
             'actif' => true,
         ]);
 
+        $destination = $this->createDestination([
+            'depart' => 'paris',
+            'arrivee' => 'libreville',
+        ], $agence);
+
         $this->withAgenceToken($token)
             ->postJson('/api/v1/agence/offres', [
+                'destination_id' => $destination->id,
                 'titre' => 'Groupage palettes',
                 'type_offre_id' => $type->id,
                 'prix' => 15000,
                 'capacite_totale' => 50,
-                'origine' => 'Paris',
-                'destination' => 'Libreville',
             ])
             ->assertCreated()
             ->assertJsonPath('data.type_offre.slug', 'palette');
@@ -193,16 +196,15 @@ class TypeOffreTest extends AgenceApiTestCase
             'actif' => true,
         ]);
 
-        Offre::create([
-            'agence_id' => $agence->id,
+        $this->createOffreForAgence($agence, [
             'type_offre_id' => $type->id,
             'titre' => 'Offre test',
             'type' => 'palette',
             'prix' => 1000,
             'capacite_totale' => 10,
             'capacite_disponible' => 10,
-            'origine' => 'A',
-            'destination' => 'B',
+            'depart' => 'A',
+            'arrivee' => 'B',
             'statut' => 'active',
         ]);
 

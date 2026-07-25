@@ -17,8 +17,10 @@ class ClientOffreCatalogService
                 'agence:id,nom,ville',
                 'agence.logo',
                 'typeOffre:id,slug,nom,unite,unite_label,quantite_entier,quantite_min',
+                'destination:id,depart,arrivee,montant,commission_pourcentage,appliquer_configuration,actif',
             ])
             ->active()
+            ->whereHas('destination', fn ($q) => $q->actif())
             ->where(function ($q) {
                 $q->where('capacite_illimitee', true)
                     ->orWhere('capacite_disponible', '>', 0);
@@ -27,14 +29,19 @@ class ClientOffreCatalogService
         if ($search = $filters['search'] ?? null) {
             $query->where(function ($q) use ($search) {
                 $q->where('titre', 'like', "%{$search}%")
-                    ->orWhere('origine', 'like', "%{$search}%")
-                    ->orWhere('destination', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhereHas('destination', function ($dq) use ($search) {
+                        $dq->where('depart', 'like', "%{$search}%")
+                            ->orWhere('arrivee', 'like', "%{$search}%");
+                    });
             });
         }
 
         if ($destination = $filters['destination'] ?? null) {
-            $query->where('destination', 'like', "%{$destination}%");
+            $query->whereHas('destination', function ($dq) use ($destination) {
+                $dq->where('arrivee', 'like', "%{$destination}%")
+                    ->orWhere('depart', 'like', "%{$destination}%");
+            });
         }
 
         if ($type = $filters['type'] ?? null) {

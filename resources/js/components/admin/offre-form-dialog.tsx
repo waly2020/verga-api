@@ -21,26 +21,26 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import admin from '@/routes/admin';
-import type { AgenceSummary, OffreFormData, OffreRow, TypeOffreApi } from '@/types';
+import type { AgenceSummary, DestinationSummary, OffreFormData, OffreRow, TypeOffreApi } from '@/types';
 
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     agences: AgenceSummary[];
     typesOffres: TypeOffreApi[];
+    destinations: DestinationSummary[];
     offre?: OffreRow | null;
 }
 
 function emptyForm(typesOffres: TypeOffreApi[]): OffreFormData {
     return {
         agence_id: '',
+        destination_id: '',
         titre: '',
         type_offre_id: typesOffres[0]?.id ?? '',
         prix: '',
         capacite_illimitee: false,
         capacite_totale: '',
-        origine: '',
-        destination: '',
         date_depart: '',
         date_depot_colis: '',
         description: '',
@@ -51,13 +51,12 @@ function emptyForm(typesOffres: TypeOffreApi[]): OffreFormData {
 function toFormData(offre: OffreRow, typesOffres: TypeOffreApi[]): OffreFormData {
     return {
         agence_id: offre.agence_id ?? offre.agence?.id ?? '',
+        destination_id: offre.destination_id ?? offre.destination?.id ?? '',
         titre: offre.titre,
         type_offre_id: offre.type_offre_id ?? typesOffres[0]?.id ?? '',
         prix: String(offre.prix),
         capacite_illimitee: Boolean(offre.capacite_illimitee),
         capacite_totale: offre.capacite_totale == null ? '' : String(offre.capacite_totale),
-        origine: offre.origine,
-        destination: offre.destination,
         date_depart: offre.date_depart ?? '',
         date_depot_colis: offre.date_depot_colis ?? '',
         description: offre.description ?? '',
@@ -65,7 +64,18 @@ function toFormData(offre: OffreRow, typesOffres: TypeOffreApi[]): OffreFormData
     };
 }
 
-export function OffreFormDialog({ open, onOpenChange, agences, typesOffres, offre }: Props) {
+function destinationLabel(destination: DestinationSummary): string {
+    return `${destination.depart} → ${destination.arrivee}`;
+}
+
+export function OffreFormDialog({
+    open,
+    onOpenChange,
+    agences,
+    typesOffres,
+    destinations,
+    offre,
+}: Props) {
     const isEdit = Boolean(offre);
     const formId = isEdit ? 'offre-form-edit' : 'offre-form-create';
 
@@ -82,6 +92,22 @@ export function OffreFormDialog({ open, onOpenChange, agences, typesOffres, offr
     }, [open, offre, typesOffres, setData, clearErrors]);
 
     const selectedType = typesOffres.find((t) => t.id === data.type_offre_id);
+    const selectedDestination = destinations.find((d) => d.id === data.destination_id);
+    const prixForce = Boolean(selectedDestination?.appliquer_configuration);
+
+    const handleDestinationChange = (destinationId: string) => {
+        const destination = destinations.find((d) => d.id === destinationId);
+        const nextPrix =
+            destination?.appliquer_configuration && destination.montant != null
+                ? String(destination.montant)
+                : data.prix;
+
+        setData({
+            ...data,
+            destination_id: destinationId,
+            prix: nextPrix,
+        });
+    };
 
     const handleOpenChange = (value: boolean) => {
         if (!value) {
@@ -114,11 +140,11 @@ export function OffreFormDialog({ open, onOpenChange, agences, typesOffres, offr
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Package className="h-4 w-4 text-primary" />
-                        {isEdit ? 'Modifier l\'offre' : 'Nouvelle offre'}
+                        {isEdit ? "Modifier l'offre" : 'Nouvelle offre'}
                     </DialogTitle>
                     <DialogDescription>
                         {isEdit
-                            ? 'Mettez à jour les informations de l\'offre de transport.'
+                            ? "Mettez à jour les informations de l'offre de transport."
                             : 'Créez une offre de transport pour une agence partenaire.'}
                     </DialogDescription>
                 </DialogHeader>
@@ -134,15 +160,47 @@ export function OffreFormDialog({ open, onOpenChange, agences, typesOffres, offr
                             </SelectTrigger>
                             <SelectContent>
                                 {agences.length === 0 ? (
-                                    <SelectItem value="__none" disabled>Aucune agence active</SelectItem>
+                                    <SelectItem value="__none" disabled>
+                                        Aucune agence active
+                                    </SelectItem>
                                 ) : (
                                     agences.map((a) => (
-                                        <SelectItem key={a.id} value={a.id}>{a.nom}</SelectItem>
+                                        <SelectItem key={a.id} value={a.id}>
+                                            {a.nom}
+                                        </SelectItem>
                                     ))
                                 )}
                             </SelectContent>
                         </Select>
                         {errors.agence_id && <p className="text-xs text-destructive">{errors.agence_id}</p>}
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <Label htmlFor="offre-destination">
+                            Destination <span className="text-destructive">*</span>
+                        </Label>
+                        <Select value={data.destination_id} onValueChange={handleDestinationChange}>
+                            <SelectTrigger id="offre-destination">
+                                <SelectValue placeholder="Choisir une destination" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {destinations.length === 0 ? (
+                                    <SelectItem value="__none" disabled>
+                                        Aucune destination active
+                                    </SelectItem>
+                                ) : (
+                                    destinations.map((d) => (
+                                        <SelectItem key={d.id} value={d.id}>
+                                            {destinationLabel(d)}
+                                            {d.appliquer_configuration ? ' (config)' : ''}
+                                        </SelectItem>
+                                    ))
+                                )}
+                            </SelectContent>
+                        </Select>
+                        {errors.destination_id && (
+                            <p className="text-xs text-destructive">{errors.destination_id}</p>
+                        )}
                     </div>
 
                     <div className="space-y-1.5">
@@ -173,14 +231,14 @@ export function OffreFormDialog({ open, onOpenChange, agences, typesOffres, offr
                                 </SelectTrigger>
                                 <SelectContent>
                                     {typesOffres.map((t) => (
-                                        <SelectItem key={t.id} value={t.id}>{t.nom}</SelectItem>
+                                        <SelectItem key={t.id} value={t.id}>
+                                            {t.nom}
+                                        </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
                             {errors.type_offre_id && (
-                                <p className="text-xs text-destructive">
-                                    {errors.type_offre_id}
-                                </p>
+                                <p className="text-xs text-destructive">{errors.type_offre_id}</p>
                             )}
                         </div>
 
@@ -196,12 +254,20 @@ export function OffreFormDialog({ open, onOpenChange, agences, typesOffres, offr
                                 value={data.prix}
                                 onChange={(e) => setData('prix', e.target.value)}
                                 placeholder="Ex : 5000"
+                                disabled={prixForce}
+                                readOnly={prixForce}
                             />
                             {errors.prix && <p className="text-xs text-destructive">{errors.prix}</p>}
-                            {selectedType && (
+                            {prixForce ? (
                                 <p className="text-xs text-muted-foreground">
-                                    Prix {selectedType.unite_label}
+                                    Prix imposé par la configuration de la destination.
                                 </p>
+                            ) : (
+                                selectedType && (
+                                    <p className="text-xs text-muted-foreground">
+                                        Prix {selectedType.unite_label}
+                                    </p>
+                                )
                             )}
                         </div>
 
@@ -220,7 +286,10 @@ export function OffreFormDialog({ open, onOpenChange, agences, typesOffres, offr
                                     }}
                                 />
                                 <div className="space-y-1">
-                                    <Label htmlFor="offre-capacite-illimitee" className="cursor-pointer font-normal">
+                                    <Label
+                                        htmlFor="offre-capacite-illimitee"
+                                        className="cursor-pointer font-normal"
+                                    >
                                         Capacité illimitée
                                     </Label>
                                     <p className="text-xs text-muted-foreground">
@@ -255,7 +324,8 @@ export function OffreFormDialog({ open, onOpenChange, agences, typesOffres, offr
                                         <p className="text-xs text-muted-foreground">
                                             Stock disponible actuel :{' '}
                                             {Number(offre.capacite_disponible).toLocaleString('fr-FR')}
-                                            {' '}/ {Number(offre.capacite_totale).toLocaleString('fr-FR')}
+                                            {' '}
+                                            / {Number(offre.capacite_totale).toLocaleString('fr-FR')}
                                         </p>
                                     )}
                                     {errors.capacite_totale && (
@@ -268,37 +338,11 @@ export function OffreFormDialog({ open, onOpenChange, agences, typesOffres, offr
 
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="space-y-1.5">
-                            <Label htmlFor="offre-origine">
-                                Origine <span className="text-destructive">*</span>
-                            </Label>
-                            <Input
-                                id="offre-origine"
-                                value={data.origine}
-                                onChange={(e) => setData('origine', e.target.value)}
-                                placeholder="Ex : Libreville"
-                            />
-                            {errors.origine && <p className="text-xs text-destructive">{errors.origine}</p>}
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <Label htmlFor="offre-destination">
-                                Destination <span className="text-destructive">*</span>
-                            </Label>
-                            <Input
-                                id="offre-destination"
-                                value={data.destination}
-                                onChange={(e) => setData('destination', e.target.value)}
-                                placeholder="Ex : Port-Gentil"
-                            />
-                            {errors.destination && <p className="text-xs text-destructive">{errors.destination}</p>}
-                        </div>
-                    </div>
-
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="space-y-1.5">
                             <Label htmlFor="offre-date-depot-colis">
                                 Date de dépôt des colis
-                                <span className="ml-1 text-xs font-normal text-muted-foreground">(optionnel)</span>
+                                <span className="ml-1 text-xs font-normal text-muted-foreground">
+                                    (optionnel)
+                                </span>
                             </Label>
                             <Input
                                 id="offre-date-depot-colis"
@@ -314,7 +358,9 @@ export function OffreFormDialog({ open, onOpenChange, agences, typesOffres, offr
                         <div className="space-y-1.5">
                             <Label htmlFor="offre-date-depart">
                                 Date de départ
-                                <span className="ml-1 text-xs font-normal text-muted-foreground">(optionnel)</span>
+                                <span className="ml-1 text-xs font-normal text-muted-foreground">
+                                    (optionnel)
+                                </span>
                             </Label>
                             <Input
                                 id="offre-date-depart"
@@ -322,14 +368,18 @@ export function OffreFormDialog({ open, onOpenChange, agences, typesOffres, offr
                                 value={data.date_depart}
                                 onChange={(e) => setData('date_depart', e.target.value)}
                             />
-                            {errors.date_depart && <p className="text-xs text-destructive">{errors.date_depart}</p>}
+                            {errors.date_depart && (
+                                <p className="text-xs text-destructive">{errors.date_depart}</p>
+                            )}
                         </div>
                     </div>
 
                     <div className="space-y-1.5">
                         <Label htmlFor="offre-description">
                             Description
-                            <span className="ml-1 text-xs font-normal text-muted-foreground">(optionnel)</span>
+                            <span className="ml-1 text-xs font-normal text-muted-foreground">
+                                (optionnel)
+                            </span>
                         </Label>
                         <textarea
                             id="offre-description"
@@ -341,7 +391,9 @@ export function OffreFormDialog({ open, onOpenChange, agences, typesOffres, offr
                             rows={3}
                             className="border-input bg-background placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-[80px] w-full resize-none rounded-md border px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1"
                         />
-                        {errors.description && <p className="text-xs text-destructive">{errors.description}</p>}
+                        {errors.description && (
+                            <p className="text-xs text-destructive">{errors.description}</p>
+                        )}
                     </div>
 
                     <div className="space-y-1.5">
@@ -371,7 +423,7 @@ export function OffreFormDialog({ open, onOpenChange, agences, typesOffres, offr
                     </Button>
                     <Button type="submit" form={formId} disabled={processing}>
                         {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {isEdit ? 'Enregistrer' : 'Créer l\'offre'}
+                        {isEdit ? 'Enregistrer' : "Créer l'offre"}
                     </Button>
                 </DialogFooter>
             </DialogContent>

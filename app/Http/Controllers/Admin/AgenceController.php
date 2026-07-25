@@ -110,8 +110,9 @@ class AgenceController extends Controller
         ];
 
         $offres = $agence->offres()
+            ->with('destination:id,depart,arrivee,montant,commission_pourcentage,appliquer_configuration')
             ->latest()
-            ->get(['id', 'titre', 'type', 'prix', 'statut', 'origine', 'destination']);
+            ->get(['id', 'destination_id', 'titre', 'type', 'prix', 'statut', 'capacite_illimitee', 'capacite_totale', 'capacite_disponible']);
 
         $commandes = $agence->commandes()
             ->with([

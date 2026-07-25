@@ -5,7 +5,6 @@ namespace Tests\Feature\Api\Client;
 use App\Models\Client;
 use App\Models\Colis;
 use App\Models\Commande;
-use App\Models\Offre;
 use App\Models\Paiement;
 use App\Models\Reclamation;
 
@@ -104,15 +103,14 @@ class DashboardTest extends ClientApiTestCase
             'telephone' => '0611111111',
         ]);
 
-        $offre = Offre::create([
-            'agence_id' => $agence->id,
+        $offre = $this->createOffreForAgence($agence, [
             'titre' => 'Offre test',
             'type' => 'particulier',
             'prix' => 8750,
             'capacite_totale' => 1000,
             'capacite_disponible' => 1000,
-            'origine' => 'Chine',
-            'destination' => 'Libreville',
+            'depart' => 'Chine',
+            'arrivee' => 'Libreville',
             'statut' => 'active',
         ]);
 

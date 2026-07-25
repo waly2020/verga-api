@@ -5,7 +5,6 @@ namespace Tests\Feature\Admin;
 use App\Http\Integrations\BambooPay\BambooPayConnector;
 use App\Http\Integrations\BambooPay\Requests\CheckStatusRequest;
 use App\Models\Commande;
-use App\Models\Offre;
 use App\Models\Paiement;
 use App\Models\User;
 use App\Services\BambooPayService;
@@ -40,15 +39,14 @@ class PaiementTest extends TestCase
             'telephone' => '0611111111',
         ]);
 
-        $offre = Offre::create([
-            'agence_id' => $agence->id,
+        $offre = $this->createOffreForAgence($agence, [
             'titre' => 'Groupage Paris',
             'type' => 'particulier',
             'prix' => 2500,
             'capacite_totale' => 100,
             'capacite_disponible' => 100,
-            'origine' => 'Libreville',
-            'destination' => 'Paris',
+            'depart' => 'Libreville',
+            'arrivee' => 'Paris',
             'statut' => 'active',
         ]);
 
