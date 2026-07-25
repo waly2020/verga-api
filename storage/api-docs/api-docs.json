@@ -344,6 +344,191 @@
                 ]
             }
         },
+        "/agence/destinations": {
+            "get": {
+                "tags": [
+                    "Agence - Destinations"
+                ],
+                "summary": "Lister toutes les destinations (sans pagination)",
+                "description": "Retourne le catalogue global des destinations actives. Chaque élément expose le booléen rattachee (liée ou non à l'agence).",
+                "operationId": "agenceListDestinations",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Filtre sur départ ou arrivée",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste complète des destinations",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/DestinationResource"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Agence - Destinations"
+                ],
+                "summary": "Créer ou rattacher une destination",
+                "description": "Find-or-create une destination (sans configuration forcée) puis l'attache à l'agence. Body : depart, arrivee uniquement.",
+                "operationId": "agenceCreateDestination",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "depart",
+                                    "arrivee"
+                                ],
+                                "properties": {
+                                    "depart": {
+                                        "type": "string",
+                                        "example": "Chine"
+                                    },
+                                    "arrivee": {
+                                        "type": "string",
+                                        "example": "Libreville"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Destination créée ou rattachée",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/DestinationResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    },
+                    "422": {
+                        "description": "Validation échouée"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/agence/destinations/paginated": {
+            "get": {
+                "tags": [
+                    "Agence - Destinations"
+                ],
+                "summary": "Lister les destinations (paginé)",
+                "description": "Retourne le catalogue global des destinations actives, paginé. Chaque élément expose le booléen rattachee.",
+                "operationId": "agenceListDestinationsPaginated",
+                "parameters": [
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 15,
+                            "maximum": 100,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Filtre sur départ ou arrivée",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste paginée des destinations",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/DestinationResource"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object"
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/agence/register": {
             "post": {
                 "tags": [
@@ -880,8 +1065,7 @@
                                 "required": [
                                     "titre",
                                     "prix",
-                                    "origine",
-                                    "destination"
+                                    "destination_id"
                                 ],
                                 "properties": {
                                     "titre": {
@@ -903,7 +1087,7 @@
                                         ]
                                     },
                                     "prix": {
-                                        "description": "Prix unitaire (FCFA/kg, FCFA/m³ ou FCFA/conteneur)",
+                                        "description": "Prix unitaire (FCFA/kg, FCFA/m³ ou FCFA/conteneur) — forcé si destination.appliquer_configuration",
                                         "type": "number",
                                         "format": "float",
                                         "example": 8750
@@ -920,13 +1104,10 @@
                                         "example": 30000,
                                         "nullable": true
                                     },
-                                    "origine": {
+                                    "destination_id": {
+                                        "description": "Destination active du catalogue (rattachée automatiquement à l'agence)",
                                         "type": "string",
-                                        "example": "Chine"
-                                    },
-                                    "destination": {
-                                        "type": "string",
-                                        "example": "Libreville"
+                                        "format": "uuid"
                                     },
                                     "date_depart": {
                                         "description": "Date de départ (optionnelle)",
@@ -1084,8 +1265,7 @@
                                 "required": [
                                     "titre",
                                     "prix",
-                                    "origine",
-                                    "destination",
+                                    "destination_id",
                                     "statut"
                                 ],
                                 "properties": {
@@ -1106,6 +1286,7 @@
                                         ]
                                     },
                                     "prix": {
+                                        "description": "Forcé si destination.appliquer_configuration",
                                         "type": "number",
                                         "format": "float",
                                         "example": 8750
@@ -1122,13 +1303,10 @@
                                         "example": 30000,
                                         "nullable": true
                                     },
-                                    "origine": {
+                                    "destination_id": {
+                                        "description": "Destination active du catalogue (rattachée automatiquement à l'agence)",
                                         "type": "string",
-                                        "example": "Chine"
-                                    },
-                                    "destination": {
-                                        "type": "string",
-                                        "example": "Libreville"
+                                        "format": "uuid"
                                     },
                                     "date_depart": {
                                         "description": "Date de départ (optionnelle)",
@@ -2235,13 +2413,13 @@
                     "Client - Offres"
                 ],
                 "summary": "Lister les offres disponibles (paginé)",
-                "description": "Catalogue public des offres actives avec capacité disponible > 0. Aucune authentification requise.\n\nFiltres disponibles :\n- `search` : titre, origine, destination, description\n- `destination` : filtre sur la destination (partiel)\n- `type` : particulier, metre_cube, conteneur (legacy)\n- `type_offre_id` : UUID du type d'offre (recommandé)\n- `date_debut` / `date_fin` : plage de dates de publication (`created_at`, format `YYYY-MM-DD`)\n- `page` / `per_page` : pagination (défaut 15, max 100)",
+                "description": "Catalogue public des offres actives avec capacité disponible > 0. Aucune authentification requise.\n\nFiltres disponibles :\n- `search` : titre, départ/arrivée destination, description\n- `destination` : filtre sur départ ou arrivée (partiel)\n- `type` : particulier, metre_cube, conteneur (legacy)\n- `type_offre_id` : UUID du type d'offre (recommandé)\n- `date_debut` / `date_fin` : plage de dates de publication (`created_at`, format `YYYY-MM-DD`)\n- `page` / `per_page` : pagination (défaut 15, max 100)",
                 "operationId": "clientListOffres",
                 "parameters": [
                     {
                         "name": "search",
                         "in": "query",
-                        "description": "Recherche titre, origine, destination, description",
+                        "description": "Recherche titre, départ/arrivée, description",
                         "schema": {
                             "type": "string",
                             "example": "Paris"
@@ -2250,7 +2428,7 @@
                     {
                         "name": "destination",
                         "in": "query",
-                        "description": "Filtre destination (correspondance partielle)",
+                        "description": "Filtre départ ou arrivée (correspondance partielle)",
                         "schema": {
                             "type": "string",
                             "example": "Libreville"
@@ -4595,6 +4773,49 @@
                 },
                 "type": "object"
             },
+            "DestinationResource": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "depart": {
+                        "type": "string",
+                        "example": "chine"
+                    },
+                    "arrivee": {
+                        "type": "string",
+                        "example": "libreville"
+                    },
+                    "montant": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 8750,
+                        "nullable": true
+                    },
+                    "commission_pourcentage": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 10,
+                        "nullable": true
+                    },
+                    "appliquer_configuration": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "actif": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "rattachee": {
+                        "description": "Présent sur les endpoints agence : true si la destination est déjà liée à l'agence authentifiée",
+                        "type": "boolean",
+                        "example": true,
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
             "TypeAgenceResource": {
                 "properties": {
                     "id": {
@@ -4670,13 +4891,17 @@
                         "example": 750,
                         "nullable": true
                     },
-                    "origine": {
+                    "destination_id": {
                         "type": "string",
-                        "example": "Libreville"
+                        "format": "uuid"
                     },
                     "destination": {
-                        "type": "string",
-                        "example": "Paris"
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/DestinationResource"
+                            }
+                        ],
+                        "nullable": true
                     },
                     "date_depart": {
                         "type": "string",
@@ -4991,13 +5216,17 @@
                         "example": 750,
                         "nullable": true
                     },
-                    "origine": {
+                    "destination_id": {
                         "type": "string",
-                        "example": "Libreville"
+                        "format": "uuid"
                     },
                     "destination": {
-                        "type": "string",
-                        "example": "Paris"
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/DestinationResource"
+                            }
+                        ],
+                        "nullable": true
                     },
                     "date_depart": {
                         "type": "string",
@@ -5889,6 +6118,10 @@
         {
             "name": "Agence - Utilisateurs",
             "description": "Rôles et utilisateurs agence"
+        },
+        {
+            "name": "Agence - Destinations",
+            "description": "Agence - Destinations"
         }
     ]
 }
