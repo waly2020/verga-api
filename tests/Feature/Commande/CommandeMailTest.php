@@ -182,6 +182,70 @@ class CommandeMailTest extends ClientApiTestCase
         Mail::assertQueued(PaiementCommandeEchecClientMail::class, fn ($mail) => $mail->hasTo('client-echec@example.com'));
     }
 
+    public function test_guest_with_email_receives_mail_only_on_final_payment_status(): void
+    {
+        Mail::fake();
+        $this->mockBambooRedirect();
+
+        ['agence' => $agence, 'offre' => $offre] = $this->createCheckoutOffre();
+
+        $create = $this->postJson('/api/v1/client/commandes', [
+            'offre_id' => $offre->id,
+            'nom' => 'Mbadinga',
+            'prenom' => 'Jean',
+            'telephone' => '0622222222',
+            'email' => 'invite@example.com',
+            'quantite' => 2,
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('commandes', [
+            'code' => $create->json('code'),
+            'email' => 'invite@example.com',
+            'client_id' => null,
+        ]);
+
+        Mail::assertNotQueued(CommandeCreatedClientMail::class);
+        Mail::assertQueued(CommandeCreatedAgenceMail::class, fn ($mail) => $mail->hasTo($agence->email));
+        Mail::assertQueued(CommandeCreatedAdminMail::class);
+
+        $paiementCode = $create->json('paiement_code');
+
+        app(PaymentSettlementService::class)->settleFromCallback([
+            'reference' => $paiementCode,
+            'billingId' => 'TXN-GUEST-001',
+            'status' => 'completed',
+        ]);
+
+        Mail::assertQueued(PaiementCommandeValideClientMail::class, fn ($mail) => $mail->hasTo('invite@example.com'));
+    }
+
+    public function test_guest_without_email_does_not_receive_client_mails(): void
+    {
+        Mail::fake();
+        $this->mockBambooRedirect();
+
+        ['offre' => $offre] = $this->createCheckoutOffre();
+
+        $create = $this->postJson('/api/v1/client/commandes', [
+            'offre_id' => $offre->id,
+            'nom' => 'Mbadinga',
+            'prenom' => 'Jean',
+            'telephone' => '0622222222',
+            'quantite' => 2,
+        ])->assertCreated();
+
+        app(PaymentSettlementService::class)->settleFromCallback([
+            'reference' => $create->json('paiement_code'),
+            'billingId' => 'TXN-GUEST-002',
+            'status' => 'failed',
+            'description' => 'Solde insuffisant',
+        ]);
+
+        Mail::assertNotQueued(CommandeCreatedClientMail::class);
+        Mail::assertNotQueued(PaiementCommandeValideClientMail::class);
+        Mail::assertNotQueued(PaiementCommandeEchecClientMail::class);
+    }
+
     /**
      * @return array{agence: Agence, offre: Offre}
      */

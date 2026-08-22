@@ -85,6 +85,55 @@ class PaymentSettlementServiceTest extends TestCase
         ]);
     }
 
+    public function test_callback_accepts_new_bamboo_payload_format(): void
+    {
+        $paiement = $this->createPendingPayment();
+
+        $service = app(PaymentSettlementService::class);
+        $result = $service->settleFromCallback([
+            'billingId' => 'TXN-BP-NEW-001',
+            'reference' => $paiement->code,
+            'numCpte' => '0612345678',
+            'amount' => 25000,
+            'payername' => 'Jean Mbaye',
+            'status' => 'failed',
+            'reason' => 'Insufficient funds',
+            'paymentType' => 'airtel_money',
+            'description' => 'Solde insuffisant sur le compte mobile money',
+            'idempotency_key' => 'cbk-9f3a2c1e',
+        ]);
+
+        $this->assertNotNull($result);
+        $this->assertDatabaseHas('paiements', [
+            'id' => $paiement->id,
+            'statut' => 'échec',
+            'bamboo_message' => 'Solde insuffisant sur le compte mobile money',
+            'operateur' => 'airtel_money',
+            'bamboo_reference' => 'TXN-BP-NEW-001',
+        ]);
+    }
+
+    public function test_callback_prefers_reason_when_description_missing(): void
+    {
+        $paiement = $this->createPendingPayment();
+
+        app(PaymentSettlementService::class)->settleFromCallback([
+            'reference' => $paiement->code,
+            'billingId' => 'TXN-REASON-001',
+            'status' => 'failed',
+            'reason' => 'Paiement refusé par l\'opérateur',
+            'paymentType' => 'moov_money',
+        ]);
+
+        $this->assertDatabaseHas('paiements', [
+            'id' => $paiement->id,
+            'statut' => 'échec',
+            'bamboo_message' => 'Paiement refusé par l\'opérateur',
+            'operateur' => 'moov_money',
+            'bamboo_reference' => 'TXN-REASON-001',
+        ]);
+    }
+
     public function test_check_status_stores_transaction_message_on_failure(): void
     {
         $paiement = $this->createPendingPayment();

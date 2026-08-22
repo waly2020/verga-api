@@ -34,6 +34,7 @@ class CommandeResource extends JsonResource
             'nom' => $this->nom,
             'prenom' => $this->prenom,
             'telephone' => $this->telephone,
+            'email' => $this->email,
             'client' => CommandeClientPresenter::for($this->resource),
             'created_at' => $this->created_at?->toIso8601String(),
             'agence' => $this->whenLoaded('agence', fn () => [

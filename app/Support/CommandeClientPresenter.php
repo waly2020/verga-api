@@ -23,12 +23,12 @@ final class CommandeClientPresenter
             ];
         }
 
-        if ($commande->nom || $commande->prenom || $commande->telephone) {
+        if ($commande->nom || $commande->prenom || $commande->telephone || $commande->email) {
             return [
                 'id' => null,
                 'nom' => $commande->nom,
                 'prenom' => $commande->prenom,
-                'email' => null,
+                'email' => $commande->email,
                 'telephone' => $commande->telephone,
             ];
         }

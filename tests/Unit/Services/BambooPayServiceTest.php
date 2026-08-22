@@ -7,12 +7,15 @@ use App\Http\Integrations\BambooPay\Requests\CheckStatusRequest;
 use App\Http\Integrations\BambooPay\Requests\InstantPaymentRequest;
 use App\Http\Integrations\BambooPay\Requests\RedirectPaymentRequest;
 use App\Services\BambooPayService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
 use Tests\TestCase;
 
 class BambooPayServiceTest extends TestCase
 {
+    use RefreshDatabase;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -107,12 +110,16 @@ class BambooPayServiceTest extends TestCase
     {
         $response = $this->postJson('/api/v1/payments/bamboo-pay/callback', [
             'status' => 'completed',
-            'reference' => 'TXN-2025-000381',
-            'billingId' => 'CMD-001',
+            'reference' => 'PAY-ABCDEFGH',
+            'billingId' => 'TXN-2025-000381',
+            'paymentType' => 'moov_money',
+            'description' => 'Transaction réussie',
+            'idempotency_key' => 'cbk-test-001',
         ]);
 
         $response->assertOk()
             ->assertJsonPath('received', true)
-            ->assertJsonPath('status', 'completed');
+            ->assertJsonPath('processed', false)
+            ->assertJsonPath('statut', 'completed');
     }
 }
