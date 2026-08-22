@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Reclamation;
+use App\Services\ReclamationMailService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -16,6 +17,10 @@ class ReclamationController extends Controller
         'ouverte' => ['en_cours', 'fermée'],
         'en_cours' => ['résolue', 'fermée'],
     ];
+
+    public function __construct(
+        private readonly ReclamationMailService $reclamationMail,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -65,6 +70,8 @@ class ReclamationController extends Controller
         ]);
 
         $reclamation->update(['statut' => $validated['statut']]);
+
+        $this->reclamationMail->notifyStatutChanged($reclamation->fresh(), $validated['statut']);
 
         $labels = [
             'en_cours' => 'prise en charge',

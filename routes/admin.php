@@ -8,12 +8,15 @@ use App\Http\Controllers\Admin\ColisController;
 use App\Http\Controllers\Admin\CollaborateurController;
 use App\Http\Controllers\Admin\CommandeController;
 use App\Http\Controllers\Admin\ConfigurationCommissionController;
+use App\Http\Controllers\Admin\ConfigurationPubliciteController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DestinationController;
+use App\Http\Controllers\Admin\MassMailController;
 use App\Http\Controllers\Admin\OffreController;
-use App\Http\Controllers\Admin\PaiementController;
+use App\Http\Controllers\Admin\PubliciteController;
 use App\Http\Controllers\Admin\ReclamationController;
 use App\Http\Controllers\Admin\ReversementController;
+use App\Http\Controllers\Admin\TargetedMailController;
 use App\Http\Controllers\Admin\TypeAgenceController;
 use App\Http\Controllers\Admin\TypeOffreController;
 use Illuminate\Support\Facades\Route;
@@ -73,6 +76,14 @@ Route::middleware(['auth', 'verified', 'admin'])
         Route::patch('commissions/{destinataire}', [ConfigurationCommissionController::class, 'update'])
             ->whereIn('destinataire', ['client', 'agence'])
             ->name('commissions.update');
+
+        Route::get('publicites', [PubliciteController::class, 'index'])->name('publicites.index');
+        Route::post('publicites', [PubliciteController::class, 'store'])->name('publicites.store');
+        Route::get('publicites/configuration', [ConfigurationPubliciteController::class, 'index'])->name('publicites.configuration');
+        Route::patch('publicites/configuration', [ConfigurationPubliciteController::class, 'update'])->name('publicites.configuration.update');
+        Route::patch('publicites/{publicite}/valider', [PubliciteController::class, 'valider'])->name('publicites.valider');
+        Route::patch('publicites/{publicite}/refuser', [PubliciteController::class, 'refuser'])->name('publicites.refuser');
+        Route::patch('publicites/{publicite}/statut', [PubliciteController::class, 'updateStatut'])->name('publicites.statut');
         Route::get('reversements', [ReversementController::class, 'index'])->name('reversements.index');
         Route::post('reversements', [ReversementController::class, 'store'])->name('reversements.store');
         Route::patch('reversements/{reversement}/effectuer', [ReversementController::class, 'effectuer'])->name('reversements.effectuer');
@@ -83,4 +94,9 @@ Route::middleware(['auth', 'verified', 'admin'])
         Route::get('collaborateurs/create', [CollaborateurController::class, 'create'])->name('collaborateurs.create');
         Route::post('collaborateurs', [CollaborateurController::class, 'store'])->name('collaborateurs.store');
         Route::delete('collaborateurs/{collaborateur}', [CollaborateurController::class, 'destroy'])->name('collaborateurs.destroy');
+
+        Route::get('notifications/envoi-en-masse', [MassMailController::class, 'index'])->name('notifications.masse.index');
+        Route::post('notifications/envoi-en-masse', [MassMailController::class, 'send'])->name('notifications.masse.send');
+        Route::get('notifications/envoi-cible', [TargetedMailController::class, 'index'])->name('notifications.cible.index');
+        Route::post('notifications/envoi-cible', [TargetedMailController::class, 'send'])->name('notifications.cible.send');
     });

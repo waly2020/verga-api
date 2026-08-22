@@ -11,6 +11,7 @@ use App\Http\Resources\Api\Agence\AgenceUserResource;
 use App\Models\Agence;
 use App\Models\AgenceRole;
 use App\Models\AgenceUser;
+use App\Services\AccountMailService;
 use App\Services\AgenceMediaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,6 +24,7 @@ class AuthController extends Controller
 {
     public function __construct(
         private readonly AgenceMediaService $media,
+        private readonly AccountMailService $accountMail,
     ) {}
 
     public function register(RegisterAgenceRequest $request): JsonResponse
@@ -72,6 +74,7 @@ class AuthController extends Controller
         });
 
         $result['agenceUser']->load(['role', 'agence.typeAgence', 'agence.logo', 'agence.documents']);
+        $this->accountMail->notifyAgenceRegistered($result['agenceUser'], $result['agence']);
         $token = $result['agenceUser']->createToken($data['device_name'] ?? 'agence-api');
 
         return response()->json([

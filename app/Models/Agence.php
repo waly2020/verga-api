@@ -78,6 +78,11 @@ class Agence extends Model
         return $this->hasMany(Reclamation::class);
     }
 
+    public function publicites(): HasMany
+    {
+        return $this->hasMany(Publicite::class);
+    }
+
     public function avis(): HasMany
     {
         return $this->hasMany(Avis::class);

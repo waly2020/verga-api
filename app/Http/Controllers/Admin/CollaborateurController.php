@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\AccountMailService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -13,6 +14,10 @@ use Inertia\Response;
 
 class CollaborateurController extends Controller
 {
+    public function __construct(
+        private readonly AccountMailService $accountMail,
+    ) {}
+
     public function index(Request $request): Response
     {
         $query = User::whereIn('role', ['admin', 'collaborateur']);
@@ -53,7 +58,9 @@ class CollaborateurController extends Controller
             'password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
         ]);
 
-        User::create($validated);
+        $user = User::create($validated);
+
+        $this->accountMail->notifyCollaborateurCreated($user);
 
         return redirect()
             ->route('admin.collaborateurs.index')

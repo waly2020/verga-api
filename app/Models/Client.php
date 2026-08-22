@@ -45,6 +45,11 @@ class Client extends Model
         return $this->hasMany(Avis::class);
     }
 
+    public function publicites(): HasMany
+    {
+        return $this->hasMany(Publicite::class);
+    }
+
     public function documents(): MorphMany
     {
         return $this->morphMany(Document::class, 'documentable');

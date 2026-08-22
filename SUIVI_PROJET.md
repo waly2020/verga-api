@@ -101,6 +101,9 @@ Objectif : disposer d'un schéma fiable, documenté et migrable avant tout déve
 
 - [x] `commissions` — commissions VERGA (par commande)
 - [x] `configurations_commission` — taux global client / agence (fixe ou pourcentage)
+- [x] `configurations_publicite` — tarif publicité (prix/jour entier FCFA + frais fixe ou %)
+- [x] `publicites` — campagnes agence / client / VERGA (`offre_id` optionnel)
+- [x] `paiements_publicite` — paiements Bamboo dédiés (préfixe `PUB-`)
 - [ ] `reversements` — reversements aux agences
 - [ ] `reclamations` — litiges clients
 - [ ] `avis` — notation des agences
@@ -145,6 +148,8 @@ Objectif : construire l'interface admin (structure, navigation, pages) — d'abo
 
 - [x] **Agences** — liste, détail, actions (bloquer / supprimer)
 - [x] **Offres** — consultation des offres par agence
+- [x] **Destinations** — trajets partagés + config tarifaire optionnelle
+- [x] **Publicités** — modération, création interne, tarif
 - [x] **Commandes / achats** — liste des achats clients
 - [x] **Colis** — suivi et vérification d'arrivée
 - [x] **Paiements** — liste des transactions
@@ -238,8 +243,29 @@ Objectif : connecter chaque écran aux modèles, controllers et règles métier 
 ### 3.9 Qualité et tests
 
 - [ ] Tests Feature par module admin critique
+- [x] Tests Feature publicités admin (tarif, modération, création interne, changement statut — 15 tests)
 - [ ] Policies / autorisations vérifiées
 - [ ] Revue des N+1 et index sur les listes
+
+### 3.10 Destinations
+
+- [x] CRUD admin `/admin/destinations` (trajet départ → arrivée, actif, config tarifaire optionnelle)
+- [x] Si `appliquer_configuration` : prix offre forcé serveur + commission paiement = % destination
+- [x] Sinon : prix offre libre + commission globale
+- [x] Pivot `agence_destination` — rattachement agence (API find-or-create-attach)
+- [x] Offres via `destination_id` uniquement (plus d’origine/arrivée libres)
+
+### 3.11 Publicités
+
+- [x] Tarif admin `/admin/publicites/configuration` — prix **par jour** et frais (fixe ou %), **entiers FCFA**
+- [x] Liste + modération : changement de statut admin (valider, refuser avec motif, retirer, republier selon transitions)
+- [x] Statut `retirée` — l’admin peut retirer une pub à tout moment ; republication si payée et dates valides
+- [x] Création admin : publicité interne VERGA, ou pour une agence / un client — **publiée immédiatement**, sans paiement
+- [x] Durée inclusive : `(date_fin - date_debut) + 1` jours
+- [x] Propriétaire : `agence_id` **ou** `client_id` (jamais les deux) ; pubs VERGA : les deux nuls
+- [x] Agence : offre rattachable uniquement si elle lui appartient ; client : pas d’offre
+- [x] Parcours agence/client : `en_attente` → validation admin → paiement Bamboo dédié → `publiée` / `payé` ; refus → modification + resoumission
+- [x] Expiration automatique quand `date_fin` est dépassée (`expirée`)
 
 ---
 
@@ -263,9 +289,12 @@ Objectif : connecter chaque écran aux modèles, controllers et règles métier 
 - [~] **Auth agence** (inscription, connexion, profil, déconnexion, mot de passe) — **en attente de validation**
 - [~] **Métier agence** (offres, commandes, colis, réclamations, paiements) — **en attente de validation**
 - [x] **Types d'offre agence** — CRUD types personnalisés (`agence_id` sur `types_offres`, API + Swagger + tests)
+- [x] **Destinations agence** — `GET /agence/destinations`, `GET …/paginated`, `POST` find-or-create-attach
+- [x] **Publicités agence** — CRUD, resoumettre, paiement Bamboo dédié, lecture tarif
 - [~] **Clients** — table `clients`, admin consultation (web), API inscription/métier (app externe) — **en attente de validation**
 - [ ] Endpoints client avancés (avis, recherche offres, commande)
 - [~] Service Bamboo Pay (redirect, instant, statut GET, callback, page retour marchand) — **en attente de validation**
+- [x] Paiement publicité isolé (callback `POST /payments/bamboo-pay/publicites/callback` — ne pas toucher au settlement commandes)
 - [ ] Branchement paiement commande + commissions sur callback Bamboo Pay
 - [ ] Endpoints admin (si nécessaire côté API)
 - [ ] Documentation et tests API (autres modules)
@@ -276,6 +305,10 @@ Objectif : connecter chaque écran aux modèles, controllers et règles métier 
 - [x] Liste paiements simplifiée (code, montant net, date, `bamboo_reference`, `commande_code` — sans commission)
 - [x] Colis : photos renvoyées en liste et détail (`photos[]` avec `url`)
 - [x] Commandes : client invité exposé via `CommandeClientPresenter` (plus de `client: null`)
+- [x] **Publicités client** — CRUD, resoumettre, paiement (pas d’offre rattachable)
+- [x] Catalogue public `GET /api/v1/publicites` (pubs `publiée` dans les dates)
+- [x] Statut paiement pub `GET /api/v1/publicites/paiements/{code}/statut`
+- [x] Page retour `/publicite-paiement/{code}/retour`
 
 ---
 
@@ -388,7 +421,7 @@ Fonctionnalités validées en conception mais **non planifiées pour l’implém
 
 ## Journal de suivi
 
-> **Dernière session** : 2026-07-17 — refonte comptes/rôles agence (`agence_users`, `agence_roles`, CRUD admin rôles, API `/users` + `/roles`)
+> **Dernière session** : 2026-08-22 — publicités admin : changement de statut (retirée, republication), statut `retirée` en BDD
 
 | Date | Poste | Module | Action | Statut |
 |------|-------|--------|--------|--------|
@@ -417,7 +450,13 @@ Fonctionnalités validées en conception mais **non planifiées pour l’implém
 | 2026-07-07 | **PPVTSGA006** | API | Commandes : `client` renseigné pour commandes invité (`CommandeClientPresenter`) | `[x]` |
 | 2026-07-07 | **PPVTSGA006** | API Agence | CRUD types d'offre personnalisés — migration `agence_id`, 5 endpoints, Swagger, `OffreTypeResolver` | `[x]` |
 | 2026-07-17 | — | API Agence | Refonte comptes/rôles — `agence_users`, `agence_roles`, auth Sanctum dédiée, CRUD `/users`, admin CRUD rôles, migration données | `[x]` |
-| 2026-07-17 | — | API Agence | ~~Équipe multi-utilisateurs — `agence_membres`…~~ remplacé par refonte ci-dessus | `[x]` |
+| 2026-07-17 | — | API Agence | ~~Équipe multi-utilisateurs — `agence_membres`…~~  remplacé par refonte ci-dessus | `[x]` |
+| 2026-08-18 | — | Destinations | Destinations partagées + pivot agence, config tarifaire optionnelle, API agence, offres via `destination_id` | `[x]` |
+| 2026-08-18 | — | Publicités | Tables + cycle de vie (attente → validation/refus → paiement → publiée / expirée), tarif admin, APIs agence/client/catalogue | `[x]` |
+| 2026-08-18 | — | Publicités | Paiement Bamboo dédié (`PUB-`, callback isolé, page retour) | `[x]` |
+| 2026-08-19 | — | Publicités | Montants **entiers FCFA** (plus de `step` HTML 0,01) | `[x]` |
+| 2026-08-19 | — | Admin | Création publicité interne VERGA / agence / client — publiée sans paiement (13 tests) | `[x]` |
+| 2026-08-22 | — | Admin | Changement statut publicité (retirée, republication) — dialogue admin + transitions (15 tests) | `[x]` |
 
 ---
 
@@ -434,10 +473,15 @@ Fonctionnalités validées en conception mais **non planifiées pour l’implém
 - **API paiements (listes)** : champs `code`, `montant` (net transport), `created_at`, `bamboo_reference`, `commande_code` uniquement.
 - **Types d'offre** : types plateforme (`agence_id` null) + types créés par chaque agence (slug unique par agence) ; CRUD API `/api/v1/agence/types-offres`.
 - **Commandes invité** : objet `client` rempli depuis `nom` / `prenom` / `telephone` de la commande si pas de `client_id`.
+- **Destinations** : table partagée `destinations` + pivot `agence_destination`. Config destination : si `appliquer_configuration` → prix offre forcé + commission % destination ; sinon prix libre + commission globale.
+- **Publicités** : indépendantes d’une offre (`offre_id` nullable). Propriétaire = agence **xor** client, ou aucun des deux (pub VERGA créée par l’admin).
+- **Publicités — parcours payant** (agence/client) : création `en_attente` / `non_payé` → admin valide ou refuse → si validée, paiement Bamboo **dédié** (ne pas réutiliser le settlement commandes) → `publiée` / `payé`. Durée inclusive `(date_fin − date_debut) + 1`.
+- **Publicités — admin** : création directe → `publiée` + `payé` (pas de Bamboo). Modération : transitions `en_attente` → validée/refusée/retirée ; retrait depuis `publiée` ; republication depuis `retirée`/`expirée` si payée et `date_fin` ≥ aujourd’hui. Tarif : prix/jour et frais en **entiers** (FCFA, pas de centimes).
+- **Publicités — affichage site** : `GET /api/v1/publicites` ; emplacement visuel = front Angular.
 - **Références** : `CONTEXTE/DOCUMENT_DESCRIPTIF_DE_VERGA.pdf`, `CONTEXTE/Documentation_BDD_VERGA.pdf`.
 
 ---
 
 ## Prochaine action suggérée
 
-**Déployer sur le serveur** : `composer install`, `php artisan migrate` (migrations `chez_client`, `bamboo_message`, `agence_id` sur `types_offres`), `php artisan l5-swagger:generate`, `npm run build`, puis **valider l'API agence** (types d'offre CRUD, offres avec type perso, listes paiements) et les **recherches admin**.
+**Valider le module publicités** (tarif admin, création interne, modération, APIs agence/client, catalogue, paiement Bamboo dédié), puis `php artisan migrate` (tables `configurations_publicite`, `publicites`, `paiements_publicite`) et `php artisan l5-swagger:generate`.

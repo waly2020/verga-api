@@ -8,6 +8,7 @@ use App\Models\Agence;
 use App\Models\AgenceRole;
 use App\Models\AgenceUser;
 use App\Models\TypeAgence;
+use App\Services\AccountMailService;
 use App\Services\AgenceMediaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,6 +21,7 @@ class AgenceController extends Controller
 {
     public function __construct(
         private readonly AgenceMediaService $media,
+        private readonly AccountMailService $accountMail,
     ) {}
 
     public function index(Request $request): Response
@@ -49,7 +51,7 @@ class AgenceController extends Controller
     {
         $data = $request->validated();
 
-        DB::transaction(function () use ($request, $data) {
+        $created = DB::transaction(function () use ($request, $data) {
             $adminRole = AgenceRole::query()
                 ->where('slug', AgenceRole::SLUG_ADMIN_AGENCE)
                 ->firstOrFail();
@@ -65,7 +67,7 @@ class AgenceController extends Controller
                 'statut' => 'actif',
             ]);
 
-            AgenceUser::create([
+            $agenceUser = AgenceUser::create([
                 'agence_id' => $agence->id,
                 'agence_role_id' => $adminRole->id,
                 'name' => $data['gerant_name'],
@@ -88,7 +90,11 @@ class AgenceController extends Controller
             if ($documents !== []) {
                 $this->media->storeDocuments($agence, $documents);
             }
+
+            return compact('agence', 'agenceUser');
         });
+
+        $this->accountMail->notifyAgenceRegistered($created['agenceUser'], $created['agence']);
 
         return back()->with('success', "L'agence \"{$data['nom']}\" a été créée avec succès.");
     }
@@ -136,6 +142,8 @@ class AgenceController extends Controller
     {
         $nouveau = $agence->statut === 'bloqué' ? 'actif' : 'bloqué';
         $agence->update(['statut' => $nouveau]);
+
+        $this->accountMail->notifyAgenceStatutChanged($agence->fresh(), $nouveau);
 
         $msg = $nouveau === 'bloqué'
             ? "L'agence \"{$agence->nom}\" a été bloquée."

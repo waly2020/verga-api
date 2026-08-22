@@ -14,16 +14,17 @@
 */
 
 use App\Http\Controllers\PaiementRetourController;
+use App\Http\Controllers\PublicitePaiementRetourController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
 if (app()->isLocal()) {
     Route::get('/dev/login-admin', function () {
         $user = User::firstOrCreate(
-            ['email' => 'admin@verga.test'],
+            ['email' => 'walyguema@gmail.com'],
             [
                 'name' => 'Admin VERGA',
-                'password' => bcrypt('password'),
+                'password' => bcrypt('12345678'),
                 'role' => 'admin',
             ]
         );
@@ -41,6 +42,8 @@ Route::get('/paiement/{paiement}/retour', [PaiementRetourController::class, 'sho
     ->name('paiement.retour');
 Route::get('/paiement/{paiement}/facture', [PaiementRetourController::class, 'facture'])
     ->name('paiement.facture');
+Route::get('/publicite-paiement/{paiement}/retour', [PublicitePaiementRetourController::class, 'show'])
+    ->name('publicite-paiement.retour');
 
 require __DIR__.'/settings.php';
 require __DIR__.'/admin.php';

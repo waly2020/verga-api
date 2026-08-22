@@ -17,6 +17,11 @@ class ReferenceGenerator
         return self::unique('paiements', 'code', 'PAY');
     }
 
+    public static function paiementPublicite(): string
+    {
+        return self::unique('paiements_publicite', 'code', 'PUB');
+    }
+
     public static function colis(): string
     {
         return self::unique('colis', 'reference', 'COL');

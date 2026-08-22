@@ -11,12 +11,16 @@ use Illuminate\Validation\ValidationException;
 
 class AgenceUserService
 {
+    public function __construct(
+        private readonly AccountMailService $accountMail,
+    ) {}
+
     /**
      * @param  array<string, mixed>  $data
      */
     public function create(Agence $agence, array $data): AgenceUser
     {
-        return AgenceUser::create([
+        $user = AgenceUser::create([
             'agence_id' => $agence->id,
             'agence_role_id' => $data['agence_role_id'],
             'name' => $data['name'],
@@ -26,6 +30,10 @@ class AgenceUserService
             'statut' => $data['statut'] ?? AgenceUser::STATUT_ACTIF,
             'est_proprietaire' => false,
         ]);
+
+        $this->accountMail->notifyAgenceCollaborateurCreated($user, $agence);
+
+        return $user;
     }
 
     /**

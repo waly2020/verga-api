@@ -11,6 +11,7 @@ class PaymentSettlementService
 {
     public function __construct(
         private readonly AgencePaymentAmountService $agenceAmounts,
+        private readonly CommandeMailService $commandeMail,
     ) {}
 
     /**
@@ -194,6 +195,8 @@ class PaymentSettlementService
         );
 
         if ($commande->statut === 'confirmée') {
+            $this->commandeMail->notifyPaiementValide($paiement->fresh());
+
             return;
         }
 
@@ -214,6 +217,8 @@ class PaymentSettlementService
         $commande->update([
             'statut' => $commande->isFullyPaid() ? 'confirmée' : 'réservée',
         ]);
+
+        $this->commandeMail->notifyPaiementValide($paiement->fresh());
     }
 
     private function markFailed(Paiement $paiement, ?string $bambooMessage = null): void
@@ -236,6 +241,8 @@ class PaymentSettlementService
         if (! $hasValidatedPayment) {
             $commande->update(['statut' => 'annulée']);
         }
+
+        $this->commandeMail->notifyPaiementEchec($paiement->fresh());
     }
 
     /**
