@@ -7,9 +7,12 @@ use App\Models\AgenceUser;
 use App\Models\Client;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
@@ -32,6 +35,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        App::setLocale(config('app.locale'));
+
+        $this->configureFrenchAuthNotifications();
         $this->configureDefaults();
 
         Relation::enforceMorphMap([
@@ -40,6 +46,17 @@ class AppServiceProvider extends ServiceProvider
             'client' => Client::class,
             'user' => User::class,
         ]);
+    }
+
+    protected function configureFrenchAuthNotifications(): void
+    {
+        VerifyEmail::toMailUsing(function (mixed $notifiable, string $url): MailMessage {
+            return (new MailMessage)
+                ->subject('Vérifiez votre adresse e-mail')
+                ->line('Cliquez sur le bouton ci-dessous pour vérifier votre adresse e-mail.')
+                ->action('Vérifier mon e-mail', $url)
+                ->line('Si vous n\'avez pas créé de compte, ignorez ce message.');
+        });
     }
 
     /**
@@ -90,6 +107,30 @@ class AppServiceProvider extends ServiceProvider
             $email = Str::transliterate(Str::lower($request->input('email', '')));
 
             return Limit::perMinute(3)->by($email.'|'.$request->ip());
+        });
+
+        RateLimiter::for('api-client-password-forgot', function (Request $request) {
+            $email = Str::transliterate(Str::lower($request->input('email', '')));
+
+            return Limit::perMinute(3)->by($email.'|'.$request->ip());
+        });
+
+        RateLimiter::for('api-client-password-reset', function (Request $request) {
+            $email = Str::transliterate(Str::lower($request->input('email', '')));
+
+            return Limit::perMinute(5)->by($email.'|'.$request->ip());
+        });
+
+        RateLimiter::for('api-agence-password-forgot', function (Request $request) {
+            $email = Str::transliterate(Str::lower($request->input('email', '')));
+
+            return Limit::perMinute(3)->by($email.'|'.$request->ip());
+        });
+
+        RateLimiter::for('api-agence-password-reset', function (Request $request) {
+            $email = Str::transliterate(Str::lower($request->input('email', '')));
+
+            return Limit::perMinute(5)->by($email.'|'.$request->ip());
         });
     }
 }

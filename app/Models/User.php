@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Notifications\Auth\AdminResetPasswordNotification;
+use App\Notifications\Auth\ClientResetPasswordNotification;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -30,7 +32,7 @@ use Laravel\Sanctum\HasApiTokens;
  */
 #[Fillable(['name', 'telephone', 'role', 'email', 'password'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
@@ -61,5 +63,16 @@ class User extends Authenticatable
     public function isClient(): bool
     {
         return $this->role === 'client';
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        if ($this->isClient()) {
+            $this->notify(new ClientResetPasswordNotification($token));
+
+            return;
+        }
+
+        $this->notify(new AdminResetPasswordNotification($token));
     }
 }

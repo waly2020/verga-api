@@ -2,12 +2,12 @@
     "openapi": "3.0.0",
     "info": {
         "title": "VERGA API",
-        "description": "API REST pour les applications externes VERGA (back-office agence Angular, application client mobile/web). Authentification Bearer Sanctum.\n\n**Médias (logo / documents)**\n- Inscription agence : `multipart/form-data` avec `logo` + `documents[i][fichier|type_document]`\n- Inscription client : `multipart/form-data` avec `documents[i][fichier|type_document]`\n- `GET /agence/me` et `GET /client/me` exposent `logo` / `documents` (id, type_document, chemin, url, nom_original)\n\n**Finance agence**\n- `GET /agence/solde` — solde courant, reversements effectués/en attente, montant disponible\n- `GET /agence/reversements` — historique des reversements (lecture seule)\n\n**Réservations et paiements multiples**\n- `quantite_reservee` : quantité bloquée sur l'offre (ex. 50 kg)\n- `quantite` : quantité payée lors du versement en cours (ex. 30 kg)\n- Après validation du 1er paiement partiel : statut commande `réservée`, stock bloqué sur la quantité réservée\n- Solde via `POST /client/commandes/{commande}/paiements` (auth requise)\n- Commission client recalculée à chaque versement sur la quantité payée\n\n**Quantités et unités**\n- Chaque quantité numérique (`quantite`, `quantite_payee`, etc.) est accompagnée d'un champ `*_label` formaté selon le `type_offre` de l'offre (ex. `2 kg`, `2 conteneurs`, `2,5 m³`)\n- L'unité source est dans `offre.type_offre` (`unite`, `unite_label`, `quantite_entier`)\n- Pour les colis : `quantite_label` affiche le poids physique (`poids_label`) s'il est renseigné, sinon la quantité de la commande avec unité",
+        "description": "API REST pour les applications externes VERGA (back-office agence Angular, application client mobile/web). Authentification Bearer Sanctum.\n\n**Médias (logo / documents)**\n- Inscription agence : `multipart/form-data` avec `logo` + `documents[i][fichier|type_document]`\n- Inscription client : `multipart/form-data` avec `documents[i][fichier|type_document]`\n- `GET /agence/me` et `GET /client/me` exposent `logo` / `documents` (id, type_document, chemin, url, nom_original)\n\n**Finance agence**\n- `GET /agence/solde` — solde courant, reversements effectués/en attente, montant disponible\n- `GET /agence/reversements` — historique des reversements (lecture seule)\n\n**Réservations et paiements multiples**\n- `quantite_reservee` : quantité bloquée sur l'offre (ex. 50 kg)\n- `quantite` : quantité payée lors du versement en cours (ex. 30 kg)\n- Après validation du 1er paiement partiel : statut commande `réservée`, stock bloqué sur la quantité réservée\n- Solde via `POST /client/commandes/{commande}/paiements` (auth requise)\n- Commission client recalculée à chaque versement sur la quantité payée\n\n**Quantités et unités**\n- Chaque quantité numérique (`quantite`, `quantite_payee`, etc.) est accompagnée d'un champ `*_label` formaté selon le `type_offre` de l'offre (ex. `2 kg`, `2 conteneurs`, `2,5 m³`)\n- L'unité source est dans `offre.type_offre` (`unite`, `unite_label`, `quantite_entier`)\n- Pour les colis : `quantite_label` affiche le poids physique (`poids_label`) s'il est renseigné, sinon la quantité de la commande avec unité\n\n**Publicités**\n- Parcours agence/client : création `en_attente` → modération admin → si validée, paiement Bamboo dédié (`PUB-`) → `publiée`\n- Agence : `offre_id` optionnel (offre de l'agence uniquement) ; client : pas d'offre rattachable\n- Tarif consultable : `GET /agence/publicites/configuration` (prix/jour + frais, montants entiers FCFA)\n- Catalogue public : `GET /publicites` (statut `publiée`, dates valides)\n- Vérification paiement pub : `GET /publicites/paiements/{code}/statut`\n- Callback Bamboo dédié : `POST /payments/bamboo-pay/publicites/callback` (ne pas confondre avec les commandes)",
         "contact": {
             "name": "VERGA",
             "email": "contact@verga.test"
         },
-        "version": "1.4.0"
+        "version": "1.5.0"
     },
     "servers": [
         {
@@ -3956,6 +3956,955 @@
                     }
                 }
             }
+        },
+        "/publicites": {
+            "get": {
+                "tags": [
+                    "Publicités"
+                ],
+                "summary": "Lister les publicités publiées",
+                "description": "Catalogue public : statut `publiée` et dates encore valides. Aucune authentification. Les publicités expirées sont retirées automatiquement à la requête.",
+                "operationId": "listPublicitesVisible",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste paginée des publicités visibles",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PubliciteResource"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object"
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/publicites/paiements/{code}/statut": {
+            "get": {
+                "tags": [
+                    "Publicités"
+                ],
+                "summary": "Vérifier le statut d'un paiement publicité",
+                "description": "Endpoint public (sans authentification). Si le paiement est encore `en_attente`, une vérification Bamboo est tentée avant de répondre.",
+                "operationId": "publicitePaymentStatus",
+                "parameters": [
+                    {
+                        "name": "code",
+                        "in": "path",
+                        "description": "Code paiement VERGA (préfixe PUB-)",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "PUB-ABCDEFGH"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Statut du paiement et de la publicité associée",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PublicitePaymentStatusResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Paiement introuvable"
+                    }
+                }
+            }
+        },
+        "/agence/publicites/configuration": {
+            "get": {
+                "tags": [
+                    "Agence - Publicités"
+                ],
+                "summary": "Consulter le tarif publicité",
+                "description": "Retourne le prix par jour, le type de frais et un exemple de calcul sur 7 jours. Montants en **entiers FCFA**.",
+                "operationId": "agencePubliciteConfiguration",
+                "responses": {
+                    "200": {
+                        "description": "Configuration tarifaire active",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PubliciteConfigurationResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/agence/publicites": {
+            "get": {
+                "tags": [
+                    "Agence - Publicités"
+                ],
+                "summary": "Lister les publicités de l'agence",
+                "operationId": "agenceListPublicites",
+                "parameters": [
+                    {
+                        "name": "statut",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "en_attente",
+                                "validée",
+                                "refusée",
+                                "publiée",
+                                "expirée",
+                                "retirée"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste paginée des publicités de l'agence",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PubliciteResource"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object"
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Agence - Publicités"
+                ],
+                "summary": "Créer une demande de publicité",
+                "description": "Envoie `multipart/form-data`. `offre_id` optionnel — uniquement une offre appartenant à l'agence. Image obligatoire (max 5 Mo). Statut initial : `en_attente`, paiement : `non_payé`.",
+                "operationId": "agenceCreatePublicite",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "titre",
+                                    "date_debut",
+                                    "date_fin",
+                                    "image"
+                                ],
+                                "properties": {
+                                    "titre": {
+                                        "type": "string",
+                                        "example": "Pub été"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "lien": {
+                                        "type": "string",
+                                        "format": "uri",
+                                        "nullable": true
+                                    },
+                                    "date_debut": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2026-08-20"
+                                    },
+                                    "date_fin": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2026-08-26"
+                                    },
+                                    "offre_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "nullable": true
+                                    },
+                                    "image": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Demande créée (en_attente)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PubliciteResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    },
+                    "422": {
+                        "description": "Validation échouée",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/agence/publicites/{publicite}": {
+            "get": {
+                "tags": [
+                    "Agence - Publicités"
+                ],
+                "summary": "Détail d'une publicité agence",
+                "operationId": "agenceShowPublicite",
+                "parameters": [
+                    {
+                        "name": "publicite",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Détail de la publicité",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PubliciteResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    },
+                    "404": {
+                        "description": "Publicité introuvable"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Agence - Publicités"
+                ],
+                "summary": "Modifier une publicité en attente ou refusée",
+                "description": "Modifiable uniquement si statut `en_attente` ou `refusée`. Envoie `multipart/form-data` ; l'image est optionnelle à la mise à jour.",
+                "operationId": "agenceUpdatePublicite",
+                "parameters": [
+                    {
+                        "name": "publicite",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "titre",
+                                    "date_debut",
+                                    "date_fin"
+                                ],
+                                "properties": {
+                                    "titre": {
+                                        "type": "string"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "lien": {
+                                        "type": "string",
+                                        "format": "uri",
+                                        "nullable": true
+                                    },
+                                    "date_debut": {
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "date_fin": {
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "offre_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "nullable": true
+                                    },
+                                    "image": {
+                                        "type": "string",
+                                        "format": "binary",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Publicité mise à jour",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PubliciteResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    },
+                    "404": {
+                        "description": "Publicité introuvable"
+                    },
+                    "422": {
+                        "description": "Publicité non modifiable ou validation échouée"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/agence/publicites/{publicite}/resoumettre": {
+            "post": {
+                "tags": [
+                    "Agence - Publicités"
+                ],
+                "summary": "Resoumettre une publicité refusée",
+                "description": "Passe le statut à `en_attente` et efface le motif de refus. Uniquement si statut actuel : `refusée`.",
+                "operationId": "agenceResoumettrePublicite",
+                "parameters": [
+                    {
+                        "name": "publicite",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Publicité resoumise (en_attente)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PubliciteResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    },
+                    "404": {
+                        "description": "Publicité introuvable"
+                    },
+                    "422": {
+                        "description": "Seule une publicité refusée peut être resoumise"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/agence/publicites/{publicite}/paiement": {
+            "post": {
+                "tags": [
+                    "Agence - Publicités"
+                ],
+                "summary": "Payer une publicité validée",
+                "description": "Parcours Bamboo dédié, indépendant des paiements de commandes. Prérequis : statut `validée`, aucun paiement `en_attente` en cours. Callback webhook : `POST /payments/bamboo-pay/publicites/callback`.",
+                "operationId": "agencePayerPublicite",
+                "parameters": [
+                    {
+                        "name": "publicite",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Paiement initié — rediriger l'utilisateur vers `redirect_url`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PublicitePaymentInitResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    },
+                    "404": {
+                        "description": "Publicité introuvable"
+                    },
+                    "422": {
+                        "description": "Publicité non payable ou paiement déjà en cours"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/client/publicites": {
+            "get": {
+                "tags": [
+                    "Client - Publicités"
+                ],
+                "summary": "Lister les publicités du client",
+                "operationId": "clientListPublicites",
+                "parameters": [
+                    {
+                        "name": "statut",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "en_attente",
+                                "validée",
+                                "refusée",
+                                "publiée",
+                                "expirée",
+                                "retirée"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste paginée des publicités du client",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PubliciteResource"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object"
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/PaginationMeta"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Client - Publicités"
+                ],
+                "summary": "Créer une demande de publicité client",
+                "description": "Envoie `multipart/form-data`. Pas d'offre rattachable (`offre_id` ignoré). Image obligatoire (max 5 Mo). Statut initial : `en_attente`.",
+                "operationId": "clientCreatePublicite",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "titre",
+                                    "date_debut",
+                                    "date_fin",
+                                    "image"
+                                ],
+                                "properties": {
+                                    "titre": {
+                                        "type": "string",
+                                        "example": "Produit client"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "lien": {
+                                        "type": "string",
+                                        "format": "uri",
+                                        "nullable": true
+                                    },
+                                    "date_debut": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2026-09-01"
+                                    },
+                                    "date_fin": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2026-09-03"
+                                    },
+                                    "image": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Demande créée",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PubliciteResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    },
+                    "422": {
+                        "description": "Validation échouée",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/client/publicites/{publicite}": {
+            "get": {
+                "tags": [
+                    "Client - Publicités"
+                ],
+                "summary": "Détail d'une publicité client",
+                "operationId": "clientShowPublicite",
+                "parameters": [
+                    {
+                        "name": "publicite",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Détail de la publicité",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PubliciteResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    },
+                    "404": {
+                        "description": "Publicité introuvable"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Client - Publicités"
+                ],
+                "summary": "Modifier une publicité en attente ou refusée",
+                "description": "Modifiable uniquement si statut `en_attente` ou `refusée`. Envoie `multipart/form-data` ; l'image est optionnelle à la mise à jour.",
+                "operationId": "clientUpdatePublicite",
+                "parameters": [
+                    {
+                        "name": "publicite",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "titre",
+                                    "date_debut",
+                                    "date_fin"
+                                ],
+                                "properties": {
+                                    "titre": {
+                                        "type": "string"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "lien": {
+                                        "type": "string",
+                                        "format": "uri",
+                                        "nullable": true
+                                    },
+                                    "date_debut": {
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "date_fin": {
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "image": {
+                                        "type": "string",
+                                        "format": "binary",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Publicité mise à jour",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PubliciteResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    },
+                    "404": {
+                        "description": "Publicité introuvable"
+                    },
+                    "422": {
+                        "description": "Publicité non modifiable ou validation échouée"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/client/publicites/{publicite}/resoumettre": {
+            "post": {
+                "tags": [
+                    "Client - Publicités"
+                ],
+                "summary": "Resoumettre une publicité refusée",
+                "description": "Passe le statut à `en_attente` et efface le motif de refus. Uniquement si statut actuel : `refusée`.",
+                "operationId": "clientResoumettrePublicite",
+                "parameters": [
+                    {
+                        "name": "publicite",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Publicité resoumise (en_attente)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PubliciteResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    },
+                    "404": {
+                        "description": "Publicité introuvable"
+                    },
+                    "422": {
+                        "description": "Seule une publicité refusée peut être resoumise"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/client/publicites/{publicite}/paiement": {
+            "post": {
+                "tags": [
+                    "Client - Publicités"
+                ],
+                "summary": "Payer une publicité client validée",
+                "description": "Parcours Bamboo dédié. Prérequis : statut `validée`, aucun paiement `en_attente` en cours. Callback webhook : `POST /payments/bamboo-pay/publicites/callback`.",
+                "operationId": "clientPayerPublicite",
+                "parameters": [
+                    {
+                        "name": "publicite",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Paiement initié — rediriger l'utilisateur vers `redirect_url`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PublicitePaymentInitResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    },
+                    "404": {
+                        "description": "Publicité introuvable"
+                    },
+                    "422": {
+                        "description": "Publicité non payable ou paiement déjà en cours"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/payments/bamboo-pay/publicites/callback": {
+            "post": {
+                "tags": [
+                    "Paiement - Bamboo Pay"
+                ],
+                "summary": "Webhook Bamboo dédié aux publicités",
+                "description": "Callback serveur Bamboo Pay pour les paiements publicité (`PUB-`). Ne pas confondre avec le callback des commandes.",
+                "operationId": "publiciteBambooCallback",
+                "responses": {
+                    "200": {
+                        "description": "Notification reçue"
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -4812,6 +5761,342 @@
                         "type": "boolean",
                         "example": true,
                         "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "PubliciteImageResource": {
+                "properties": {
+                    "chemin": {
+                        "type": "string",
+                        "example": "publicites/uuid/banner.jpg"
+                    },
+                    "url": {
+                        "type": "string",
+                        "format": "uri",
+                        "example": "http://localhost/storage/publicites/uuid/banner.jpg"
+                    },
+                    "nom_original": {
+                        "type": "string",
+                        "example": "banner.jpg",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "PubliciteResource": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "titre": {
+                        "type": "string",
+                        "example": "Promo été"
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "lien": {
+                        "type": "string",
+                        "format": "uri",
+                        "nullable": true
+                    },
+                    "image": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/PubliciteImageResource"
+                            }
+                        ],
+                        "nullable": true
+                    },
+                    "date_debut": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2026-08-20"
+                    },
+                    "date_fin": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2026-08-26"
+                    },
+                    "nombre_jours": {
+                        "description": "Durée inclusive : (date_fin − date_debut) + 1",
+                        "type": "integer",
+                        "example": 7
+                    },
+                    "statut": {
+                        "type": "string",
+                        "enum": [
+                            "en_attente",
+                            "validée",
+                            "refusée",
+                            "publiée",
+                            "expirée",
+                            "retirée"
+                        ]
+                    },
+                    "statut_paiement": {
+                        "type": "string",
+                        "enum": [
+                            "non_payé",
+                            "en_attente",
+                            "payé",
+                            "échec"
+                        ]
+                    },
+                    "motif_refus": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "offre_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "offre": {
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "titre": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "agence": {
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "nom": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "client": {
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "nom": {
+                                "type": "string"
+                            },
+                            "prenom": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "PublicitePricingBreakdown": {
+                "properties": {
+                    "nombre_jours": {
+                        "type": "integer",
+                        "example": 7
+                    },
+                    "prix_par_jour": {
+                        "description": "FCFA entiers",
+                        "type": "integer",
+                        "example": 1000
+                    },
+                    "montant_sous_total": {
+                        "type": "integer",
+                        "example": 7000
+                    },
+                    "montant_frais": {
+                        "type": "integer",
+                        "example": 500
+                    },
+                    "montant_total": {
+                        "type": "integer",
+                        "example": 7500
+                    },
+                    "type_frais": {
+                        "type": "string",
+                        "enum": [
+                            "fixe",
+                            "pourcentage"
+                        ]
+                    },
+                    "valeur_frais": {
+                        "type": "integer",
+                        "example": 500
+                    }
+                },
+                "type": "object"
+            },
+            "PubliciteConfigurationResponse": {
+                "properties": {
+                    "data": {
+                        "description": "Null si le tarif n'est pas encore configuré côté admin",
+                        "properties": {
+                            "prix_par_jour": {
+                                "type": "integer",
+                                "example": 1000
+                            },
+                            "type_frais": {
+                                "type": "string",
+                                "enum": [
+                                    "fixe",
+                                    "pourcentage"
+                                ]
+                            },
+                            "valeur_frais": {
+                                "type": "integer",
+                                "example": 500
+                            },
+                            "exemple_7_jours": {
+                                "$ref": "#/components/schemas/PublicitePricingBreakdown"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "PublicitePaymentInitResponse": {
+                "properties": {
+                    "data": {
+                        "properties": {
+                            "publicite_id": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "paiement_code": {
+                                "type": "string",
+                                "example": "PUB-ABCDEFGH"
+                            },
+                            "statut": {
+                                "type": "string",
+                                "enum": [
+                                    "en_attente",
+                                    "validée",
+                                    "refusée",
+                                    "publiée",
+                                    "expirée",
+                                    "retirée"
+                                ]
+                            },
+                            "statut_paiement": {
+                                "type": "string",
+                                "enum": [
+                                    "non_payé",
+                                    "en_attente",
+                                    "payé",
+                                    "échec"
+                                ]
+                            },
+                            "nombre_jours": {
+                                "type": "integer",
+                                "example": 7
+                            },
+                            "prix_par_jour": {
+                                "type": "integer",
+                                "example": 1000
+                            },
+                            "montant_sous_total": {
+                                "type": "integer",
+                                "example": 7000
+                            },
+                            "montant_frais": {
+                                "type": "integer",
+                                "example": 500
+                            },
+                            "montant_total": {
+                                "type": "integer",
+                                "example": 7500
+                            },
+                            "retour_url": {
+                                "type": "string",
+                                "format": "uri",
+                                "example": "http://localhost/publicite-paiement/PUB-ABCDEFGH/retour"
+                            },
+                            "redirect_url": {
+                                "type": "string",
+                                "format": "uri",
+                                "example": "https://devfront-bamboopay.ventis.group/pay/abc",
+                                "nullable": true
+                            },
+                            "verification_url": {
+                                "type": "string",
+                                "format": "uri",
+                                "example": "http://localhost/api/v1/publicites/paiements/PUB-ABCDEFGH/statut"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "PublicitePaymentStatusResponse": {
+                "properties": {
+                    "data": {
+                        "properties": {
+                            "paiement_code": {
+                                "type": "string",
+                                "example": "PUB-ABCDEFGH"
+                            },
+                            "statut": {
+                                "type": "string",
+                                "enum": [
+                                    "en_attente",
+                                    "validé",
+                                    "échec",
+                                    "remboursé"
+                                ]
+                            },
+                            "publicite_statut": {
+                                "type": "string",
+                                "nullable": true,
+                                "enum": [
+                                    "en_attente",
+                                    "validée",
+                                    "refusée",
+                                    "publiée",
+                                    "expirée",
+                                    "retirée"
+                                ]
+                            },
+                            "statut_paiement": {
+                                "type": "string",
+                                "nullable": true,
+                                "enum": [
+                                    "non_payé",
+                                    "en_attente",
+                                    "payé",
+                                    "échec"
+                                ]
+                            },
+                            "montant": {
+                                "description": "Montant total FCFA",
+                                "type": "integer",
+                                "example": 7500
+                            }
+                        },
+                        "type": "object"
                     }
                 },
                 "type": "object"
@@ -6116,12 +7401,24 @@
             "description": "Solde et reversements agence"
         },
         {
-            "name": "Agence - Utilisateurs",
-            "description": "Rôles et utilisateurs agence"
+            "name": "Agence - Publicités",
+            "description": "Demandes de publicité agence, resoumission et paiement dédié"
+        },
+        {
+            "name": "Client - Publicités",
+            "description": "Demandes de publicité client, resoumission et paiement dédié"
+        },
+        {
+            "name": "Publicités",
+            "description": "Catalogue public des publicités publiées"
         },
         {
             "name": "Agence - Destinations",
             "description": "Agence - Destinations"
+        },
+        {
+            "name": "Agence - Utilisateurs",
+            "description": "Agence - Utilisateurs"
         }
     ]
 }

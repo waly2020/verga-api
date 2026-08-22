@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Notifications\Auth\AgenceResetPasswordNotification;
 use Database\Factories\AgenceUserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -57,5 +58,10 @@ class AgenceUser extends Authenticatable
     public function isActif(): bool
     {
         return $this->statut === self::STATUT_ACTIF;
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new AgenceResetPasswordNotification($token));
     }
 }

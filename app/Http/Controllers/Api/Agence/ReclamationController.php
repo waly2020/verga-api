@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Agence;
 use App\Http\Requests\Api\Agence\StoreReclamationRequest;
 use App\Http\Requests\Api\Agence\UpdateReclamationStatutRequest;
 use App\Http\Resources\Api\Agence\ReclamationResource;
+use App\Services\ReclamationMailService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -16,6 +17,10 @@ class ReclamationController extends AgenceApiController
         'ouverte' => ['en_cours', 'fermée'],
         'en_cours' => ['résolue', 'fermée'],
     ];
+
+    public function __construct(
+        private readonly ReclamationMailService $reclamationMail,
+    ) {}
 
     public function index(Request $request): AnonymousResourceCollection
     {
@@ -72,7 +77,9 @@ class ReclamationController extends AgenceApiController
             'statut' => 'ouverte',
         ]);
 
-        $reclamation->load('commande:id,code');
+        $reclamation->load(['commande:id,code', 'agence:id,nom,email']);
+
+        $this->reclamationMail->notifyCreated($reclamation);
 
         return ReclamationResource::make($reclamation)
             ->response()
@@ -98,7 +105,9 @@ class ReclamationController extends AgenceApiController
         }
 
         $model->update(['statut' => $request->statut]);
-        $model->load('commande:id,code');
+        $model->load(['commande:id,code', 'agence:id,nom,email']);
+
+        $this->reclamationMail->notifyStatutChanged($model, $request->statut);
 
         return ReclamationResource::make($model);
     }

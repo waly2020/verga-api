@@ -6,6 +6,9 @@ import {
     CreditCard,
     LayoutGrid,
     MapPin,
+    Megaphone,
+    Mail,
+    MessageSquare,
     MessageSquareWarning,
     Package,
     Percent,
@@ -51,12 +54,30 @@ const adminNavItems: NavItem[] = [
     { title: 'Offres', href: admin.offres.index(), icon: Package },
     { title: "Types d'offre", href: admin.typesOffres.index(), icon: Tag },
     { title: 'Destinations', href: admin.destinations.index(), icon: MapPin },
+    { title: 'Publicités', href: admin.publicites.index(), icon: Megaphone },
     { title: 'Commandes', href: admin.commandes.index(), icon: ShoppingCart },
     { title: 'Colis', href: admin.colis.index(), icon: Archive },
     { title: 'Paiements', href: admin.paiements.index(), icon: CreditCard },
     { title: 'Commissions', href: admin.commissions.index(), icon: Percent },
     { title: 'Reversements', href: admin.reversements.index(), icon: Banknote },
     { title: 'Réclamations', href: admin.reclamations.index(), icon: MessageSquareWarning },
+    {
+        title: 'Notifications',
+        href: admin.notifications.masse.index(),
+        icon: MessageSquare,
+        children: [
+            {
+                title: 'Envoi en masse',
+                href: admin.notifications.masse.index(),
+                icon: Mail,
+            },
+            {
+                title: 'Envoi ciblé',
+                href: admin.notifications.cible.index(),
+                icon: UserCircle,
+            },
+        ],
+    },
     { title: 'Collaborateurs', href: admin.collaborateurs.index(), icon: Users },
 ];
 

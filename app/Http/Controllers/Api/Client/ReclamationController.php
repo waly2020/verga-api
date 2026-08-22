@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Client;
 
 use App\Http\Requests\Api\Client\StoreReclamationRequest;
 use App\Http\Resources\Api\Client\ReclamationResource;
+use App\Services\ReclamationMailService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -11,6 +12,10 @@ use Illuminate\Validation\ValidationException;
 
 class ReclamationController extends ClientApiController
 {
+    public function __construct(
+        private readonly ReclamationMailService $reclamationMail,
+    ) {}
+
     public function index(Request $request): AnonymousResourceCollection
     {
         $query = $this->client($request)
@@ -65,7 +70,9 @@ class ReclamationController extends ClientApiController
             'statut' => 'ouverte',
         ]);
 
-        $reclamation->load(['commande:id,code', 'agence:id,nom']);
+        $reclamation->load(['commande:id,code', 'agence:id,nom,email']);
+
+        $this->reclamationMail->notifyCreated($reclamation);
 
         return ReclamationResource::make($reclamation)
             ->response()

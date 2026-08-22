@@ -3,7 +3,7 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
-use Illuminate\Auth\Notifications\ResetPassword;
+use App\Notifications\Auth\AdminResetPasswordNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Fortify\Features;
@@ -31,22 +31,22 @@ class PasswordResetTest extends TestCase
     {
         Notification::fake();
 
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin']);
 
         $this->post(route('password.email'), ['email' => $user->email]);
 
-        Notification::assertSentTo($user, ResetPassword::class);
+        Notification::assertSentTo($user, AdminResetPasswordNotification::class);
     }
 
     public function test_reset_password_screen_can_be_rendered()
     {
         Notification::fake();
 
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin']);
 
         $this->post(route('password.email'), ['email' => $user->email]);
 
-        Notification::assertSentTo($user, ResetPassword::class, function ($notification) {
+        Notification::assertSentTo($user, AdminResetPasswordNotification::class, function ($notification) {
             $response = $this->get(route('password.reset', $notification->token));
 
             $response->assertOk();
@@ -59,11 +59,11 @@ class PasswordResetTest extends TestCase
     {
         Notification::fake();
 
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin']);
 
         $this->post(route('password.email'), ['email' => $user->email]);
 
-        Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user) {
+        Notification::assertSentTo($user, AdminResetPasswordNotification::class, function ($notification) use ($user) {
             $response = $this->post(route('password.update'), [
                 'token' => $notification->token,
                 'email' => $user->email,
@@ -81,7 +81,7 @@ class PasswordResetTest extends TestCase
 
     public function test_password_cannot_be_reset_with_invalid_token(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin']);
 
         $response = $this->post(route('password.update'), [
             'token' => 'invalid-token',

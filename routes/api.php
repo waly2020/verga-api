@@ -17,7 +17,19 @@
 |
 */
 
+use App\Http\Controllers\Api\PubliciteCatalogController;
+use App\Http\Controllers\Api\PublicitePaiementStatutController;
 use Illuminate\Support\Facades\Route;
+
+Route::prefix('v1')->group(function () {
+    Route::get('publicites', [PubliciteCatalogController::class, 'index'])->name('api.publicites.index');
+    Route::get('publicites/paiements/{code}/statut', [PublicitePaiementStatutController::class, 'show'])
+        ->name('api.publicites.paiements.statut');
+
+    require __DIR__.'/api/agence.php';
+    require __DIR__.'/api/client.php';
+    require __DIR__.'/api/payments.php';
+});
 
 Route::prefix('v1')->group(function () {
     require __DIR__.'/api/agence.php';

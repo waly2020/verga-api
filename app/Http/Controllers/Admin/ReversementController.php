@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\StoreReversementRequest;
 use App\Models\Agence;
 use App\Models\Reversement;
 use App\Services\Finance\AgenceSoldeService;
+use App\Services\ReversementMailService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -15,6 +16,10 @@ use Inertia\Response;
 
 class ReversementController extends Controller
 {
+    public function __construct(
+        private readonly ReversementMailService $reversementMail,
+    ) {}
+
     public function index(Request $request): Response
     {
         $query = Reversement::with('agence:id,nom');
@@ -50,12 +55,14 @@ class ReversementController extends Controller
     {
         $validated = $request->validated();
 
-        Reversement::create([
+        $reversement = Reversement::create([
             'agence_id' => $validated['agence_id'],
             'montant' => $validated['montant'],
             'periode' => $validated['periode'],
             'statut' => 'en_attente',
         ]);
+
+        $this->reversementMail->notifyCreated($reversement->load('agence.proprietaire'));
 
         $agence = Agence::findOrFail($validated['agence_id']);
 
@@ -87,6 +94,8 @@ class ReversementController extends Controller
             'admin_id' => $request->user()->id,
             'effectue_le' => Carbon::now(),
         ]);
+
+        $this->reversementMail->notifyEffectue($reversement->fresh(['agence.proprietaire']));
 
         return back()->with(
             'success',

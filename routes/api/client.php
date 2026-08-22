@@ -14,7 +14,9 @@ use App\Http\Controllers\Api\Client\DashboardController;
 use App\Http\Controllers\Api\Client\OffreController;
 use App\Http\Controllers\Api\Client\PaiementController;
 use App\Http\Controllers\Api\Client\PasswordController;
+use App\Http\Controllers\Api\Client\PasswordResetController;
 use App\Http\Controllers\Api\Client\ProfileController;
+use App\Http\Controllers\Api\Client\PubliciteController;
 use App\Http\Controllers\Api\Client\ReclamationController;
 use App\Http\Controllers\Api\TypeOffreController;
 use Illuminate\Support\Facades\Route;
@@ -36,6 +38,14 @@ Route::prefix('client')->name('api.client.')->group(function () {
         ->middleware('throttle:api-client-login')
         ->name('login');
 
+    Route::post('password/forgot', [PasswordResetController::class, 'forgot'])
+        ->middleware('throttle:api-client-password-forgot')
+        ->name('password.forgot');
+
+    Route::post('password/reset', [PasswordResetController::class, 'reset'])
+        ->middleware('throttle:api-client-password-reset')
+        ->name('password.reset');
+
     Route::middleware(['auth:sanctum', 'client'])->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
         Route::get('me', [AuthController::class, 'me'])->name('me');
@@ -53,6 +63,13 @@ Route::prefix('client')->name('api.client.')->group(function () {
         Route::get('colis/{colis}', [ColisController::class, 'show'])->name('colis.show');
 
         Route::get('paiements', [PaiementController::class, 'index'])->name('paiements.index');
+
+        Route::get('publicites', [PubliciteController::class, 'index'])->name('publicites.index');
+        Route::post('publicites', [PubliciteController::class, 'store'])->name('publicites.store');
+        Route::get('publicites/{publicite}', [PubliciteController::class, 'show'])->name('publicites.show');
+        Route::patch('publicites/{publicite}', [PubliciteController::class, 'update'])->name('publicites.update');
+        Route::post('publicites/{publicite}/resoumettre', [PubliciteController::class, 'resoumettre'])->name('publicites.resoumettre');
+        Route::post('publicites/{publicite}/paiement', [PubliciteController::class, 'payer'])->name('publicites.paiement');
 
         Route::get('reclamations', [ReclamationController::class, 'index'])->name('reclamations.index');
         Route::post('reclamations', [ReclamationController::class, 'store'])->name('reclamations.store');

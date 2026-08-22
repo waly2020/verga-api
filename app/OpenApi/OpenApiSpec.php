@@ -5,7 +5,7 @@ namespace App\OpenApi;
 use OpenApi\Attributes as OA;
 
 #[OA\Info(
-    version: '1.4.0',
+    version: '1.5.0',
     title: 'VERGA API',
     description: 'API REST pour les applications externes VERGA (back-office agence Angular, application client mobile/web). Authentification Bearer Sanctum.
 
@@ -28,7 +28,15 @@ use OpenApi\Attributes as OA;
 **Quantités et unités**
 - Chaque quantité numérique (`quantite`, `quantite_payee`, etc.) est accompagnée d\'un champ `*_label` formaté selon le `type_offre` de l\'offre (ex. `2 kg`, `2 conteneurs`, `2,5 m³`)
 - L\'unité source est dans `offre.type_offre` (`unite`, `unite_label`, `quantite_entier`)
-- Pour les colis : `quantite_label` affiche le poids physique (`poids_label`) s\'il est renseigné, sinon la quantité de la commande avec unité',
+- Pour les colis : `quantite_label` affiche le poids physique (`poids_label`) s\'il est renseigné, sinon la quantité de la commande avec unité
+
+**Publicités**
+- Parcours agence/client : création `en_attente` → modération admin → si validée, paiement Bamboo dédié (`PUB-`) → `publiée`
+- Agence : `offre_id` optionnel (offre de l\'agence uniquement) ; client : pas d\'offre rattachable
+- Tarif consultable : `GET /agence/publicites/configuration` (prix/jour + frais, montants entiers FCFA)
+- Catalogue public : `GET /publicites` (statut `publiée`, dates valides)
+- Vérification paiement pub : `GET /publicites/paiements/{code}/statut`
+- Callback Bamboo dédié : `POST /payments/bamboo-pay/publicites/callback` (ne pas confondre avec les commandes)',
     contact: new OA\Contact(name: 'VERGA', email: 'contact@verga.test')
 )]
 #[OA\Server(url: '/api/v1', description: 'API v1')]
@@ -58,7 +66,9 @@ use OpenApi\Attributes as OA;
 #[OA\Tag(name: 'Paiement - Bamboo Pay', description: 'Webhooks et intégration Bamboo Pay')]
 #[OA\Tag(name: 'Agence - Dashboard', description: 'Statistiques tableau de bord agence')]
 #[OA\Tag(name: 'Agence - Finance', description: 'Solde et reversements agence')]
-#[OA\Tag(name: 'Agence - Utilisateurs', description: 'Rôles et utilisateurs agence')]
+#[OA\Tag(name: 'Agence - Publicités', description: 'Demandes de publicité agence, resoumission et paiement dédié')]
+#[OA\Tag(name: 'Client - Publicités', description: 'Demandes de publicité client, resoumission et paiement dédié')]
+#[OA\Tag(name: 'Publicités', description: 'Catalogue public des publicités publiées')]
 #[OA\Schema(
     schema: 'MessageResponse',
     properties: [
@@ -354,6 +364,100 @@ use OpenApi\Attributes as OA;
             description: 'Présent sur les endpoints agence : true si la destination est déjà liée à l\'agence authentifiée',
             example: true
         ),
+    ]
+)]
+#[OA\Schema(
+    schema: 'PubliciteImageResource',
+    properties: [
+        new OA\Property(property: 'chemin', type: 'string', example: 'publicites/uuid/banner.jpg'),
+        new OA\Property(property: 'url', type: 'string', format: 'uri', example: 'http://localhost/storage/publicites/uuid/banner.jpg'),
+        new OA\Property(property: 'nom_original', type: 'string', nullable: true, example: 'banner.jpg'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'PubliciteResource',
+    properties: [
+        new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+        new OA\Property(property: 'titre', type: 'string', example: 'Promo été'),
+        new OA\Property(property: 'description', type: 'string', nullable: true),
+        new OA\Property(property: 'lien', type: 'string', format: 'uri', nullable: true),
+        new OA\Property(property: 'image', ref: '#/components/schemas/PubliciteImageResource', nullable: true),
+        new OA\Property(property: 'date_debut', type: 'string', format: 'date', example: '2026-08-20'),
+        new OA\Property(property: 'date_fin', type: 'string', format: 'date', example: '2026-08-26'),
+        new OA\Property(property: 'nombre_jours', type: 'integer', example: 7, description: 'Durée inclusive : (date_fin − date_debut) + 1'),
+        new OA\Property(property: 'statut', type: 'string', enum: ['en_attente', 'validée', 'refusée', 'publiée', 'expirée', 'retirée']),
+        new OA\Property(property: 'statut_paiement', type: 'string', enum: ['non_payé', 'en_attente', 'payé', 'échec']),
+        new OA\Property(property: 'motif_refus', type: 'string', nullable: true),
+        new OA\Property(property: 'offre_id', type: 'string', format: 'uuid', nullable: true),
+        new OA\Property(property: 'offre', type: 'object', nullable: true, properties: [
+            new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+            new OA\Property(property: 'titre', type: 'string'),
+        ]),
+        new OA\Property(property: 'agence', type: 'object', nullable: true, properties: [
+            new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+            new OA\Property(property: 'nom', type: 'string'),
+        ]),
+        new OA\Property(property: 'client', type: 'object', nullable: true, properties: [
+            new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+            new OA\Property(property: 'nom', type: 'string'),
+            new OA\Property(property: 'prenom', type: 'string'),
+        ]),
+        new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
+        new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', nullable: true),
+    ]
+)]
+#[OA\Schema(
+    schema: 'PublicitePricingBreakdown',
+    properties: [
+        new OA\Property(property: 'nombre_jours', type: 'integer', example: 7),
+        new OA\Property(property: 'prix_par_jour', type: 'integer', example: 1000, description: 'FCFA entiers'),
+        new OA\Property(property: 'montant_sous_total', type: 'integer', example: 7000),
+        new OA\Property(property: 'montant_frais', type: 'integer', example: 500),
+        new OA\Property(property: 'montant_total', type: 'integer', example: 7500),
+        new OA\Property(property: 'type_frais', type: 'string', enum: ['fixe', 'pourcentage']),
+        new OA\Property(property: 'valeur_frais', type: 'integer', example: 500),
+    ]
+)]
+#[OA\Schema(
+    schema: 'PubliciteConfigurationResponse',
+    properties: [
+        new OA\Property(property: 'data', type: 'object', nullable: true, properties: [
+            new OA\Property(property: 'prix_par_jour', type: 'integer', example: 1000),
+            new OA\Property(property: 'type_frais', type: 'string', enum: ['fixe', 'pourcentage']),
+            new OA\Property(property: 'valeur_frais', type: 'integer', example: 500),
+            new OA\Property(property: 'exemple_7_jours', ref: '#/components/schemas/PublicitePricingBreakdown'),
+        ], description: 'Null si le tarif n\'est pas encore configuré côté admin'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'PublicitePaymentInitResponse',
+    properties: [
+        new OA\Property(property: 'data', properties: [
+            new OA\Property(property: 'publicite_id', type: 'string', format: 'uuid'),
+            new OA\Property(property: 'paiement_code', type: 'string', example: 'PUB-ABCDEFGH'),
+            new OA\Property(property: 'statut', type: 'string', enum: ['en_attente', 'validée', 'refusée', 'publiée', 'expirée', 'retirée']),
+            new OA\Property(property: 'statut_paiement', type: 'string', enum: ['non_payé', 'en_attente', 'payé', 'échec']),
+            new OA\Property(property: 'nombre_jours', type: 'integer', example: 7),
+            new OA\Property(property: 'prix_par_jour', type: 'integer', example: 1000),
+            new OA\Property(property: 'montant_sous_total', type: 'integer', example: 7000),
+            new OA\Property(property: 'montant_frais', type: 'integer', example: 500),
+            new OA\Property(property: 'montant_total', type: 'integer', example: 7500),
+            new OA\Property(property: 'retour_url', type: 'string', format: 'uri', example: 'http://localhost/publicite-paiement/PUB-ABCDEFGH/retour'),
+            new OA\Property(property: 'redirect_url', type: 'string', format: 'uri', nullable: true, example: 'https://devfront-bamboopay.ventis.group/pay/abc'),
+            new OA\Property(property: 'verification_url', type: 'string', format: 'uri', example: 'http://localhost/api/v1/publicites/paiements/PUB-ABCDEFGH/statut'),
+        ], type: 'object'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'PublicitePaymentStatusResponse',
+    properties: [
+        new OA\Property(property: 'data', properties: [
+            new OA\Property(property: 'paiement_code', type: 'string', example: 'PUB-ABCDEFGH'),
+            new OA\Property(property: 'statut', type: 'string', enum: ['en_attente', 'validé', 'échec', 'remboursé']),
+            new OA\Property(property: 'publicite_statut', type: 'string', nullable: true, enum: ['en_attente', 'validée', 'refusée', 'publiée', 'expirée', 'retirée']),
+            new OA\Property(property: 'statut_paiement', type: 'string', nullable: true, enum: ['non_payé', 'en_attente', 'payé', 'échec']),
+            new OA\Property(property: 'montant', type: 'integer', example: 7500, description: 'Montant total FCFA'),
+        ], type: 'object'),
     ]
 )]
 #[OA\Schema(

@@ -4,20 +4,18 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Colis;
-use App\Models\HistoriqueColis;
+use App\Services\ColisStatutService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ColisController extends Controller
 {
-    private const FLUX = [
-        'chez_client' => 'déposé',
-        'déposé' => 'en_transit',
-        'en_transit' => 'arrivé',
-        'arrivé' => 'récupéré',
-    ];
+    public function __construct(
+        private readonly ColisStatutService $statutService,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -61,7 +59,7 @@ class ColisController extends Controller
 
         return Inertia::render('admin/colis/show', [
             'colis' => $colis,
-            'next_statut' => self::FLUX[$colis->statut] ?? null,
+            'next_statut' => ColisStatutService::FLUX[$colis->statut] ?? null,
         ]);
     }
 
@@ -72,22 +70,16 @@ class ColisController extends Controller
             'commentaire' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $next = self::FLUX[$colis->statut] ?? null;
-
-        if (! $next) {
+        try {
+            $updated = $this->statutService->advance(
+                $colis,
+                $request->user(),
+                commentaire: $validated['commentaire'] ?? null,
+                dateStatut: $validated['date_statut'] ?? null,
+            );
+        } catch (ValidationException) {
             return back()->with('error', 'Ce colis est dans son statut final.');
         }
-
-        $colis->update(['statut' => $next]);
-
-        HistoriqueColis::create([
-            'colis_id' => $colis->id,
-            'actor_type' => 'user',
-            'actor_id' => $request->user()->id,
-            'statut' => $next,
-            'date_statut' => $validated['date_statut'] ?? null,
-            'commentaire' => $validated['commentaire'] ?? null,
-        ]);
 
         $labels = [
             'déposé' => 'déposé à l\'agence',
@@ -96,7 +88,7 @@ class ColisController extends Controller
             'récupéré' => 'récupéré par le client',
         ];
 
-        $label = $labels[$next] ?? $next;
+        $label = $labels[$updated->statut] ?? $updated->statut;
 
         return back()->with('success', "Colis {$colis->reference} marqué comme {$label}.");
     }

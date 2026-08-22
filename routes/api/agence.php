@@ -12,6 +12,8 @@ use App\Http\Controllers\Api\Agence\DestinationController;
 use App\Http\Controllers\Api\Agence\OffreController;
 use App\Http\Controllers\Api\Agence\PaiementController;
 use App\Http\Controllers\Api\Agence\PasswordController;
+use App\Http\Controllers\Api\Agence\PasswordResetController;
+use App\Http\Controllers\Api\Agence\PubliciteController;
 use App\Http\Controllers\Api\Agence\ReclamationController;
 use App\Http\Controllers\Api\Agence\ReversementController;
 use App\Http\Controllers\Api\Agence\RoleController;
@@ -35,6 +37,14 @@ Route::prefix('agence')->name('api.agence.')->group(function () {
         ->middleware('throttle:api-agence-login')
         ->name('login');
 
+    Route::post('password/forgot', [PasswordResetController::class, 'forgot'])
+        ->middleware('throttle:api-agence-password-forgot')
+        ->name('password.forgot');
+
+    Route::post('password/reset', [PasswordResetController::class, 'reset'])
+        ->middleware('throttle:api-agence-password-reset')
+        ->name('password.reset');
+
     Route::middleware(['auth:sanctum', 'agence'])->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
         Route::get('me', [AuthController::class, 'me'])->name('me');
@@ -57,6 +67,14 @@ Route::prefix('agence')->name('api.agence.')->group(function () {
         Route::get('destinations', [DestinationController::class, 'index'])->name('destinations.index');
         Route::get('destinations/paginated', [DestinationController::class, 'paginated'])->name('destinations.paginated');
         Route::post('destinations', [DestinationController::class, 'store'])->name('destinations.store');
+
+        Route::get('publicites/configuration', [PubliciteController::class, 'configuration'])->name('publicites.configuration');
+        Route::get('publicites', [PubliciteController::class, 'index'])->name('publicites.index');
+        Route::post('publicites', [PubliciteController::class, 'store'])->name('publicites.store');
+        Route::get('publicites/{publicite}', [PubliciteController::class, 'show'])->name('publicites.show');
+        Route::patch('publicites/{publicite}', [PubliciteController::class, 'update'])->name('publicites.update');
+        Route::post('publicites/{publicite}/resoumettre', [PubliciteController::class, 'resoumettre'])->name('publicites.resoumettre');
+        Route::post('publicites/{publicite}/paiement', [PubliciteController::class, 'payer'])->name('publicites.paiement');
 
         Route::get('offres', [OffreController::class, 'index'])->name('offres.index');
         Route::post('offres', [OffreController::class, 'store'])->name('offres.store');

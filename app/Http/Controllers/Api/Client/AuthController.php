@@ -7,6 +7,7 @@ use App\Http\Requests\Api\Client\RegisterClientRequest;
 use App\Http\Resources\Api\Client\ClientUserResource;
 use App\Models\Client;
 use App\Models\User;
+use App\Services\AccountMailService;
 use App\Services\ClientMediaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,6 +20,7 @@ class AuthController extends ClientApiController
 {
     public function __construct(
         private readonly ClientMediaService $media,
+        private readonly AccountMailService $accountMail,
     ) {}
 
     public function register(RegisterClientRequest $request): JsonResponse
@@ -58,6 +60,7 @@ class AuthController extends ClientApiController
         });
 
         $result['user']->load(['client.documents']);
+        $this->accountMail->notifyClientRegistered($result['user']);
         $token = $result['user']->createToken($data['device_name'] ?? 'client-api');
 
         return response()->json([

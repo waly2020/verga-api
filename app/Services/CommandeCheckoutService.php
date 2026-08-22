@@ -20,6 +20,7 @@ class CommandeCheckoutService
         private readonly PaymentSettlementService $settlement,
         private readonly CommandePaymentService $payments,
         private readonly OffreQuantityRules $quantityRules,
+        private readonly CommandeMailService $commandeMail,
     ) {}
 
     /**
@@ -67,7 +68,18 @@ class CommandeCheckoutService
 
             $this->storePhotos($colis, $photos);
 
-            return $this->payments->initiate($commande->fresh(), $offre, $quantiteAPayer);
+            $payload = $this->payments->initiate($commande->fresh(), $offre, $quantiteAPayer);
+
+            $paiement = Paiement::query()
+                ->where('code', $payload['paiement_code'])
+                ->firstOrFail();
+
+            $this->commandeMail->notifyCommandeCreated(
+                $commande->fresh(['agence', 'offre', 'client.user']),
+                $paiement,
+            );
+
+            return $payload;
         });
     }
 

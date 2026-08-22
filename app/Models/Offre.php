@@ -64,6 +64,11 @@ class Offre extends Model
         return $this->hasMany(Commande::class);
     }
 
+    public function publicites(): HasMany
+    {
+        return $this->hasMany(Publicite::class);
+    }
+
     public function scopeActive($query)
     {
         return $query->where('statut', 'active');

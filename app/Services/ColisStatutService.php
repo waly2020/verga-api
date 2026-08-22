@@ -20,6 +20,15 @@ class ColisStatutService
         'arrivé' => 'récupéré',
     ];
 
+    public function __construct(
+        private readonly ColisMailService $colisMail,
+    ) {}
+
+    public function flux(): array
+    {
+        return self::FLUX;
+    }
+
     public function nextStatut(string $statutActuel): ?string
     {
         return self::FLUX[$statutActuel] ?? null;
@@ -59,7 +68,11 @@ class ColisStatutService
                 'commentaire' => $commentaire,
             ]);
 
-            return $locked->fresh();
+            $updated = $locked->fresh(['commande.client.user', 'commande.offre', 'agence']);
+
+            $this->colisMail->notifyStatutAdvanced($updated, $next);
+
+            return $updated;
         });
     }
 }
