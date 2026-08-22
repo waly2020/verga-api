@@ -21,7 +21,8 @@ class CommandeMailService
     {
         $commande->loadMissing(['agence', 'offre', 'client.user']);
 
-        $clientEmail = $this->clientEmail($commande);
+        // Invité : pas de mail à la création — envoi uniquement au statut final du paiement.
+        $clientEmail = $this->registeredClientEmail($commande);
 
         if ($clientEmail) {
             $this->mail->queue(
@@ -94,10 +95,27 @@ class CommandeMailService
         );
     }
 
+    /**
+     * E-mail du compte client enregistré (hors invité).
+     */
+    private function registeredClientEmail(Commande $commande): ?string
+    {
+        return $this->normalizeEmail(
+            $commande->client?->email ?? $commande->client?->user?->email
+        );
+    }
+
+    /**
+     * E-mail pour notifications de paiement : compte client, sinon e-mail saisi par l'invité.
+     */
     private function clientEmail(Commande $commande): ?string
     {
-        $email = $commande->client?->email ?? $commande->client?->user?->email;
+        return $this->registeredClientEmail($commande)
+            ?? $this->normalizeEmail($commande->email);
+    }
 
+    private function normalizeEmail(mixed $email): ?string
+    {
         if (! is_string($email) || $email === '') {
             return null;
         }

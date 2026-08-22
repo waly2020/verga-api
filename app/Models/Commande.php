@@ -20,6 +20,7 @@ class Commande extends Model
         'nom',
         'prenom',
         'telephone',
+        'email',
         'quantite',
         'quantite_payee',
         'capacite_bloquee',

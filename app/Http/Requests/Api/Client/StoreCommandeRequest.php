@@ -29,6 +29,7 @@ class StoreCommandeRequest extends FormRequest
             'nom' => [$authenticated ? 'nullable' : 'required', 'string', 'max:255'],
             'prenom' => [$authenticated ? 'nullable' : 'required', 'string', 'max:255'],
             'telephone' => ['required', 'string', 'max:20'],
+            'email' => ['nullable', 'email', 'max:255'],
         ];
     }
 
@@ -43,6 +44,7 @@ class StoreCommandeRequest extends FormRequest
             'nom.required' => 'Le nom est obligatoire pour une commande sans compte.',
             'prenom.required' => 'Le prénom est obligatoire pour une commande sans compte.',
             'telephone.required' => 'Le téléphone est obligatoire.',
+            'email.email' => 'L\'adresse e-mail n\'est pas valide.',
             'photos.*.image' => 'Chaque fichier doit être une image.',
         ];
     }

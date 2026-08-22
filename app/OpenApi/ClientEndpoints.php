@@ -110,7 +110,7 @@ Retourne le sous-total (prix × quantité), la commission client active et le to
 - Après validation Bamboo : commande `réservée`, stock bloqué de 50 kg
 - Solde : `POST /client/commandes/{id}/paiements` avec la quantité restante
 
-Auth optionnelle : token Bearer = commande liée au compte ; sinon invité (nom/prénom obligatoires).',
+Auth optionnelle : token Bearer = commande liée au compte ; sinon invité (nom/prénom obligatoires). E-mail invité optionnel : s\'il est fourni, les informations de commande sont envoyées au statut final du paiement.',
         tags: ['Client - Commandes'],
         requestBody: new OA\RequestBody(
             required: true,
@@ -128,6 +128,7 @@ Auth optionnelle : token Bearer = commande liée au compte ; sinon invité (nom/
                             new OA\Property(property: 'nom', type: 'string', description: 'Obligatoire si invité (sans token)', example: 'Obame'),
                             new OA\Property(property: 'prenom', type: 'string', description: 'Obligatoire si invité (sans token)', example: 'Sarah'),
                             new OA\Property(property: 'telephone', type: 'string', example: '0612345678'),
+                            new OA\Property(property: 'email', type: 'string', format: 'email', nullable: true, description: 'Optionnel (invité). Si renseigné, les infos commande sont envoyées par e-mail au statut final du paiement (`completed` / `failed`).', example: 'invite@example.com'),
                         ]
                     )
                 ),
@@ -143,6 +144,7 @@ Auth optionnelle : token Bearer = commande liée au compte ; sinon invité (nom/
                             new OA\Property(property: 'nom', type: 'string'),
                             new OA\Property(property: 'prenom', type: 'string'),
                             new OA\Property(property: 'telephone', type: 'string'),
+                            new OA\Property(property: 'email', type: 'string', format: 'email', nullable: true, description: 'Optionnel (invité). Si renseigné, e-mail au statut final du paiement.', example: 'invite@example.com'),
                         ]
                     )
                 ),

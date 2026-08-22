@@ -53,17 +53,20 @@ class PaymentSettlementService
      */
     public function settleFromCallback(array $payload): ?Paiement
     {
-        $billingId = $payload['billingId'] ?? null;
-        $reference = $payload['reference'] ?? null;
         $status = $payload['status'] ?? null;
 
         if (! $status) {
             return null;
         }
 
+        $merchantCodes = self::merchantCodeCandidatesFromCallback($payload);
+
+        if ($merchantCodes === []) {
+            return null;
+        }
+
         $paiement = Paiement::query()
-            ->when($billingId, fn ($q) => $q->where('code', $billingId))
-            ->when(! $billingId && $reference, fn ($q) => $q->where('bamboo_reference', $reference))
+            ->whereIn('code', $merchantCodes)
             ->first();
 
         if (! $paiement) {
@@ -71,7 +74,7 @@ class PaymentSettlementService
         }
 
         $this->syncBambooMetadata($paiement, [
-            'bamboo_reference' => is_string($reference) ? $reference : null,
+            'bamboo_reference' => self::bambooReferenceFromCallback($payload, $paiement->code),
             'operateur' => self::operateurFromPayload($payload),
         ]);
 
@@ -83,13 +86,67 @@ class PaymentSettlementService
     }
 
     /**
+     * Codes marchand possibles dans un callback Bamboo.
+     *
+     * Nouveau format : `reference` = marchand, `billingId` = Bamboo.
+     * Ancien format : `billingId` = marchand (PAY-/PUB-…), `reference` = Bamboo.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return list<string>
+     */
+    public static function merchantCodeCandidatesFromCallback(array $payload): array
+    {
+        $candidates = [];
+
+        foreach (['reference', 'billingId'] as $key) {
+            $value = $payload[$key] ?? null;
+
+            if (is_string($value) && $value !== '') {
+                $candidates[] = $value;
+            }
+        }
+
+        return array_values(array_unique($candidates));
+    }
+
+    /**
+     * Référence Bamboo : l'identifiant qui n'est pas le code marchand VERGA.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    public static function bambooReferenceFromCallback(array $payload, string $merchantCode): ?string
+    {
+        $billingId = self::normalizeMessage(is_string($payload['billingId'] ?? null) ? $payload['billingId'] : null);
+        $reference = self::normalizeMessage(is_string($payload['reference'] ?? null) ? $payload['reference'] : null);
+
+        // Nouveau format : billingId = référence Bamboo.
+        if ($billingId !== null && $billingId !== $merchantCode) {
+            return $billingId;
+        }
+
+        // Ancien format : reference = référence Bamboo.
+        if ($reference !== null && $reference !== $merchantCode) {
+            return $reference;
+        }
+
+        return null;
+    }
+
+    /**
      * @param  array<string, mixed>  $payload
      */
     public static function messageFromCallbackPayload(array $payload): ?string
     {
-        $observation = $payload['observation'] ?? null;
+        foreach (['description', 'reason', 'observation'] as $key) {
+            $value = $payload[$key] ?? null;
+            $normalized = self::normalizeMessage(is_string($value) ? $value : null);
 
-        return self::normalizeMessage(is_string($observation) ? $observation : null);
+            if ($normalized !== null) {
+                return $normalized;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -115,6 +172,7 @@ class PaymentSettlementService
     public static function operateurFromPayload(array $payload): ?string
     {
         $candidates = [
+            $payload['paymentType'] ?? null,
             $payload['operateur'] ?? null,
             $payload['operator'] ?? null,
             $payload['paymentMethod'] ?? null,
@@ -124,6 +182,7 @@ class PaymentSettlementService
         $transaction = $payload['transaction'] ?? null;
 
         if (is_array($transaction)) {
+            $candidates[] = $transaction['paymentType'] ?? null;
             $candidates[] = $transaction['operateur'] ?? null;
             $candidates[] = $transaction['operator'] ?? null;
             $candidates[] = $transaction['paymentMethod'] ?? null;

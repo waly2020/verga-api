@@ -40,13 +40,14 @@ class CommandeClientPresenterTest extends TestCase
             'nom' => 'Mbadinga',
             'prenom' => 'Jean',
             'telephone' => '0622222222',
+            'email' => 'jean.invite@example.com',
         ]);
 
         $this->assertSame([
             'id' => null,
             'nom' => 'Mbadinga',
             'prenom' => 'Jean',
-            'email' => null,
+            'email' => 'jean.invite@example.com',
             'telephone' => '0622222222',
         ], CommandeClientPresenter::for($commande));
     }

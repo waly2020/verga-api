@@ -2700,7 +2700,7 @@
                     "Client - Commandes"
                 ],
                 "summary": "Créer une commande et initier le paiement",
-                "description": "Crée en une seule requête : commande, colis (description + photos), paiement en attente, puis initie Bamboo Pay (redirection).\n\n**Paiement total (comportement classique)** : omettre `quantite_reservee` ou la définir égale à `quantite`.\n\n**Réservation partielle** : `quantite_reservee` > `quantite`\n- Exemple : réserver 50 kg, payer 30 kg maintenant → `quantite_reservee: 50`, `quantite: 30`\n- Après validation Bamboo : commande `réservée`, stock bloqué de 50 kg\n- Solde : `POST /client/commandes/{id}/paiements` avec la quantité restante\n\nAuth optionnelle : token Bearer = commande liée au compte ; sinon invité (nom/prénom obligatoires).",
+                "description": "Crée en une seule requête : commande, colis (description + photos), paiement en attente, puis initie Bamboo Pay (redirection).\n\n**Paiement total (comportement classique)** : omettre `quantite_reservee` ou la définir égale à `quantite`.\n\n**Réservation partielle** : `quantite_reservee` > `quantite`\n- Exemple : réserver 50 kg, payer 30 kg maintenant → `quantite_reservee: 50`, `quantite: 30`\n- Après validation Bamboo : commande `réservée`, stock bloqué de 50 kg\n- Solde : `POST /client/commandes/{id}/paiements` avec la quantité restante\n\nAuth optionnelle : token Bearer = commande liée au compte ; sinon invité (nom/prénom obligatoires). E-mail invité optionnel : s'il est fourni, les informations de commande sont envoyées au statut final du paiement.",
                 "operationId": "clientCreateCommande",
                 "requestBody": {
                     "required": true,
@@ -2755,6 +2755,13 @@
                                     "telephone": {
                                         "type": "string",
                                         "example": "0612345678"
+                                    },
+                                    "email": {
+                                        "description": "Optionnel (invité). Si renseigné, les infos commande sont envoyées par e-mail au statut final du paiement (`completed` / `failed`).",
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "invite@example.com",
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -2798,6 +2805,13 @@
                                     },
                                     "telephone": {
                                         "type": "string"
+                                    },
+                                    "email": {
+                                        "description": "Optionnel (invité). Si renseigné, e-mail au statut final du paiement.",
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "invite@example.com",
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -3862,61 +3876,82 @@
                     "Paiement - Bamboo Pay"
                 ],
                 "summary": "Webhook Bamboo Pay",
-                "description": "Webhook Bamboo Pay — traite chaque versement de façon idempotente.\n\n**Paiement partiel (réservation)** : `completed` → commande `réservée`, stock bloqué sur `quantite_reservee`, `quantite_payee` incrémentée.\n\n**Solde payé** : `completed` → commande `confirmée` si entièrement réglée.\n\n**Échec** : annule la commande seulement si aucun paiement validé ; une commande `réservée` reste réservée si le solde échoue.",
+                "description": "Webhook Bamboo Pay — traite chaque versement de façon idempotente.\n\n**Paiement partiel (réservation)** : `completed` → commande `réservée`, stock bloqué sur `quantite_reservee`, `quantite_payee` incrémentée.\n\n**Solde payé** : `completed` → commande `confirmée` si entièrement réglée.\n\n**Échec** : annule la commande seulement si aucun paiement validé ; une commande `réservée` reste réservée si le solde échoue.\n\n**Payload v2 Bamboo** : `reference` = code marchand VERGA (`PAY-…`), `billingId` = référence Bamboo. Compatibilité conservée avec l'ancien mapping (`billingId` = code VERGA).",
                 "operationId": "bambooPayCallback",
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
+                                "required": [
+                                    "status"
+                                ],
                                 "properties": {
-                                    "id": {
+                                    "billingId": {
+                                        "description": "Référence transaction Bamboo Pay (nouveau format). Ancien format : code paiement VERGA.",
                                         "type": "string",
+                                        "example": "TXN-2025-000381"
+                                    },
+                                    "reference": {
+                                        "description": "Référence marchand VERGA (`PAY-…`). Ancien format : référence Bamboo.",
+                                        "type": "string",
+                                        "example": "PAY-ABCDEFGH"
+                                    },
+                                    "numCpte": {
+                                        "description": "Numéro du payeur",
+                                        "type": "string",
+                                        "example": "0612345678",
+                                        "nullable": true
+                                    },
+                                    "amount": {
+                                        "description": "Montant de la transaction",
+                                        "type": "number",
+                                        "format": "double",
+                                        "example": 26250,
+                                        "nullable": true
+                                    },
+                                    "payername": {
+                                        "description": "Nom du payeur",
+                                        "type": "string",
+                                        "example": "Jean Mbaye",
                                         "nullable": true
                                     },
                                     "status": {
                                         "type": "string",
                                         "example": "completed",
                                         "enum": [
-                                            "pending",
                                             "completed",
                                             "failed"
                                         ]
                                     },
-                                    "billingId": {
-                                        "description": "Code paiement VERGA (`PAY-...`)",
-                                        "type": "string",
-                                        "example": "PAY-ABCDEFGH"
-                                    },
-                                    "reference": {
-                                        "description": "Référence Bamboo Pay",
-                                        "type": "string",
-                                        "example": "TXN-2025-000381"
-                                    },
-                                    "observation": {
-                                        "description": "Message ou motif Bamboo Pay (échec, info)",
+                                    "reason": {
+                                        "description": "Raison de succès ou d'échec",
                                         "type": "string",
                                         "example": "Solde insuffisant",
                                         "nullable": true
                                     },
                                     "paymentType": {
+                                        "description": "Moyen de paiement",
                                         "type": "string",
+                                        "example": "moov_money",
                                         "nullable": true
                                     },
-                                    "merchantName": {
+                                    "description": {
+                                        "description": "Description de succès ou d'échec",
                                         "type": "string",
+                                        "example": "Transaction refusée par l'opérateur",
                                         "nullable": true
                                     },
-                                    "callbackUrl": {
+                                    "idempotency_key": {
+                                        "description": "Identifiant unique du callback Bamboo",
                                         "type": "string",
+                                        "example": "cbk-9f3a2c1e",
                                         "nullable": true
                                     },
-                                    "returnUrl": {
+                                    "observation": {
+                                        "description": "Legacy — préférer `description` / `reason`",
                                         "type": "string",
-                                        "nullable": true
-                                    },
-                                    "createdAt": {
-                                        "type": "string",
+                                        "example": "Solde insuffisant",
                                         "nullable": true
                                     }
                                 },
@@ -4897,8 +4932,54 @@
                     "Paiement - Bamboo Pay"
                 ],
                 "summary": "Webhook Bamboo dédié aux publicités",
-                "description": "Callback serveur Bamboo Pay pour les paiements publicité (`PUB-`). Ne pas confondre avec le callback des commandes.",
+                "description": "Callback serveur Bamboo Pay pour les paiements publicité (`PUB-`). Ne pas confondre avec le callback des commandes.\n\nMême payload que `/payments/bamboo-pay/callback` : `reference` = code marchand (`PUB-…`), `billingId` = référence Bamboo, `status` = `completed`|`failed`, messages via `description`/`reason`.",
                 "operationId": "publiciteBambooCallback",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "status"
+                                ],
+                                "properties": {
+                                    "billingId": {
+                                        "type": "string",
+                                        "example": "TXN-PUB-001"
+                                    },
+                                    "reference": {
+                                        "type": "string",
+                                        "example": "PUB-ABCDEFGH"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "completed",
+                                            "failed"
+                                        ]
+                                    },
+                                    "reason": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "paymentType": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "idempotency_key": {
+                                        "type": "string",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Notification reçue"
@@ -6832,6 +6913,12 @@
                     },
                     "telephone": {
                         "type": "string",
+                        "nullable": true
+                    },
+                    "email": {
+                        "description": "E-mail saisi par un invité (optionnel)",
+                        "type": "string",
+                        "format": "email",
                         "nullable": true
                     },
                     "client": {

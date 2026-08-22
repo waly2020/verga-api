@@ -17,17 +17,20 @@ class PublicitePaymentSettlementService
      */
     public function settleFromCallback(array $payload): ?PaiementPublicite
     {
-        $billingId = $payload['billingId'] ?? null;
-        $reference = $payload['reference'] ?? null;
         $status = $payload['status'] ?? null;
 
         if (! $status) {
             return null;
         }
 
+        $merchantCodes = PaymentSettlementService::merchantCodeCandidatesFromCallback($payload);
+
+        if ($merchantCodes === []) {
+            return null;
+        }
+
         $paiement = PaiementPublicite::query()
-            ->when($billingId, fn ($q) => $q->where('code', $billingId))
-            ->when(! $billingId && $reference, fn ($q) => $q->where('bamboo_reference', $reference))
+            ->whereIn('code', $merchantCodes)
             ->first();
 
         if (! $paiement) {
@@ -35,7 +38,7 @@ class PublicitePaymentSettlementService
         }
 
         $this->syncBambooMetadata($paiement, [
-            'bamboo_reference' => is_string($reference) ? $reference : null,
+            'bamboo_reference' => PaymentSettlementService::bambooReferenceFromCallback($payload, $paiement->code),
             'operateur' => PaymentSettlementService::operateurFromPayload($payload),
         ]);
 

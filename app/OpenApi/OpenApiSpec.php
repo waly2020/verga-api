@@ -642,6 +642,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'nom', type: 'string', nullable: true),
         new OA\Property(property: 'prenom', type: 'string', nullable: true),
         new OA\Property(property: 'telephone', type: 'string', nullable: true),
+        new OA\Property(property: 'email', type: 'string', format: 'email', nullable: true, description: 'E-mail saisi par un invité (optionnel)'),
         new OA\Property(property: 'client', type: 'object', nullable: true, properties: [
             new OA\Property(property: 'id', type: 'string', format: 'uuid', nullable: true),
             new OA\Property(property: 'nom', type: 'string', nullable: true),

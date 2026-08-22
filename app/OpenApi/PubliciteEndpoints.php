@@ -462,8 +462,25 @@ class PubliciteEndpoints
         path: '/payments/bamboo-pay/publicites/callback',
         operationId: 'publiciteBambooCallback',
         summary: 'Webhook Bamboo dédié aux publicités',
-        description: 'Callback serveur Bamboo Pay pour les paiements publicité (`PUB-`). Ne pas confondre avec le callback des commandes.',
+        description: 'Callback serveur Bamboo Pay pour les paiements publicité (`PUB-`). Ne pas confondre avec le callback des commandes.
+
+Même payload que `/payments/bamboo-pay/callback` : `reference` = code marchand (`PUB-…`), `billingId` = référence Bamboo, `status` = `completed`|`failed`, messages via `description`/`reason`.',
         tags: ['Paiement - Bamboo Pay'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['status'],
+                properties: [
+                    new OA\Property(property: 'billingId', type: 'string', example: 'TXN-PUB-001'),
+                    new OA\Property(property: 'reference', type: 'string', example: 'PUB-ABCDEFGH'),
+                    new OA\Property(property: 'status', type: 'string', enum: ['completed', 'failed']),
+                    new OA\Property(property: 'reason', type: 'string', nullable: true),
+                    new OA\Property(property: 'description', type: 'string', nullable: true),
+                    new OA\Property(property: 'paymentType', type: 'string', nullable: true),
+                    new OA\Property(property: 'idempotency_key', type: 'string', nullable: true),
+                ]
+            )
+        ),
         responses: [
             new OA\Response(response: 200, description: 'Notification reçue'),
         ]

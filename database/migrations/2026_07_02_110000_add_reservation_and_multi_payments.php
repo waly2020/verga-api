@@ -15,11 +15,13 @@ return new class extends Migration
         });
 
         Schema::table('paiements', function (Blueprint $table) {
+            // MySQL : la FK commande_id s'appuie sur l'index unique — drop FK avant unique.
+            $table->dropForeign(['commande_id']);
             $table->dropUnique(['commande_id']);
             $table->decimal('quantite', 10, 3)->nullable()->after('commande_id');
             $table->decimal('montant_sous_total', 12, 2)->nullable()->after('montant');
             $table->decimal('montant_commission_client', 12, 2)->default(0)->after('montant_sous_total');
-            $table->index('commande_id');
+            $table->foreign('commande_id')->references('id')->on('commandes')->cascadeOnDelete();
         });
 
         if (Schema::getConnection()->getDriverName() === 'pgsql') {
@@ -31,9 +33,10 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('paiements', function (Blueprint $table) {
-            $table->dropIndex(['commande_id']);
+            $table->dropForeign(['commande_id']);
             $table->dropColumn(['quantite', 'montant_sous_total', 'montant_commission_client']);
             $table->unique('commande_id');
+            $table->foreign('commande_id')->references('id')->on('commandes')->cascadeOnDelete();
         });
 
         Schema::table('commandes', function (Blueprint $table) {

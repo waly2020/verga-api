@@ -49,6 +49,7 @@ class CommandeCheckoutService
                 'nom' => $data['nom'],
                 'prenom' => $data['prenom'],
                 'telephone' => $data['telephone'],
+                'email' => $data['email'] ?? null,
                 'quantite' => $quantiteReservee,
                 'quantite_payee' => 0,
                 'montant_sous_total' => 0,
