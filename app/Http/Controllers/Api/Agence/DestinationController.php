@@ -43,9 +43,11 @@ class DestinationController extends AgenceApiController
 
         $destination = $this->destinationResolver->findOrCreateAndAttach(
             $this->agence($request)->id,
-            $validated['depart'],
-            $validated['arrivee'],
+            $validated['ville_depart_id'],
+            $validated['ville_arrivee_id'],
         );
+
+        $destination->load(['villeDepart', 'villeArrivee']);
 
         $destination->setAttribute('rattachee', true);
 
@@ -65,17 +67,14 @@ class DestinationController extends AgenceApiController
 
         $query = Destination::query()
             ->actif()
+            ->with(['villeDepart', 'villeArrivee'])
             ->withExists([
                 'agences as rattachee' => fn (Builder $q) => $q->where('agences.id', $agenceId),
             ])
-            ->orderBy('depart')
-            ->orderBy('arrivee');
+            ->orderByTrajet();
 
         if ($search = $request->get('search')) {
-            $query->where(function (Builder $q) use ($search) {
-                $q->where('depart', 'like', "%{$search}%")
-                    ->orWhere('arrivee', 'like', "%{$search}%");
-            });
+            $query->matchingLocalite($search);
         }
 
         return $query;

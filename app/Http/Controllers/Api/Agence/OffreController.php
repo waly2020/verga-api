@@ -26,17 +26,16 @@ class OffreController extends AgenceApiController
             ->offres()
             ->with([
                 'typeOffre:id,slug,nom,unite_label',
-                'destination:id,depart,arrivee,montant,commission_pourcentage,appliquer_configuration,actif',
+                'destination:id,ville_depart_id,ville_arrivee_id,montant,commission_pourcentage,appliquer_configuration,actif',
+                'destination.villeDepart',
+                'destination.villeArrivee',
             ])
             ->latest();
 
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('titre', 'like', "%{$search}%")
-                    ->orWhereHas('destination', function ($dq) use ($search) {
-                        $dq->where('depart', 'like', "%{$search}%")
-                            ->orWhere('arrivee', 'like', "%{$search}%");
-                    });
+                    ->orWhereHas('destination', fn ($dq) => $dq->matchingLocalite($search));
             });
         }
 
@@ -53,7 +52,7 @@ class OffreController extends AgenceApiController
     {
         $model = $this->agence($request)
             ->offres()
-            ->with(['typeOffre', 'destination'])
+            ->with(['typeOffre', 'destination.villeDepart', 'destination.villeArrivee'])
             ->findOrFail($offre);
 
         return OffreResource::make($model);
@@ -68,7 +67,7 @@ class OffreController extends AgenceApiController
         $offre = $this->agence($request)
             ->offres()
             ->create($data)
-            ->load(['typeOffre', 'destination']);
+            ->load(['typeOffre', 'destination.villeDepart', 'destination.villeArrivee']);
 
         return OffreResource::make($offre)
             ->response()
@@ -84,7 +83,7 @@ class OffreController extends AgenceApiController
 
         $model->update($data);
 
-        return OffreResource::make($model->fresh(['typeOffre', 'destination']));
+        return OffreResource::make($model->fresh(['typeOffre', 'destination.villeDepart', 'destination.villeArrivee']));
     }
 
     public function destroy(Request $request, string $offre): JsonResponse

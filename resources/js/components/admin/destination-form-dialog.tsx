@@ -1,6 +1,6 @@
-import { useForm } from '@inertiajs/react';
+import { Link, useForm } from '@inertiajs/react';
 import { Loader2, MapPin } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -13,18 +13,28 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import admin from '@/routes/admin';
-import type { DestinationFormData, DestinationRow } from '@/types';
+import type { DestinationFormData, DestinationRow, VilleSummary } from '@/types';
+import { destinationVille } from '@/types/models/destination';
+import { villeLabel } from '@/types/models/ville';
 
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     destination?: DestinationRow | null;
+    villes: VilleSummary[];
 }
 
 const defaultForm: DestinationFormData = {
-    depart: '',
-    arrivee: '',
+    ville_depart_id: '',
+    ville_arrivee_id: '',
     appliquer_configuration: false,
     montant: '',
     commission_pourcentage: '',
@@ -33,8 +43,10 @@ const defaultForm: DestinationFormData = {
 
 function toFormData(destination: DestinationRow): DestinationFormData {
     return {
-        depart: destination.depart,
-        arrivee: destination.arrivee,
+        ville_depart_id:
+            destination.ville_depart_id ?? destinationVille(destination, 'depart')?.id ?? '',
+        ville_arrivee_id:
+            destination.ville_arrivee_id ?? destinationVille(destination, 'arrivee')?.id ?? '',
         appliquer_configuration: Boolean(destination.appliquer_configuration),
         montant: destination.montant != null ? String(destination.montant) : '',
         commission_pourcentage:
@@ -45,12 +57,96 @@ function toFormData(destination: DestinationRow): DestinationFormData {
     };
 }
 
-export function DestinationFormDialog({ open, onOpenChange, destination }: Props) {
+function paysOf(villes: VilleSummary[], villeId: string): string {
+    return villes.find((ville) => ville.id === villeId)?.pays ?? '';
+}
+
+function VilleSideFields({
+    side,
+    villes,
+    villeId,
+    paysNom,
+    onPaysChange,
+    onVilleChange,
+    error,
+}: {
+    side: 'depart' | 'arrivee';
+    villes: VilleSummary[];
+    villeId: string;
+    paysNom: string;
+    onPaysChange: (pays: string) => void;
+    onVilleChange: (id: string) => void;
+    error?: string;
+}) {
+    const paysNoms = useMemo(
+        () => [...new Set(villes.map((ville) => ville.pays))].sort((a, b) => a.localeCompare(b, 'fr')),
+        [villes],
+    );
+
+    const villesFiltrees = villes.filter(
+        (ville) => ville.pays === paysNom && (ville.actif || ville.id === villeId),
+    );
+
+    const label = side === 'depart' ? 'Départ' : 'Arrivée';
+
+    return (
+        <div className="space-y-3">
+            <p className="text-sm font-medium">
+                {label} <span className="text-destructive">*</span>
+            </p>
+            <div className="space-y-1.5">
+                <Label htmlFor={`destination-pays-${side}`}>Pays</Label>
+                <Select value={paysNom || undefined} onValueChange={onPaysChange}>
+                    <SelectTrigger id={`destination-pays-${side}`}>
+                        <SelectValue placeholder="Choisir un pays" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {paysNoms.map((nom) => (
+                            <SelectItem key={nom} value={nom}>
+                                {nom}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+            <div className="space-y-1.5">
+                <Label htmlFor={`destination-ville-${side}`}>Ville</Label>
+                <Select
+                    value={villeId || undefined}
+                    onValueChange={onVilleChange}
+                    disabled={!paysNom}
+                >
+                    <SelectTrigger id={`destination-ville-${side}`}>
+                        <SelectValue placeholder={paysNom ? 'Choisir une ville' : 'Pays d’abord'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {villesFiltrees.map((ville) => (
+                            <SelectItem key={ville.id} value={ville.id}>
+                                {villeLabel(ville)}
+                                {!ville.actif ? ' (inactive)' : ''}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                {error && <p className="text-xs text-destructive">{error}</p>}
+            </div>
+        </div>
+    );
+}
+
+export function DestinationFormDialog({ open, onOpenChange, destination, villes }: Props) {
     const isEdit = Boolean(destination);
     const formId = isEdit ? 'destination-form-edit' : 'destination-form-create';
 
     const { data, setData, post, patch, processing, errors, reset, clearErrors } =
         useForm<DestinationFormData>(destination ? toFormData(destination) : defaultForm);
+
+    const [paysDepart, setPaysDepart] = useState(
+        destination ? paysOf(villes, toFormData(destination).ville_depart_id) : '',
+    );
+    const [paysArrivee, setPaysArrivee] = useState(
+        destination ? paysOf(villes, toFormData(destination).ville_arrivee_id) : '',
+    );
 
     useEffect(() => {
         if (!open) {
@@ -58,12 +154,17 @@ export function DestinationFormDialog({ open, onOpenChange, destination }: Props
         }
 
         clearErrors();
-        setData(destination ? toFormData(destination) : defaultForm);
-    }, [open, destination, setData, clearErrors]);
+        const next = destination ? toFormData(destination) : defaultForm;
+        setData(next);
+        setPaysDepart(paysOf(villes, next.ville_depart_id));
+        setPaysArrivee(paysOf(villes, next.ville_arrivee_id));
+    }, [open, destination, villes, setData, clearErrors]);
 
     const handleOpenChange = (value: boolean) => {
         if (!value) {
             reset();
+            setPaysDepart('');
+            setPaysArrivee('');
         }
 
         onOpenChange(value);
@@ -95,43 +196,50 @@ export function DestinationFormDialog({ open, onOpenChange, destination }: Props
                         {isEdit ? 'Modifier la destination' : 'Nouvelle destination'}
                     </DialogTitle>
                     <DialogDescription>
-                        {isEdit
-                            ? 'Mettez à jour le trajet et, le cas échéant, la configuration tarifaire forcée.'
-                            : 'Définissez un trajet départ → arrivée, avec une config tarifaire optionnelle.'}
+                        Choisissez un pays, puis une ville, pour le départ et l&apos;arrivée.
                     </DialogDescription>
                 </DialogHeader>
 
                 <form id={formId} onSubmit={submit} className="space-y-4 py-2">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="space-y-1.5">
-                            <Label htmlFor="destination-depart">
-                                Départ <span className="text-destructive">*</span>
-                            </Label>
-                            <Input
-                                id="destination-depart"
-                                value={data.depart}
-                                onChange={(e) => setData('depart', e.target.value)}
-                                placeholder="Ex : Abidjan"
-                                autoFocus
+                    {villes.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                            Aucune ville n&apos;est encore définie.{' '}
+                            <Link
+                                href={admin.villes.index()}
+                                className="font-medium text-primary underline-offset-4 hover:underline"
+                            >
+                                Créer une ville
+                            </Link>{' '}
+                            avant de composer un trajet.
+                        </p>
+                    ) : (
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <VilleSideFields
+                                side="depart"
+                                villes={villes}
+                                villeId={data.ville_depart_id}
+                                paysNom={paysDepart}
+                                onPaysChange={(pays) => {
+                                    setPaysDepart(pays);
+                                    setData('ville_depart_id', '');
+                                }}
+                                onVilleChange={(id) => setData('ville_depart_id', id)}
+                                error={errors.ville_depart_id}
                             />
-                            {errors.depart && <p className="text-xs text-destructive">{errors.depart}</p>}
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <Label htmlFor="destination-arrivee">
-                                Arrivée <span className="text-destructive">*</span>
-                            </Label>
-                            <Input
-                                id="destination-arrivee"
-                                value={data.arrivee}
-                                onChange={(e) => setData('arrivee', e.target.value)}
-                                placeholder="Ex : Paris"
+                            <VilleSideFields
+                                side="arrivee"
+                                villes={villes}
+                                villeId={data.ville_arrivee_id}
+                                paysNom={paysArrivee}
+                                onPaysChange={(pays) => {
+                                    setPaysArrivee(pays);
+                                    setData('ville_arrivee_id', '');
+                                }}
+                                onVilleChange={(id) => setData('ville_arrivee_id', id)}
+                                error={errors.ville_arrivee_id}
                             />
-                            {errors.arrivee && (
-                                <p className="text-xs text-destructive">{errors.arrivee}</p>
-                            )}
                         </div>
-                    </div>
+                    )}
 
                     <div className="flex flex-col gap-3 rounded-lg border p-4">
                         <div className="flex items-center gap-2">
@@ -155,7 +263,8 @@ export function DestinationFormDialog({ open, onOpenChange, destination }: Props
                             </Label>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            Force un montant et une commission plateforme pour les offres liées à ce trajet.
+                            Force un montant et une commission plateforme pour les offres liées à ce
+                            trajet.
                         </p>
 
                         {data.appliquer_configuration && (
@@ -225,7 +334,7 @@ export function DestinationFormDialog({ open, onOpenChange, destination }: Props
                     >
                         Annuler
                     </Button>
-                    <Button type="submit" form={formId} disabled={processing}>
+                    <Button type="submit" form={formId} disabled={processing || villes.length === 0}>
                         {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {isEdit ? 'Enregistrer' : 'Créer'}
                     </Button>

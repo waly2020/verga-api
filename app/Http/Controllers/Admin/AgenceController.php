@@ -116,7 +116,11 @@ class AgenceController extends Controller
         ];
 
         $offres = $agence->offres()
-            ->with('destination:id,depart,arrivee,montant,commission_pourcentage,appliquer_configuration')
+            ->with([
+                'destination:id,ville_depart_id,ville_arrivee_id,montant,commission_pourcentage,appliquer_configuration',
+                'destination.villeDepart:id,pays,ville,code',
+                'destination.villeArrivee:id,pays,ville,code',
+            ])
             ->latest()
             ->get(['id', 'destination_id', 'titre', 'type', 'prix', 'statut', 'capacite_illimitee', 'capacite_totale', 'capacite_disponible']);
 

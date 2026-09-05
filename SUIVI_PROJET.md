@@ -100,7 +100,8 @@ Objectif : disposer d'un schéma fiable, documenté et migrable avant tout déve
 ### 1.4 Migrations — finance et relation client
 
 - [x] `commissions` — commissions VERGA (par commande)
-- [x] `configurations_commission` — taux global client / agence (fixe ou pourcentage)
+- [x] `configurations_commission` — taux global client / agence (fixe, pourcentage, **ou grille** côté client)
+- [x] `villes` — villes (pays en champ texte, code unique) utilisées par les destinations
 - [x] `configurations_publicite` — tarif publicité (prix/jour entier FCFA + frais fixe ou %)
 - [x] `publicites` — campagnes agence / client / VERGA (`offre_id` optionnel)
 - [x] `paiements_publicite` — paiements Bamboo dédiés (préfixe `PUB-`)
@@ -148,7 +149,8 @@ Objectif : construire l'interface admin (structure, navigation, pages) — d'abo
 
 - [x] **Agences** — liste, détail, actions (bloquer / supprimer)
 - [x] **Offres** — consultation des offres par agence
-- [x] **Destinations** — trajets partagés + config tarifaire optionnelle
+- [x] **Villes** — référentiel ville + nom de pays + code
+- [x] **Destinations** — trajets composés de deux localités + config tarifaire optionnelle
 - [x] **Publicités** — modération, création interne, tarif
 - [x] **Commandes / achats** — liste des achats clients
 - [x] **Colis** — suivi et vérification d'arrivée
@@ -237,8 +239,9 @@ Objectif : connecter chaque écran aux modèles, controllers et règles métier 
 
 ### 3.8 bis Configuration commissions
 
-- [~] Page admin commissions globales (client + agence, fixe / pourcentage) — **en attente de validation**
-- [ ] Application automatique des commissions à la validation d'un paiement
+- [~] Page admin commissions globales (client + agence, fixe **ou** pourcentage unique) — **en attente de validation**
+- [x] Application automatique de la commission **client** à chaque versement (`OrderPricingService`) puis cumul commande à la validation Bamboo
+- [x] Grille tarifaire par tranches de montant (sous-total du versement, frais fixes, libellé optionnel)
 
 ### 3.9 Qualité et tests
 
@@ -247,13 +250,15 @@ Objectif : connecter chaque écran aux modèles, controllers et règles métier 
 - [ ] Policies / autorisations vérifiées
 - [ ] Revue des N+1 et index sur les listes
 
-### 3.10 Destinations
+### 3.10 Destinations et localités
 
-- [x] CRUD admin `/admin/destinations` (trajet départ → arrivée, actif, config tarifaire optionnelle)
-- [x] Si `appliquer_configuration` : prix offre forcé serveur + commission paiement = % destination
-- [x] Sinon : prix offre libre + commission globale
+- [x] CRUD admin `/admin/villes` — villes (nom de pays en champ, pas de table pays)
+- [x] CRUD admin `/admin/destinations` — trajet = `ville_depart_id` + `ville_arrivee_id`
+- [x] Si `appliquer_configuration` : prix offre forcé serveur + commission **agence** = % destination
+- [x] Sinon : prix offre libre + commission agence globale
 - [x] Pivot `agence_destination` — rattachement agence (API find-or-create-attach)
 - [x] Offres via `destination_id` uniquement (plus d’origine/arrivée libres)
+- [x] UI admin + Swagger alignés sur les villes (`VilleResource`, `label` du trajet)
 
 ### 3.11 Publicités
 
@@ -289,7 +294,9 @@ Objectif : connecter chaque écran aux modèles, controllers et règles métier 
 - [~] **Auth agence** (inscription, connexion, profil, déconnexion, mot de passe) — **en attente de validation**
 - [~] **Métier agence** (offres, commandes, colis, réclamations, paiements) — **en attente de validation**
 - [x] **Types d'offre agence** — CRUD types personnalisés (`agence_id` sur `types_offres`, API + Swagger + tests)
-- [x] **Destinations agence** — `GET /agence/destinations`, `GET …/paginated`, `POST` find-or-create-attach
+- [x] **Pays agence** — `GET /agence/pays` (noms distincts des villes actives)
+- [x] **Villes agence** — `GET /agence/villes?pays=`
+- [x] **Destinations agence** — `GET /agence/destinations`, `GET …/paginated`, `POST` find-or-create-attach (`ville_depart_id` + `ville_arrivee_id`)
 - [x] **Publicités agence** — CRUD, resoumettre, paiement Bamboo dédié, lecture tarif
 - [~] **Clients** — table `clients`, admin consultation (web), API inscription/métier (app externe) — **en attente de validation**
 - [ ] Endpoints client avancés (avis, recherche offres, commande)
@@ -315,6 +322,20 @@ Objectif : connecter chaque écran aux modèles, controllers et règles métier 
 ## Backlog
 
 Fonctionnalités validées en conception mais **non planifiées pour l’implémentation immédiate**.
+
+### Grille tarifaire des commissions (2026-09-05)
+
+**Livré** : type `grille` sur la config **client** uniquement. Table `commission_paliers` (`montant_min`, `montant_max` nullable, `frais`, `libelle` nullable).
+
+Au paiement, le **sous-total du versement** choisit la tranche. La commission **agence** reste fixe ou %.
+
+- [x] Tranches continues, dernière ouverte
+- [x] Client only
+- [x] Base = sous-total du versement
+- [x] Frais fixes par tranche, libellé optionnel
+- [x] Admin `/admin/commissions` + `OrderPricingService` + estimation + OpenAPI v1.8
+
+---
 
 ### Comptes et rôles agence (refonte 2026-07-17)
 
@@ -421,7 +442,7 @@ Fonctionnalités validées en conception mais **non planifiées pour l’implém
 
 ## Journal de suivi
 
-> **Dernière session** : 2026-08-22 — publicités admin : changement de statut (retirée, republication), statut `retirée` en BDD
+> **Dernière session** : 2026-09-05 — grille tarifaire commissions client (tranches sur le sous-total du versement)
 
 | Date | Poste | Module | Action | Statut |
 |------|-------|--------|--------|--------|
@@ -457,6 +478,13 @@ Fonctionnalités validées en conception mais **non planifiées pour l’implém
 | 2026-08-19 | — | Publicités | Montants **entiers FCFA** (plus de `step` HTML 0,01) | `[x]` |
 | 2026-08-19 | — | Admin | Création publicité interne VERGA / agence / client — publiée sans paiement (13 tests) | `[x]` |
 | 2026-08-22 | — | Admin | Changement statut publicité (retirée, republication) — dialogue admin + transitions (15 tests) | `[x]` |
+| 2026-09-04 | — | Destinations | Table `pays` (ville, pays, code) ; destinations = `pays_depart_id` / `pays_arrivee_id` ; drop `depart` / `arrivee` | `[x]` |
+| 2026-09-04 | — | Admin | CRUD `/admin/pays`, formulaires destinations/offres, listes trajets par localités | `[x]` |
+| 2026-09-04 | — | API | `GET /agence/pays`, `DestinationResource` (`pays_depart` / `pays_arrivee` / `label`), OpenAPI v1.6 | `[x]` |
+| 2026-09-04 | — | Backlog | Grille tarifaire commissions (tranches de montant, ex. 0–9 999 → 1 500 FCFA) | `[x]` |
+| 2026-09-05 | — | Villes | Table `villes` (plus de table `pays`) ; pays = champ réutilisé ; admin `/admin/villes` ; API `GET /agence/pays` + `GET /agence/villes` | `[x]` |
+| 2026-09-05 | — | Commissions | Grille client : `commission_paliers`, type `grille`, admin `/admin/commissions`, estimation OpenAPI v1.8 | `[x]` |
+| 2026-09-05 | — | Offres | Job `DesactiverOffresDepartPassees` en file database, cron 23:59 Africa/Libreville | `[x]` |
 
 ---
 
@@ -473,7 +501,8 @@ Fonctionnalités validées en conception mais **non planifiées pour l’implém
 - **API paiements (listes)** : champs `code`, `montant` (net transport), `created_at`, `bamboo_reference`, `commande_code` uniquement.
 - **Types d'offre** : types plateforme (`agence_id` null) + types créés par chaque agence (slug unique par agence) ; CRUD API `/api/v1/agence/types-offres`.
 - **Commandes invité** : objet `client` rempli depuis `nom` / `prenom` / `telephone` de la commande si pas de `client_id`.
-- **Destinations** : table partagée `destinations` + pivot `agence_destination`. Config destination : si `appliquer_configuration` → prix offre forcé + commission % destination ; sinon prix libre + commission globale.
+- **Destinations** : table partagée `destinations` + pivot `agence_destination`. Un trajet = deux villes (`ville_depart_id` / `ville_arrivee_id`). Le pays est un champ de `villes`, pas une table. Plus de champs texte `depart` / `arrivee`. Config destination : si `appliquer_configuration` → prix offre forcé + commission **agence** % destination ; sinon prix libre + commission agence globale.
+- **Commissions client** : fixe, pourcentage, **ou grille** (`commission_paliers`) selon le sous-total de **chaque versement**, puis cumulée à la validation. Libellé de tranche optionnel. La config destination n’affecte pas la commission client.
 - **Publicités** : indépendantes d’une offre (`offre_id` nullable). Propriétaire = agence **xor** client, ou aucun des deux (pub VERGA créée par l’admin).
 - **Publicités — parcours payant** (agence/client) : création `en_attente` / `non_payé` → admin valide ou refuse → si validée, paiement Bamboo **dédié** (ne pas réutiliser le settlement commandes) → `publiée` / `payé`. Durée inclusive `(date_fin − date_debut) + 1`.
 - **Publicités — admin** : création directe → `publiée` + `payé` (pas de Bamboo). Modération : transitions `en_attente` → validée/refusée/retirée ; retrait depuis `publiée` ; republication depuis `retirée`/`expirée` si payée et `date_fin` ≥ aujourd’hui. Tarif : prix/jour et frais en **entiers** (FCFA, pas de centimes).
@@ -484,4 +513,4 @@ Fonctionnalités validées en conception mais **non planifiées pour l’implém
 
 ## Prochaine action suggérée
 
-**Valider le module publicités** (tarif admin, création interne, modération, APIs agence/client, catalogue, paiement Bamboo dédié), puis `php artisan migrate` (tables `configurations_publicite`, `publicites`, `paiements_publicite`) et `php artisan l5-swagger:generate`.
+`php artisan migrate:fresh` puis configurer la grille client dans `/admin/commissions` (type Grille tarifaire). Vérifier une estimation `GET /client/offres/{id}/estimation?quantite=`.

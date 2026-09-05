@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\Agence\OffreController;
 use App\Http\Controllers\Api\Agence\PaiementController;
 use App\Http\Controllers\Api\Agence\PasswordController;
 use App\Http\Controllers\Api\Agence\PasswordResetController;
+use App\Http\Controllers\Api\Agence\PaysController;
 use App\Http\Controllers\Api\Agence\PubliciteController;
 use App\Http\Controllers\Api\Agence\ReclamationController;
 use App\Http\Controllers\Api\Agence\ReversementController;
@@ -21,10 +22,13 @@ use App\Http\Controllers\Api\Agence\SoldeController;
 use App\Http\Controllers\Api\Agence\TypeAgenceController;
 use App\Http\Controllers\Api\Agence\TypeOffreController;
 use App\Http\Controllers\Api\Agence\UserController;
+use App\Http\Controllers\Api\Agence\VilleController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('agence')->name('api.agence.')->group(function () {
     Route::get('types-agences', [TypeAgenceController::class, 'index'])->name('types-agences.index');
+    Route::get('pays', [PaysController::class, 'index'])->name('pays.index');
+    Route::get('villes', [VilleController::class, 'index'])->name('villes.index');
     Route::get('types-offres', [TypeOffreController::class, 'index'])
         ->middleware('optional.sanctum')
         ->name('types-offres.index');

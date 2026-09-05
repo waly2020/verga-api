@@ -1,5 +1,5 @@
-import { Head, router } from '@inertiajs/react';
-import { Pencil, PlusCircle, Trash2 } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Globe, Pencil, PlusCircle, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { ConfirmDialog } from '@/components/admin/confirm-dialog';
 import { DataTable } from '@/components/admin/data-table';
@@ -8,24 +8,42 @@ import { DestinationFormDialog } from '@/components/admin/destination-form-dialo
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import admin from '@/routes/admin';
-import type { DestinationRow, Paginated } from '@/types';
+import type { DestinationRow, Paginated, VilleSummary } from '@/types';
+import { destinationTrajetLabel, destinationVille } from '@/types/models/destination';
 
 interface Props {
     destinations: Paginated<DestinationRow>;
     filters: { search?: string; actif?: string };
+    villes: VilleSummary[];
+}
+
+function LocaliteCell({ destination, side }: { destination: DestinationRow; side: 'depart' | 'arrivee' }) {
+    const localite = destinationVille(destination, side);
+
+    if (!localite) {
+        return <span className="text-muted-foreground">—</span>;
+    }
+
+    return (
+        <div>
+            <span className="font-medium">{localite.ville}</span>
+            <p className="text-xs text-muted-foreground">
+                {localite.pays} · {localite.code}
+            </p>
+        </div>
+    );
 }
 
 const columns: Column<DestinationRow>[] = [
     {
-        key: 'trajet',
-        label: 'Trajet',
-        render: (r) => (
-            <div>
-                <span className="font-medium capitalize">
-                    {r.depart} → {r.arrivee}
-                </span>
-            </div>
-        ),
+        key: 'depart',
+        label: 'Départ',
+        render: (r) => <LocaliteCell destination={r} side="depart" />,
+    },
+    {
+        key: 'arrivee',
+        label: 'Arrivée',
+        render: (r) => <LocaliteCell destination={r} side="arrivee" />,
     },
     {
         key: 'configuration',
@@ -66,7 +84,7 @@ const filterOptions = [
     { label: 'Inactives', value: '0' },
 ];
 
-export default function DestinationsIndex({ destinations, filters }: Props) {
+export default function DestinationsIndex({ destinations, filters, villes = [] }: Props) {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editing, setEditing] = useState<DestinationRow | null>(null);
 
@@ -100,18 +118,26 @@ export default function DestinationsIndex({ destinations, filters }: Props) {
         <>
             <Head title="Destinations" />
             <div className="flex flex-1 flex-col gap-6 p-6">
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-semibold tracking-tight">Destinations</h1>
                         <p className="text-sm text-muted-foreground">
-                            Gérez les trajets départ → arrivée et leurs configurations tarifaires
-                            optionnelles.
+                            Composez des trajets à partir de deux localités (ville, pays, code) et
+                            optionnellement une configuration tarifaire.
                         </p>
                     </div>
-                    <Button onClick={openCreate}>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Nouvelle destination
-                    </Button>
+                    <div className="flex shrink-0 items-center gap-2">
+                        <Button variant="outline" asChild>
+                            <Link href={admin.villes.index()} prefetch>
+                                <Globe className="mr-2 h-4 w-4" />
+                                Villes
+                            </Link>
+                        </Button>
+                        <Button onClick={openCreate}>
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Nouvelle destination
+                        </Button>
+                    </div>
                 </div>
 
                 <DataTable
@@ -120,11 +146,11 @@ export default function DestinationsIndex({ destinations, filters }: Props) {
                     pagination={destinations.meta}
                     initialSearch={filters.search ?? ''}
                     initialFilter={filters.actif ?? ''}
-                    searchPlaceholder="Rechercher un trajet..."
+                    searchPlaceholder="Ville, pays ou code..."
                     filterKey="actif"
                     filterOptions={filterOptions}
                     emptyTitle="Aucune destination"
-                    emptyDescription="Créez un premier trajet pour lier les offres aux destinations."
+                    emptyDescription="Créez d'abord des localités, puis un trajet départ → arrivée."
                     onSearchChange={(v) => go({ ...filters, search: v || undefined, page: 1 })}
                     onFilterChange={(v) => go({ ...filters, actif: v || undefined, page: 1 })}
                     onPageChange={(p) => go({ ...filters, page: p })}
@@ -152,7 +178,7 @@ export default function DestinationsIndex({ destinations, filters }: Props) {
                                 description={
                                     row.offres_count > 0
                                         ? 'Cette destination est liée à des offres et ne peut pas être supprimée.'
-                                        : `La destination « ${row.depart} → ${row.arrivee} » sera définitivement supprimée.`
+                                        : `La destination « ${destinationTrajetLabel(row)} » sera définitivement supprimée.`
                                 }
                                 confirmLabel="Supprimer"
                                 onConfirm={() => supprimer(row)}
@@ -167,6 +193,7 @@ export default function DestinationsIndex({ destinations, filters }: Props) {
                 open={dialogOpen}
                 onOpenChange={handleDialogOpenChange}
                 destination={editing}
+                villes={villes}
             />
         </>
     );

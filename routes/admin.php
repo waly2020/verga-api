@@ -13,12 +13,14 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DestinationController;
 use App\Http\Controllers\Admin\MassMailController;
 use App\Http\Controllers\Admin\OffreController;
+use App\Http\Controllers\Admin\PaiementController;
 use App\Http\Controllers\Admin\PubliciteController;
 use App\Http\Controllers\Admin\ReclamationController;
 use App\Http\Controllers\Admin\ReversementController;
 use App\Http\Controllers\Admin\TargetedMailController;
 use App\Http\Controllers\Admin\TypeAgenceController;
 use App\Http\Controllers\Admin\TypeOffreController;
+use App\Http\Controllers\Admin\VilleController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified', 'admin'])
@@ -64,6 +66,11 @@ Route::middleware(['auth', 'verified', 'admin'])
         Route::post('destinations', [DestinationController::class, 'store'])->name('destinations.store');
         Route::patch('destinations/{destination}', [DestinationController::class, 'update'])->name('destinations.update');
         Route::delete('destinations/{destination}', [DestinationController::class, 'destroy'])->name('destinations.destroy');
+
+        Route::get('villes', [VilleController::class, 'index'])->name('villes.index');
+        Route::post('villes', [VilleController::class, 'store'])->name('villes.store');
+        Route::patch('villes/{ville}', [VilleController::class, 'update'])->name('villes.update');
+        Route::delete('villes/{ville}', [VilleController::class, 'destroy'])->name('villes.destroy');
 
         Route::get('commandes', [CommandeController::class, 'index'])->name('commandes.index');
         Route::get('commandes/{commande}', [CommandeController::class, 'show'])->name('commandes.show');

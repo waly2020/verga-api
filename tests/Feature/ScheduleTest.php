@@ -41,4 +41,19 @@ class ScheduleTest extends TestCase
 
         $this->assertNotNull($named ?? $expire, 'L\'expiration des publicités doit être planifiée');
     }
+
+    public function test_offre_depart_expiration_is_scheduled_end_of_day(): void
+    {
+        /** @var list<Event> $events */
+        $events = app(Schedule::class)->events();
+
+        $event = collect($events)->first(
+            fn (Event $event) => str_contains((string) $event->description, 'date de départ')
+                || str_contains((string) $event->description, 'offres-expire-depart'),
+        );
+
+        $this->assertNotNull($event, 'La désactivation des offres à date de départ passée doit être planifiée');
+        $this->assertSame('59 23 * * *', $event->expression);
+        $this->assertSame('Africa/Libreville', $event->timezone);
+    }
 }

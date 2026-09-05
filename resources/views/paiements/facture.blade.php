@@ -58,7 +58,9 @@
         <p><strong>{{ $offre['titre'] }}</strong></p>
         <p class="muted">
             @if(!empty($offre['destination']))
-                {{ $offre['destination']['depart'] }} → {{ $offre['destination']['arrivee'] }}
+                {{ $offre['destination']['ville_depart']['label'] ?? $offre['destination']['ville_depart']['ville'] }}
+                →
+                {{ $offre['destination']['ville_arrivee']['label'] ?? $offre['destination']['ville_arrivee']['ville'] }}
             @endif
         </p>
         <p>Prix unitaire : {{ number_format($offre['prix'], 0, ',', ' ') }} FCFA</p>

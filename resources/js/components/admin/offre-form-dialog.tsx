@@ -1,5 +1,5 @@
 import { useForm } from '@inertiajs/react';
-import { Loader2, Package } from 'lucide-react';
+import { Loader2, Package, PlusCircle, Trash2 } from 'lucide-react';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -21,7 +21,15 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import admin from '@/routes/admin';
-import type { AgenceSummary, DestinationSummary, OffreFormData, OffreRow, TypeOffreApi } from '@/types';
+import { destinationTrajetLabel } from '@/types/models/destination';
+import type {
+    AgenceSummary,
+    DestinationSummary,
+    OffreFormData,
+    OffrePalierForm,
+    OffreRow,
+    TypeOffreApi,
+} from '@/types';
 
 interface Props {
     open: boolean;
@@ -39,6 +47,7 @@ function emptyForm(typesOffres: TypeOffreApi[]): OffreFormData {
         titre: '',
         type_offre_id: typesOffres[0]?.id ?? '',
         prix: '',
+        paliers: null,
         capacite_illimitee: false,
         capacite_totale: '',
         date_depart: '',
@@ -55,6 +64,13 @@ function toFormData(offre: OffreRow, typesOffres: TypeOffreApi[]): OffreFormData
         titre: offre.titre,
         type_offre_id: offre.type_offre_id ?? typesOffres[0]?.id ?? '',
         prix: String(offre.prix),
+        paliers: offre.paliers?.length
+            ? offre.paliers.map((palier) => ({
+                  min: String(palier.min),
+                  max: palier.max == null ? '' : String(palier.max),
+                  prix: String(palier.prix),
+              }))
+            : null,
         capacite_illimitee: Boolean(offre.capacite_illimitee),
         capacite_totale: offre.capacite_totale == null ? '' : String(offre.capacite_totale),
         date_depart: offre.date_depart ?? '',
@@ -65,7 +81,22 @@ function toFormData(offre: OffreRow, typesOffres: TypeOffreApi[]): OffreFormData
 }
 
 function destinationLabel(destination: DestinationSummary): string {
-    return `${destination.depart} → ${destination.arrivee}`;
+    return destinationTrajetLabel(destination);
+}
+
+function emptyPaliers(prix: string, quantiteMin?: number): OffrePalierForm[] {
+    return [
+        { min: String(quantiteMin && quantiteMin > 0 ? quantiteMin : 1), max: '', prix },
+        { min: '', max: '', prix: '' },
+    ];
+}
+
+function palierError(
+    errors: Record<string, string>,
+    index: number,
+    field: 'min' | 'max' | 'prix',
+): string | undefined {
+    return errors[`paliers.${index}.${field}`];
 }
 
 export function OffreFormDialog({
@@ -106,7 +137,46 @@ export function OffreFormDialog({
             ...data,
             destination_id: destinationId,
             prix: nextPrix,
+            paliers: destination?.appliquer_configuration ? null : data.paliers,
         });
+    };
+
+    const togglePaliers = (enabled: boolean) => {
+        setData(
+            'paliers',
+            enabled ? emptyPaliers(data.prix, selectedType?.quantite_min) : null,
+        );
+    };
+
+    const updatePalier = (index: number, field: keyof OffrePalierForm, value: string) => {
+        if (!data.paliers) {
+            return;
+        }
+
+        const next = data.paliers.map((palier, i) =>
+            i === index ? { ...palier, [field]: value } : palier,
+        );
+
+        setData('paliers', next);
+    };
+
+    const addPalier = () => {
+        if (!data.paliers) {
+            return;
+        }
+
+        setData('paliers', [...data.paliers, { min: '', max: '', prix: '' }]);
+    };
+
+    const removePalier = (index: number) => {
+        if (!data.paliers || data.paliers.length <= 2) {
+            return;
+        }
+
+        setData(
+            'paliers',
+            data.paliers.filter((_, i) => i !== index),
+        );
     };
 
     const handleOpenChange = (value: boolean) => {
@@ -201,6 +271,12 @@ export function OffreFormDialog({
                         {errors.destination_id && (
                             <p className="text-xs text-destructive">{errors.destination_id}</p>
                         )}
+                        {destinations.length === 0 && (
+                            <p className="text-xs text-muted-foreground">
+                                Aucune destination active. Créez d&apos;abord des localités, puis un
+                                trajet.
+                            </p>
+                        )}
                     </div>
 
                     <div className="space-y-1.5">
@@ -266,8 +342,130 @@ export function OffreFormDialog({
                                 selectedType && (
                                     <p className="text-xs text-muted-foreground">
                                         Prix {selectedType.unite_label}
+                                        {data.paliers ? ' (catalogue / premier palier)' : ''}
                                     </p>
                                 )
+                            )}
+                        </div>
+
+                        <div className="space-y-3 sm:col-span-2">
+                            <div className="flex items-start gap-2 rounded-lg border p-3">
+                                <Checkbox
+                                    id="offre-paliers"
+                                    checked={data.paliers !== null}
+                                    disabled={prixForce}
+                                    onCheckedChange={(v) => togglePaliers(v === true)}
+                                />
+                                <div className="space-y-1">
+                                    <Label
+                                        htmlFor="offre-paliers"
+                                        className="cursor-pointer font-normal"
+                                    >
+                                        Tarif par paliers
+                                    </Label>
+                                    <p className="text-xs text-muted-foreground">
+                                        Prix unitaire dégressif selon la quantité réservée (ex. 1–2
+                                        unités à 3 000 F, 3 et plus à 2 000 F).
+                                    </p>
+                                </div>
+                            </div>
+                            {errors.paliers && (
+                                <p className="text-xs text-destructive">{errors.paliers}</p>
+                            )}
+
+                            {data.paliers && !prixForce && (
+                                <div className="space-y-3">
+                                    {data.paliers.map((palier, index) => {
+                                        const isLast = index === data.paliers!.length - 1;
+
+                                        return (
+                                            <div
+                                                key={index}
+                                                className="grid gap-3 rounded-lg border p-3 sm:grid-cols-[1fr_1fr_1fr_auto]"
+                                            >
+                                                <div className="space-y-1.5">
+                                                    <Label htmlFor={`offre-palier-min-${index}`}>
+                                                        De
+                                                    </Label>
+                                                    <Input
+                                                        id={`offre-palier-min-${index}`}
+                                                        type="number"
+                                                        min="0.001"
+                                                        step="any"
+                                                        value={palier.min}
+                                                        onChange={(e) =>
+                                                            updatePalier(index, 'min', e.target.value)
+                                                        }
+                                                    />
+                                                    {palierError(errors, index, 'min') && (
+                                                        <p className="text-xs text-destructive">
+                                                            {palierError(errors, index, 'min')}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <Label htmlFor={`offre-palier-max-${index}`}>
+                                                        À
+                                                    </Label>
+                                                    <Input
+                                                        id={`offre-palier-max-${index}`}
+                                                        type="number"
+                                                        min="0.001"
+                                                        step="any"
+                                                        value={isLast ? '' : palier.max}
+                                                        placeholder={isLast ? 'N' : ''}
+                                                        disabled={isLast}
+                                                        readOnly={isLast}
+                                                        onChange={(e) =>
+                                                            updatePalier(index, 'max', e.target.value)
+                                                        }
+                                                    />
+                                                    {palierError(errors, index, 'max') && (
+                                                        <p className="text-xs text-destructive">
+                                                            {palierError(errors, index, 'max')}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <Label htmlFor={`offre-palier-prix-${index}`}>
+                                                        Prix / unité
+                                                    </Label>
+                                                    <Input
+                                                        id={`offre-palier-prix-${index}`}
+                                                        type="number"
+                                                        min="0"
+                                                        step="1"
+                                                        value={palier.prix}
+                                                        onChange={(e) =>
+                                                            updatePalier(index, 'prix', e.target.value)
+                                                        }
+                                                    />
+                                                    {palierError(errors, index, 'prix') && (
+                                                        <p className="text-xs text-destructive">
+                                                            {palierError(errors, index, 'prix')}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-end">
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="icon"
+                                                        disabled={data.paliers!.length <= 2}
+                                                        onClick={() => removePalier(index)}
+                                                        aria-label="Supprimer ce palier"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    <Button type="button" variant="outline" size="sm" onClick={addPalier}>
+                                        <PlusCircle className="mr-2 h-4 w-4" />
+                                        Ajouter un palier
+                                    </Button>
+                                </div>
                             )}
                         </div>
 

@@ -16,28 +16,34 @@ class NormalizeBambooPayReturnUrl
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $path = $request->getPathInfo();
-        $ampersandPos = strpos($path, '/retour&');
+        $uri = $request->server->get('REQUEST_URI', $request->getRequestUri());
+        $ampersandPos = strpos($uri, '/retour&');
 
         if ($ampersandPos === false) {
             return $next($request);
         }
 
-        $basePath = substr($path, 0, $ampersandPos + strlen('/retour'));
-        $bambooQuery = substr($path, $ampersandPos + strlen('/retour&'));
+        $basePath = substr($uri, 0, $ampersandPos + strlen('/retour'));
+        $bambooQuery = substr($uri, $ampersandPos + strlen('/retour&'));
         $mergedQuery = $bambooQuery;
 
         if ($request->getQueryString() !== null && $request->getQueryString() !== '') {
             $mergedQuery = $request->getQueryString().'&'.$bambooQuery;
         }
 
-        $request->server->set('REQUEST_URI', $basePath.'?'.$mergedQuery);
-        $request->server->set('PATH_INFO', $basePath);
-        $request->server->set('QUERY_STRING', $mergedQuery);
+        $normalized = Request::create(
+            $basePath.'?'.$mergedQuery,
+            $request->getMethod(),
+            [],
+            $request->cookies->all(),
+            $request->files->all(),
+            $request->server->all(),
+            $request->getContent(),
+        );
+        $normalized->headers->replace($request->headers->all());
 
-        parse_str($mergedQuery, $queryParams);
-        $request->query->replace($queryParams);
+        app()->instance('request', $normalized);
 
-        return $next($request);
+        return $next($normalized);
     }
 }

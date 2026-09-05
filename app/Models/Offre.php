@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property list<array{min: float|int|string, max: float|int|string|null, prix: float|int|string}>|null $paliers
+ */
 class Offre extends Model
 {
     use HasUuids;
@@ -19,6 +22,7 @@ class Offre extends Model
         'type',
         'type_offre_id',
         'prix',
+        'paliers',
         'capacite_illimitee',
         'capacite_totale',
         'capacite_disponible',
@@ -31,6 +35,7 @@ class Offre extends Model
     {
         return [
             'prix' => 'decimal:2',
+            'paliers' => 'array',
             'capacite_illimitee' => 'boolean',
             'capacite_totale' => 'decimal:3',
             'capacite_disponible' => 'decimal:3',
@@ -42,6 +47,11 @@ class Offre extends Model
     public function hasStockLimite(): bool
     {
         return ! $this->capacite_illimitee;
+    }
+
+    public function hasPaliers(): bool
+    {
+        return is_array($this->paliers) && $this->paliers !== [];
     }
 
     public function agence(): BelongsTo

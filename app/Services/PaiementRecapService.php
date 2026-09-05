@@ -44,7 +44,8 @@ class PaiementRecapService
             'commande.client:id,nom,prenom,email,telephone',
             'commande.agence:id,nom,email,telephone,ville',
             'commande.offre.typeOffre',
-            'commande.offre.destination',
+            'commande.offre.destination.villeDepart',
+            'commande.offre.destination.villeArrivee',
             'commande.colis:id,commande_id,reference,description,statut',
         ];
     }
@@ -108,8 +109,20 @@ class PaiementRecapService
                 'titre' => $offre->titre,
                 'destination' => $offre->destination ? [
                     'id' => $offre->destination->id,
-                    'depart' => $offre->destination->depart,
-                    'arrivee' => $offre->destination->arrivee,
+                    'ville_depart' => $offre->destination->villeDepart ? [
+                        'id' => $offre->destination->villeDepart->id,
+                        'pays' => $offre->destination->villeDepart->pays,
+                        'ville' => $offre->destination->villeDepart->ville,
+                        'code' => $offre->destination->villeDepart->code,
+                        'label' => $offre->destination->villeDepart->label(),
+                    ] : null,
+                    'ville_arrivee' => $offre->destination->villeArrivee ? [
+                        'id' => $offre->destination->villeArrivee->id,
+                        'pays' => $offre->destination->villeArrivee->pays,
+                        'ville' => $offre->destination->villeArrivee->ville,
+                        'code' => $offre->destination->villeArrivee->code,
+                        'label' => $offre->destination->villeArrivee->label(),
+                    ] : null,
                     'montant' => $offre->destination->montant !== null
                         ? (float) $offre->destination->montant
                         : null,

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\Agence;
 
+use App\Http\Requests\Concerns\ValidatesOffrePaliers;
 use App\Models\Destination;
 use App\Models\Offre;
 use App\Services\DestinationResolver;
@@ -12,6 +13,8 @@ use Illuminate\Validation\Rule;
 
 class UpdateOffreRequest extends FormRequest
 {
+    use ValidatesOffrePaliers;
+
     public function authorize(): bool
     {
         return true;
@@ -32,6 +35,7 @@ class UpdateOffreRequest extends FormRequest
             'type_offre_id' => ['required_without:type', 'uuid', 'exists:types_offres,id'],
             'type' => ['required_without:type_offre_id', 'string', 'max:50'],
             'prix' => ['required', 'numeric', 'min:0'],
+            ...$this->paliersRules(sometimes: true),
             'capacite_illimitee' => ['sometimes', 'boolean'],
             'capacite_totale' => ['required_unless:capacite_illimitee,true', 'nullable', 'numeric', 'min:0.001'],
             'date_depart' => ['nullable', 'date'],
@@ -56,6 +60,7 @@ class UpdateOffreRequest extends FormRequest
             'prix.min' => 'Le prix ne peut pas être négatif.',
             'capacite_totale.required_unless' => 'La capacité totale est obligatoire pour une offre à stock limité.',
             'statut.required' => 'Le statut est obligatoire.',
+            ...$this->paliersMessages(),
         ];
     }
 
@@ -70,6 +75,8 @@ class UpdateOffreRequest extends FormRequest
         if ($illimitee) {
             $this->merge(['capacite_totale' => null]);
         }
+
+        $this->preparePaliersForValidation();
     }
 
     /**
@@ -85,6 +92,7 @@ class UpdateOffreRequest extends FormRequest
         $agenceId = (string) $this->user()->agence_id;
 
         app(DestinationResolver::class)->ensureAvailableForAgence($destination, $agenceId);
+        $validated = $this->finalizePaliers($validated);
         $validated = app(OffreDestinationConfigService::class)->apply($validated, $destination);
 
         return is_null($key) ? $validated : data_get($validated, $key, $default);

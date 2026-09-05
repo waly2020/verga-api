@@ -25,6 +25,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import admin from '@/routes/admin';
 import { formatQuantite } from '@/lib/format-quantite';
 import type { CommandeRow, OffreAgenceRow } from '@/types';
+import { destinationTrajetLabel } from '@/types/models/destination';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -359,7 +360,7 @@ export default function AgenceShow({ agence, stats, offres, commandes }: Props) 
                                             </TableCell>
                                             <TableCell className="text-sm text-muted-foreground">
                                                 {offre.destination
-                                                    ? `${offre.destination.depart} → ${offre.destination.arrivee}`
+                                                    ? destinationTrajetLabel(offre.destination)
                                                     : '—'}
                                             </TableCell>
                                             <TableCell><StatusBadge status={offre.statut} /></TableCell>

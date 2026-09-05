@@ -4,6 +4,7 @@ import { StatusBadge } from '@/components/admin/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { destinationTrajetLabel } from '@/types/models/destination';
 
 type RecapColis = {
     reference: string;
@@ -48,8 +49,8 @@ type Props = {
         titre: string;
         destination: {
             id: string;
-            depart: string;
-            arrivee: string;
+            ville_depart: { pays: string; ville: string; code: string; label?: string } | null;
+            ville_arrivee: { pays: string; ville: string; code: string; label?: string } | null;
             montant: number | null;
             commission_pourcentage: number | null;
             appliquer_configuration: boolean;
@@ -192,7 +193,7 @@ export default function PaiementRetour({
                             <p className="font-medium">{offre.titre}</p>
                             <Row label="Trajet">
                                 {offre.destination
-                                    ? `${offre.destination.depart} → ${offre.destination.arrivee}`
+                                    ? destinationTrajetLabel(offre.destination)
                                     : '—'}
                             </Row>
                             <Row label="Prix unitaire">{fmtFcfa(offre.prix)}</Row>

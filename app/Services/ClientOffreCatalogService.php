@@ -17,7 +17,9 @@ class ClientOffreCatalogService
                 'agence:id,nom,ville',
                 'agence.logo',
                 'typeOffre:id,slug,nom,unite,unite_label,quantite_entier,quantite_min',
-                'destination:id,depart,arrivee,montant,commission_pourcentage,appliquer_configuration,actif',
+                'destination:id,ville_depart_id,ville_arrivee_id,montant,commission_pourcentage,appliquer_configuration,actif',
+                'destination.villeDepart',
+                'destination.villeArrivee',
             ])
             ->active()
             ->whereHas('destination', fn ($q) => $q->actif())
@@ -30,17 +32,13 @@ class ClientOffreCatalogService
             $query->where(function ($q) use ($search) {
                 $q->where('titre', 'like', "%{$search}%")
                     ->orWhere('description', 'like', "%{$search}%")
-                    ->orWhereHas('destination', function ($dq) use ($search) {
-                        $dq->where('depart', 'like', "%{$search}%")
-                            ->orWhere('arrivee', 'like', "%{$search}%");
-                    });
+                    ->orWhereHas('destination', fn ($dq) => $dq->matchingLocalite($search));
             });
         }
 
         if ($destination = $filters['destination'] ?? null) {
             $query->whereHas('destination', function ($dq) use ($destination) {
-                $dq->where('arrivee', 'like', "%{$destination}%")
-                    ->orWhere('depart', 'like', "%{$destination}%");
+                $dq->matchingLocalite($destination);
             });
         }
 

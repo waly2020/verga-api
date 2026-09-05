@@ -10,15 +10,15 @@ return new class extends Migration
     {
         Schema::create('destinations', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('depart');
-            $table->string('arrivee');
+            $table->foreignUuid('ville_depart_id')->constrained('villes')->restrictOnDelete();
+            $table->foreignUuid('ville_arrivee_id')->constrained('villes')->restrictOnDelete();
             $table->decimal('montant', 12, 2)->nullable();
             $table->decimal('commission_pourcentage', 5, 2)->nullable();
             $table->boolean('appliquer_configuration')->default(false);
             $table->boolean('actif')->default(true);
             $table->timestamps();
 
-            $table->unique(['depart', 'arrivee']);
+            $table->unique(['ville_depart_id', 'ville_arrivee_id']);
         });
 
         Schema::create('agence_destination', function (Blueprint $table) {

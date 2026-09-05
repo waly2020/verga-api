@@ -7,19 +7,27 @@ use App\Models\Offre;
 
 class OrderPricingService
 {
+    public function __construct(
+        private readonly OffrePaliersService $paliers,
+        private readonly CommissionPaliersService $commissionPaliers,
+    ) {}
+
     /**
      * @return array{
+     *     prix_unitaire: float,
      *     montant_sous_total: float,
      *     montant_commission_client: float,
      *     montant_total: float
      * }
      */
-    public function calculate(Offre $offre, float $quantite): array
+    public function calculate(Offre $offre, float $quantite, ?float $quantitePourPalier = null): array
     {
-        $montantSousTotal = round((float) $offre->prix * $quantite, 2);
+        $prixUnitaire = $this->paliers->unitPrice($offre, $quantitePourPalier ?? $quantite);
+        $montantSousTotal = round($prixUnitaire * $quantite, 2);
         $montantCommissionClient = $this->clientCommissionAmount($montantSousTotal);
 
         return [
+            'prix_unitaire' => $prixUnitaire,
             'montant_sous_total' => $montantSousTotal,
             'montant_commission_client' => $montantCommissionClient,
             'montant_total' => round($montantSousTotal + $montantCommissionClient, 2),
@@ -46,11 +54,14 @@ class OrderPricingService
         $pricing = $this->calculate($offre, $quantite);
         $config = ConfigurationCommission::pour('client');
         $stockLimite = $offre->hasStockLimite();
+        $resolved = $config
+            ? $this->commissionPaliers->resolve($config, $pricing['montant_sous_total'])
+            : null;
 
         return [
             'offre_id' => $offre->id,
             'quantite' => $quantite,
-            'prix_unitaire' => (float) $offre->prix,
+            'prix_unitaire' => $pricing['prix_unitaire'],
             'montant_sous_total' => $pricing['montant_sous_total'],
             'montant_commission_client' => $pricing['montant_commission_client'],
             'montant_total' => $pricing['montant_total'],
@@ -58,8 +69,12 @@ class OrderPricingService
             'stock_suffisant' => ! $stockLimite || (float) $offre->capacite_disponible >= $quantite,
             'commission' => $config ? [
                 'type' => $config->type,
-                'valeur' => (float) $config->valeur,
-                'libelle' => $config->libelle,
+                'valeur' => $config->estGrille()
+                    ? $resolved['montant']
+                    : (float) $config->valeur,
+                'libelle' => $config->estGrille()
+                    ? ($resolved['libelle'] ?? null)
+                    : $config->libelle,
             ] : null,
         ];
     }
@@ -72,6 +87,6 @@ class OrderPricingService
             return 0.0;
         }
 
-        return $config->calculerMontant($montantSousTotal);
+        return $this->commissionPaliers->resolve($config, $montantSousTotal)['montant'];
     }
 }

@@ -87,6 +87,38 @@ class OffrePricingEstimateTest extends ClientApiTestCase
             ->assertJsonPath('commission.type', 'fixe');
     }
 
+    public function test_estimate_uses_grille_tranche_and_nullable_libelle(): void
+    {
+        $offre = $this->createActiveOffre(3000, 50);
+
+        $config = ConfigurationCommission::create([
+            'destinataire' => 'client',
+            'type' => 'grille',
+            'valeur' => 0,
+            'libelle' => 'Frais VERGA',
+            'actif' => true,
+        ]);
+        $config->paliers()->createMany([
+            ['montant_min' => 0, 'montant_max' => 9999, 'frais' => 1500, 'libelle' => null],
+            ['montant_min' => 10000, 'montant_max' => null, 'frais' => 2500, 'libelle' => 'Frais Dossier'],
+        ]);
+
+        $this->getJson("/api/v1/client/offres/{$offre->id}/estimation?quantite=3")
+            ->assertOk()
+            ->assertJsonPath('montant_sous_total', 9000)
+            ->assertJsonPath('montant_commission_client', 1500)
+            ->assertJsonPath('montant_total', 10500)
+            ->assertJsonPath('commission.type', 'grille')
+            ->assertJsonPath('commission.valeur', 1500)
+            ->assertJsonPath('commission.libelle', null);
+
+        $this->getJson("/api/v1/client/offres/{$offre->id}/estimation?quantite=4")
+            ->assertOk()
+            ->assertJsonPath('montant_sous_total', 12000)
+            ->assertJsonPath('montant_commission_client', 2500)
+            ->assertJsonPath('commission.libelle', 'Frais Dossier');
+    }
+
     public function test_estimate_flags_insufficient_stock(): void
     {
         $offre = $this->createActiveOffre(2500, 5);
@@ -122,6 +154,38 @@ class OffrePricingEstimateTest extends ClientApiTestCase
             ->assertJsonPath('montant_sous_total', 1000000)
             ->assertJsonPath('capacite_disponible', null)
             ->assertJsonPath('stock_suffisant', true);
+    }
+
+    public function test_estimate_uses_palier_unit_price(): void
+    {
+        $offre = $this->createActiveOffre(3000);
+        $offre->update([
+            'paliers' => [
+                ['min' => 1, 'max' => 2, 'prix' => 3000],
+                ['min' => 3, 'max' => null, 'prix' => 2000],
+            ],
+        ]);
+
+        $this->getJson("/api/v1/client/offres/{$offre->id}/estimation?quantite=5")
+            ->assertOk()
+            ->assertJsonPath('prix_unitaire', 2000)
+            ->assertJsonPath('montant_sous_total', 10000)
+            ->assertJsonPath('montant_total', 10000);
+    }
+
+    public function test_estimate_rejects_quantity_outside_paliers(): void
+    {
+        $offre = $this->createActiveOffre(3000);
+        $offre->update([
+            'paliers' => [
+                ['min' => 2, 'max' => 4, 'prix' => 3000],
+                ['min' => 5, 'max' => null, 'prix' => 2000],
+            ],
+        ]);
+
+        $this->getJson("/api/v1/client/offres/{$offre->id}/estimation?quantite=1")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['quantite']);
     }
 
     public function test_estimate_requires_quantite(): void

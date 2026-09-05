@@ -5,7 +5,7 @@ namespace App\OpenApi;
 use OpenApi\Attributes as OA;
 
 #[OA\Info(
-    version: '1.5.0',
+    version: '1.8.0',
     title: 'VERGA API',
     description: 'API REST pour les applications externes VERGA (back-office agence Angular, application client mobile/web). Authentification Bearer Sanctum.
 
@@ -13,6 +13,13 @@ use OpenApi\Attributes as OA;
 - Inscription agence : `multipart/form-data` avec `logo` + `documents[i][fichier|type_document]`
 - Inscription client : `multipart/form-data` avec `documents[i][fichier|type_document]`
 - `GET /agence/me` et `GET /client/me` exposent `logo` / `documents` (id, type_document, chemin, url, nom_original)
+
+**Destinations et villes**
+- Une ville = ville + nom de pays + code unique. Pas de table pays : `GET /agence/pays` liste les **noms de pays distincts** déjà utilisés
+- Villes d\'un pays : `GET /agence/villes?pays=Gabon`
+- Une destination = couple `ville_depart_id` / `ville_arrivee_id` (villes distinctes et actives)
+- Réponse destination : `ville_depart` / `ville_arrivee` (`VilleResource`) et `label`
+- Filtres `search` et `destination` : correspondance partielle sur ville, pays ou code
 
 **Finance agence**
 - `GET /agence/solde` — solde courant, reversements effectués/en attente, montant disponible
@@ -24,6 +31,17 @@ use OpenApi\Attributes as OA;
 - Après validation du 1er paiement partiel : statut commande `réservée`, stock bloqué sur la quantité réservée
 - Solde via `POST /client/commandes/{commande}/paiements` (auth requise)
 - Commission client recalculée à chaque versement sur la quantité payée
+
+**Paliers de prix**
+- Champ optionnel `paliers` sur l\'offre : `[{ min, max, prix }, …]` (au moins 2 intervalles, dernier `max` = null = jusqu\'à N)
+- Sans `paliers` : tarif unique `prix × quantité` (comportement historique)
+- Le palier est choisi sur la **quantité réservée**, puis appliqué à chaque versement (`prix_palier × quantité_payée`)
+- Interdit si la destination a `appliquer_configuration`
+
+**Commission client (grille)**
+- Si la config admin est en `grille`, les frais VERGA dépendent du **sous-total du versement**
+- Tranches continues, dernière ouverte (`montant_max` null) ; `libelle` optionnel par tranche
+- L\'estimation expose `commission.type = grille`, `commission.valeur` = frais appliqués, `commission.libelle` nullable
 
 **Quantités et unités**
 - Chaque quantité numérique (`quantite`, `quantite_payee`, etc.) est accompagnée d\'un champ `*_label` formaté selon le `type_offre` de l\'offre (ex. `2 kg`, `2 conteneurs`, `2,5 m³`)
@@ -50,6 +68,7 @@ use OpenApi\Attributes as OA;
 #[OA\Tag(name: 'Agence - Auth', description: 'Connexion et session agence')]
 #[OA\Tag(name: 'Agence - Référentiels', description: 'Données de référence pour l\'inscription et les formulaires agence')]
 #[OA\Tag(name: 'Agence - Types d\'offre', description: 'Types d\'offre plateforme et personnalisés par agence')]
+#[OA\Tag(name: 'Agence - Destinations', description: 'Catalogue des trajets (localités de départ et d\'arrivée) et rattachement à l\'agence')]
 #[OA\Tag(name: 'Agence - Offres', description: 'Gestion des offres de transport')]
 #[OA\Tag(name: 'Agence - Commandes', description: 'Commandes reçues par l\'agence')]
 #[OA\Tag(name: 'Agence - Colis', description: 'Suivi logistique des colis')]
@@ -348,11 +367,40 @@ use OpenApi\Attributes as OA;
     ]
 )]
 #[OA\Schema(
+    schema: 'OffrePalier',
+    required: ['min', 'prix'],
+    properties: [
+        new OA\Property(property: 'min', type: 'number', format: 'float', example: 1, description: 'Quantité minimale inclusive'),
+        new OA\Property(property: 'max', type: 'number', format: 'float', nullable: true, example: 2, description: 'Quantité maximale inclusive. Null = jusqu\'à N (dernier palier uniquement)'),
+        new OA\Property(property: 'prix', type: 'number', format: 'float', example: 3000, description: 'Prix unitaire FCFA dans cet intervalle'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'PaysNomResource',
+    properties: [
+        new OA\Property(property: 'pays', type: 'string', example: 'Gabon', description: 'Nom de pays déjà utilisé par au moins une ville active'),
+    ]
+)]
+#[OA\Schema(
+    schema: 'VilleResource',
+    properties: [
+        new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+        new OA\Property(property: 'pays', type: 'string', example: 'Gabon'),
+        new OA\Property(property: 'ville', type: 'string', example: 'Libreville'),
+        new OA\Property(property: 'code', type: 'string', example: 'LBV', description: 'Code unique de la ville'),
+        new OA\Property(property: 'label', type: 'string', example: 'Libreville (Gabon)', description: 'Libellé ville (pays)'),
+        new OA\Property(property: 'actif', type: 'boolean', example: true),
+    ]
+)]
+#[OA\Schema(
     schema: 'DestinationResource',
     properties: [
         new OA\Property(property: 'id', type: 'string', format: 'uuid'),
-        new OA\Property(property: 'depart', type: 'string', example: 'chine'),
-        new OA\Property(property: 'arrivee', type: 'string', example: 'libreville'),
+        new OA\Property(property: 'ville_depart_id', type: 'string', format: 'uuid', description: 'UUID de la ville de départ'),
+        new OA\Property(property: 'ville_arrivee_id', type: 'string', format: 'uuid', description: 'UUID de la ville d\'arrivée'),
+        new OA\Property(property: 'ville_depart', ref: '#/components/schemas/VilleResource'),
+        new OA\Property(property: 'ville_arrivee', ref: '#/components/schemas/VilleResource'),
+        new OA\Property(property: 'label', type: 'string', example: 'Libreville (Gabon) → Port-Gentil (Gabon)', description: 'Libellé du trajet (ville/pays)'),
         new OA\Property(property: 'montant', type: 'number', format: 'float', nullable: true, example: 8750),
         new OA\Property(property: 'commission_pourcentage', type: 'number', format: 'float', nullable: true, example: 10),
         new OA\Property(property: 'appliquer_configuration', type: 'boolean', example: false),
@@ -478,6 +526,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'type_offre_id', type: 'string', format: 'uuid', nullable: true),
         new OA\Property(property: 'type_offre', ref: '#/components/schemas/TypeOffreResource', nullable: true),
         new OA\Property(property: 'prix', type: 'number', format: 'float', example: 2500),
+        new OA\Property(property: 'paliers', type: 'array', nullable: true, items: new OA\Items(ref: '#/components/schemas/OffrePalier')),
         new OA\Property(property: 'capacite_illimitee', type: 'boolean', example: false),
         new OA\Property(property: 'capacite_totale', type: 'number', format: 'float', nullable: true, example: 1000),
         new OA\Property(property: 'capacite_disponible', type: 'number', format: 'float', nullable: true, example: 750),
@@ -498,9 +547,9 @@ use OpenApi\Attributes as OA;
 #[OA\Schema(
     schema: 'ClientCommissionConfig',
     properties: [
-        new OA\Property(property: 'type', type: 'string', enum: ['pourcentage', 'fixe'], example: 'pourcentage'),
-        new OA\Property(property: 'valeur', type: 'number', format: 'float', example: 5, description: 'Pourcentage ou montant fixe FCFA'),
-        new OA\Property(property: 'libelle', type: 'string', nullable: true, example: 'Frais de service'),
+        new OA\Property(property: 'type', type: 'string', enum: ['pourcentage', 'fixe', 'grille'], example: 'pourcentage'),
+        new OA\Property(property: 'valeur', type: 'number', format: 'float', example: 5, description: 'Pourcentage, montant fixe, ou frais de la tranche retenue si type = grille'),
+        new OA\Property(property: 'libelle', type: 'string', nullable: true, example: 'Frais de service', description: 'Libellé de la config, ou de la tranche si type = grille'),
     ]
 )]
 #[OA\Schema(
@@ -508,7 +557,7 @@ use OpenApi\Attributes as OA;
     properties: [
         new OA\Property(property: 'offre_id', type: 'string', format: 'uuid'),
         new OA\Property(property: 'quantite', type: 'number', format: 'float', example: 10),
-        new OA\Property(property: 'prix_unitaire', type: 'number', format: 'float', example: 2500, description: 'Prix unitaire de l\'offre (FCFA)'),
+        new OA\Property(property: 'prix_unitaire', type: 'number', format: 'float', example: 2500, description: 'Prix unitaire appliqué (palier atteint ou prix unique, FCFA)'),
         new OA\Property(property: 'montant_sous_total', type: 'number', format: 'float', example: 25000),
         new OA\Property(property: 'montant_commission_client', type: 'number', format: 'float', example: 1250),
         new OA\Property(property: 'montant_total', type: 'number', format: 'float', example: 26250, description: 'Montant total que le client paiera'),
@@ -558,6 +607,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'type_offre_id', type: 'string', format: 'uuid', nullable: true),
         new OA\Property(property: 'type_offre', ref: '#/components/schemas/TypeOffreResource', nullable: true),
         new OA\Property(property: 'prix', type: 'number', format: 'float', example: 2500),
+        new OA\Property(property: 'paliers', type: 'array', nullable: true, items: new OA\Items(ref: '#/components/schemas/OffrePalier')),
         new OA\Property(property: 'capacite_illimitee', type: 'boolean', example: false),
         new OA\Property(property: 'capacite_totale', type: 'number', format: 'float', nullable: true, example: 1000),
         new OA\Property(property: 'capacite_disponible', type: 'number', format: 'float', nullable: true, example: 750),

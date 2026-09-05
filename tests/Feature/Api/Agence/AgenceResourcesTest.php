@@ -42,8 +42,11 @@ class AgenceResourcesTest extends AgenceApiTestCase
             ->assertJsonStructure([
                 'data' => [[
                     'id',
-                    'depart',
-                    'arrivee',
+                    'ville_depart_id',
+                    'ville_arrivee_id',
+                    'ville_depart',
+                    'ville_arrivee',
+                    'label',
                     'montant',
                     'commission_pourcentage',
                     'appliquer_configuration',
@@ -55,20 +58,24 @@ class AgenceResourcesTest extends AgenceApiTestCase
             ->assertJsonFragment(['id' => $global->id, 'rattachee' => false])
             ->assertJsonMissing(['id' => $inactive->id]);
 
+        $depart = $this->createVille(['pays' => 'France', 'ville' => 'Paris', 'code' => 'PAR']);
+        $arrivee = $this->createVille(['pays' => 'Gabon', 'ville' => 'Port-Gentil', 'code' => 'POG']);
+
         $this->withAgenceToken($token)
             ->postJson('/api/v1/agence/destinations', [
-                'depart' => 'France',
-                'arrivee' => 'Port-Gentil',
+                'ville_depart_id' => $depart->id,
+                'ville_arrivee_id' => $arrivee->id,
             ])
             ->assertCreated()
-            ->assertJsonPath('data.depart', 'france')
-            ->assertJsonPath('data.arrivee', 'port-gentil')
+            ->assertJsonPath('data.ville_depart.ville', 'Paris')
+            ->assertJsonPath('data.ville_arrivee.ville', 'Port-Gentil')
+            ->assertJsonPath('data.label', 'Paris (France) → Port-Gentil (Gabon)')
             ->assertJsonPath('data.appliquer_configuration', false)
             ->assertJsonPath('data.rattachee', true);
 
         $this->assertDatabaseHas('destinations', [
-            'depart' => 'france',
-            'arrivee' => 'port-gentil',
+            'ville_depart_id' => $depart->id,
+            'ville_arrivee_id' => $arrivee->id,
         ]);
 
         $this->withAgenceToken($token)
@@ -92,7 +99,7 @@ class AgenceResourcesTest extends AgenceApiTestCase
             ->assertJsonPath('meta.per_page', 2)
             ->assertJsonPath('meta.total', 3)
             ->assertJsonStructure([
-                'data' => [['id', 'depart', 'arrivee', 'rattachee']],
+                'data' => [['id', 'ville_depart', 'ville_arrivee', 'label', 'rattachee']],
                 'links',
                 'meta',
             ]);
@@ -117,8 +124,8 @@ class AgenceResourcesTest extends AgenceApiTestCase
 
         $this->withAgenceToken($tokenB)
             ->postJson('/api/v1/agence/destinations', [
-                'depart' => 'France',
-                'arrivee' => 'Gabon',
+                'ville_depart_id' => $existing->ville_depart_id,
+                'ville_arrivee_id' => $existing->ville_arrivee_id,
                 'appliquer_configuration' => true,
                 'montant' => 1,
                 'commission_pourcentage' => 99,
@@ -128,7 +135,10 @@ class AgenceResourcesTest extends AgenceApiTestCase
             ->assertJsonPath('data.appliquer_configuration', true)
             ->assertJsonPath('data.montant', 8500);
 
-        $this->assertSame(1, Destination::query()->where('depart', 'france')->where('arrivee', 'gabon')->count());
+        $this->assertSame(1, Destination::query()
+            ->where('ville_depart_id', $existing->ville_depart_id)
+            ->where('ville_arrivee_id', $existing->ville_arrivee_id)
+            ->count());
         $this->assertTrue($existing->fresh()->agences()->where('agences.id', $agenceB->id)->exists());
     }
 
@@ -175,11 +185,96 @@ class AgenceResourcesTest extends AgenceApiTestCase
             ->assertJsonValidationErrors(['destination_id']);
     }
 
+    public function test_agence_can_list_pays(): void
+    {
+        $this->createVille([
+            'pays' => 'Gabon',
+            'ville' => 'Libreville',
+            'code' => 'LBV',
+        ]);
+        $this->createVille([
+            'pays' => 'France',
+            'ville' => 'Paris',
+            'code' => 'PAR',
+            'actif' => false,
+        ]);
+
+        $this->createVille([
+            'pays' => 'Gabon',
+            'ville' => 'Port-Gentil',
+            'code' => 'POG',
+        ]);
+
+        $this->getJson('/api/v1/agence/pays')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.pays', 'Gabon')
+            ->assertJsonMissingPath('data.0.code');
+    }
+
+    public function test_agence_can_list_villes_filtered_by_pays(): void
+    {
+        $this->createVille([
+            'pays' => 'Gabon',
+            'ville' => 'Libreville',
+            'code' => 'LBV',
+        ]);
+        $this->createVille([
+            'pays' => 'Gabon',
+            'ville' => 'Port-Gentil',
+            'code' => 'POG',
+        ]);
+        $this->createVille([
+            'pays' => 'France',
+            'ville' => 'Paris',
+            'code' => 'PAR',
+        ]);
+
+        $this->getJson('/api/v1/agence/villes?pays=Gabon')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.pays', 'Gabon')
+            ->assertJsonPath('data.0.ville', 'Libreville')
+            ->assertJsonPath('data.1.ville', 'Port-Gentil');
+    }
+
+    public function test_agence_can_create_destination_from_villes(): void
+    {
+        ['token' => $token] = $this->createAuthenticatedAgence();
+        $depart = $this->createVille([
+            'pays' => 'Chine',
+            'ville' => 'Guangzhou',
+            'code' => 'CAN',
+        ]);
+        $arrivee = $this->createVille([
+            'pays' => 'Gabon',
+            'ville' => 'Libreville',
+            'code' => 'LBV',
+        ]);
+
+        $this->withAgenceToken($token)
+            ->postJson('/api/v1/agence/destinations', [
+                'ville_depart_id' => $depart->id,
+                'ville_arrivee_id' => $arrivee->id,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.ville_depart.ville', 'Guangzhou')
+            ->assertJsonPath('data.ville_arrivee.ville', 'Libreville')
+            ->assertJsonPath('data.ville_depart_id', $depart->id)
+            ->assertJsonPath('data.ville_arrivee.code', 'LBV')
+            ->assertJsonPath('data.rattachee', true);
+
+        $this->assertDatabaseHas('destinations', [
+            'ville_depart_id' => $depart->id,
+            'ville_arrivee_id' => $arrivee->id,
+        ]);
+    }
+
     public function test_agence_cannot_attach_inactive_destination_via_store(): void
     {
         ['token' => $token] = $this->createAuthenticatedAgence();
 
-        $this->createDestination([
+        $inactive = $this->createDestination([
             'depart' => 'france',
             'arrivee' => 'gabon',
             'actif' => false,
@@ -187,11 +282,11 @@ class AgenceResourcesTest extends AgenceApiTestCase
 
         $this->withAgenceToken($token)
             ->postJson('/api/v1/agence/destinations', [
-                'depart' => 'France',
-                'arrivee' => 'Gabon',
+                'ville_depart_id' => $inactive->ville_depart_id,
+                'ville_arrivee_id' => $inactive->ville_arrivee_id,
             ])
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['depart']);
+            ->assertJsonValidationErrors(['ville_depart_id']);
     }
 
     public function test_agence_forces_prix_when_destination_has_configuration(): void
@@ -220,6 +315,36 @@ class AgenceResourcesTest extends AgenceApiTestCase
             'titre' => 'Offre forcée',
             'prix' => 8750,
         ]);
+    }
+
+    public function test_agence_can_create_offre_with_paliers(): void
+    {
+        ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
+        $destination = $this->createDestination([
+            'depart' => 'france',
+            'arrivee' => 'libreville',
+        ], $agence);
+
+        $this->withAgenceToken($token)
+            ->postJson('/api/v1/agence/offres', [
+                'destination_id' => $destination->id,
+                'titre' => 'Offre paliers agence',
+                'type' => 'particulier',
+                'prix' => 3000,
+                'paliers' => [
+                    ['min' => 1, 'max' => 2, 'prix' => 3000],
+                    ['min' => 3, 'max' => null, 'prix' => 2000],
+                ],
+                'capacite_totale' => 80,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.paliers.0.prix', 3000)
+            ->assertJsonPath('data.paliers.1.max', null)
+            ->assertJsonPath('data.paliers.1.prix', 2000);
+
+        $offre = Offre::query()->where('titre', 'Offre paliers agence')->firstOrFail();
+        $this->assertTrue($offre->hasPaliers());
+        $this->assertSame($agence->id, $offre->agence_id);
     }
 
     public function test_agence_can_list_and_create_offres(): void
@@ -254,8 +379,8 @@ class AgenceResourcesTest extends AgenceApiTestCase
                     'destination_id',
                     'destination' => [
                         'id',
-                        'depart',
-                        'arrivee',
+                        'ville_depart',
+                        'ville_arrivee',
                         'montant',
                         'commission_pourcentage',
                         'appliquer_configuration',

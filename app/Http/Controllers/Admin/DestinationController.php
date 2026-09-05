@@ -6,10 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreDestinationRequest;
 use App\Http\Requests\Admin\UpdateDestinationRequest;
 use App\Models\Destination;
+use App\Models\Ville;
 use App\Services\DestinationResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -21,13 +21,12 @@ class DestinationController extends Controller
 
     public function index(Request $request): Response
     {
-        $query = Destination::query()->withCount('offres');
+        $query = Destination::query()
+            ->with(['villeDepart', 'villeArrivee'])
+            ->withCount('offres');
 
         if ($search = $request->get('search')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('depart', 'like', "%{$search}%")
-                    ->orWhere('arrivee', 'like', "%{$search}%");
-            });
+            $query->matchingLocalite($search);
         }
 
         if ($request->filled('actif')) {
@@ -35,8 +34,9 @@ class DestinationController extends Controller
         }
 
         return Inertia::render('admin/destinations/index', [
-            'destinations' => $query->orderBy('depart')->orderBy('arrivee')->paginate(15)->withQueryString(),
+            'destinations' => $query->orderByTrajet()->paginate(15)->withQueryString(),
             'filters' => $request->only(['search', 'actif']),
+            'villes' => Ville::query()->orderBy('pays')->orderBy('ville')->get(['id', 'pays', 'ville', 'code', 'actif']),
         ]);
     }
 
@@ -55,40 +55,28 @@ class DestinationController extends Controller
 
         return back()->with(
             'success',
-            "Destination « {$destination->depart} → {$destination->arrivee} » créée avec succès."
+            "Destination « {$destination->trajetLabel()} » créée avec succès."
         );
     }
 
     public function update(UpdateDestinationRequest $request, Destination $destination): RedirectResponse
     {
         $validated = $request->validated();
-
-        $depart = $this->destinationResolver->normalizeLabel($validated['depart']);
-        $arrivee = $this->destinationResolver->normalizeLabel($validated['arrivee']);
-
-        if ($depart === '' || $arrivee === '') {
-            throw ValidationException::withMessages([
-                'depart' => ['Le départ et l\'arrivée sont obligatoires.'],
-            ]);
-        }
-
-        $duplicate = Destination::query()
-            ->where('depart', $depart)
-            ->where('arrivee', $arrivee)
-            ->whereKeyNot($destination->id)
-            ->exists();
-
-        if ($duplicate) {
-            throw ValidationException::withMessages([
-                'depart' => ['Cette destination existe déjà.'],
-            ]);
-        }
+        $trajet = $this->destinationResolver->resolveVillePair(
+            $validated['ville_depart_id'],
+            $validated['ville_arrivee_id'],
+        );
+        $this->destinationResolver->assertUniqueTrajet(
+            $trajet['ville_depart_id'],
+            $trajet['ville_arrivee_id'],
+            $destination->id,
+        );
 
         $appliquer = $request->boolean('appliquer_configuration');
 
         $destination->update([
-            'depart' => $depart,
-            'arrivee' => $arrivee,
+            'ville_depart_id' => $trajet['ville_depart_id'],
+            'ville_arrivee_id' => $trajet['ville_arrivee_id'],
             'appliquer_configuration' => $appliquer,
             'montant' => $appliquer ? $validated['montant'] : null,
             'commission_pourcentage' => $appliquer ? $validated['commission_pourcentage'] : null,
@@ -97,7 +85,7 @@ class DestinationController extends Controller
 
         return back()->with(
             'success',
-            "Destination « {$depart} → {$arrivee} » mise à jour."
+            "Destination « {$destination->fresh()->trajetLabel()} » mise à jour."
         );
     }
 
@@ -107,7 +95,7 @@ class DestinationController extends Controller
             return back()->with('error', 'Impossible de supprimer une destination utilisée par des offres existantes.');
         }
 
-        $label = "{$destination->depart} → {$destination->arrivee}";
+        $label = $destination->trajetLabel();
         $destination->delete();
 
         return back()->with('success', "Destination « {$label} » supprimée.");

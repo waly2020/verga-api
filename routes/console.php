@@ -1,5 +1,7 @@
 <?php
 
+use App\Jobs\DesactiverOffresDepartPassees;
+use App\Services\OffreExpirationService;
 use App\Services\PubliciteLifecycleService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -36,6 +38,13 @@ Schedule::call(fn () => app(PubliciteLifecycleService::class)->expireOverdue())
     ->dailyAt('01:15')
     ->name('publicites-expire')
     ->description('Expire les publicités dont la date de fin est dépassée');
+
+Schedule::job(new DesactiverOffresDepartPassees)
+    ->dailyAt('23:59')
+    ->timezone(OffreExpirationService::TIMEZONE)
+    ->withoutOverlapping()
+    ->name('offres-expire-depart')
+    ->description('Désactive les offres dont la date de départ est passée (fin de journée, file database)');
 
 Schedule::command('queue:prune-failed --hours=168')
     ->weekly()

@@ -20,8 +20,8 @@ export default function CommissionsIndex({ client, agence }: Props) {
                 <div>
                     <h1 className="text-2xl font-semibold tracking-tight">Commissions</h1>
                     <p className="text-sm text-muted-foreground">
-                        Configurez les commissions globales appliquées automatiquement lors de chaque paiement
-                        validé.
+                        Configurez les commissions appliquées automatiquement à chaque versement.
+                        Côté client, une grille tarifaire peut remplacer le taux unique.
                     </p>
                 </div>
 
