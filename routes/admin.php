@@ -80,6 +80,8 @@ Route::middleware(['auth', 'verified', 'admin'])
         Route::get('paiements', [PaiementController::class, 'index'])->name('paiements.index');
         Route::patch('paiements/{paiement}/verifier-statut', [PaiementController::class, 'verifierStatut'])->name('paiements.verifier-statut');
         Route::get('commissions', [ConfigurationCommissionController::class, 'index'])->name('commissions.index');
+        Route::get('commissions/clients', [ConfigurationCommissionController::class, 'clients'])->name('commissions.clients');
+        Route::get('commissions/agences', [ConfigurationCommissionController::class, 'agences'])->name('commissions.agences');
         Route::patch('commissions/{destinataire}', [ConfigurationCommissionController::class, 'update'])
             ->whereIn('destinataire', ['client', 'agence'])
             ->name('commissions.update');

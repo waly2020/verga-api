@@ -167,14 +167,14 @@ export default function AdminDashboard({
                         value={fmt(stats.agences)}
                         description="Partenaires sur la plateforme"
                         icon={Building2}
-                        iconClass="text-blue-500"
+                        iconClass="text-primary"
                     />
                     <OperationalKpi
                         title="Commandes"
                         value={fmt(stats.commandes_total)}
                         description="Sur la période sélectionnée"
                         icon={ShoppingCart}
-                        iconClass="text-violet-500"
+                        iconClass="text-primary/70"
                     />
                     <OperationalKpi
                         title="Réclamations ouvertes"
@@ -199,17 +199,17 @@ export default function AdminDashboard({
                     <CardContent>
                         <div className="grid gap-6 lg:grid-cols-5">
                             {/* Montant principal — occupe 2 colonnes */}
-                            <div className="flex flex-col justify-center rounded-xl bg-emerald-50 p-6 dark:bg-emerald-950/30 lg:col-span-2">
-                                <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+                            <div className="flex flex-col justify-center rounded-xl bg-accent/60 p-6 dark:bg-accent/40 lg:col-span-2">
+                                <p className="text-sm font-medium text-primary">
                                     Total encaissé
                                 </p>
-                                <p className="mt-2 break-words font-mono text-3xl font-bold tabular-nums tracking-tight text-emerald-700 sm:text-4xl dark:text-emerald-400">
+                                <p className="mt-2 break-words font-mono text-3xl font-bold tabular-nums tracking-tight text-primary sm:text-4xl">
                                     {fmt(stats.solde_paiements)}
                                 </p>
-                                <p className="mt-1 text-sm font-medium text-emerald-600/80 dark:text-emerald-500/80">
+                                <p className="mt-1 text-sm font-medium text-primary/80">
                                     FCFA
                                 </p>
-                                <p className="mt-3 text-xs text-emerald-700/70 dark:text-emerald-500/70">
+                                <p className="mt-3 text-xs text-primary/70">
                                     Transport + commissions client
                                 </p>
                             </div>
@@ -266,7 +266,7 @@ export default function AdminDashboard({
                             <div style={{ height: Math.max(160, paiements_par_agence.length * 40) }}>
                                 <BarAgence
                                     data={paiements_par_agence}
-                                    color="#3b82f6"
+                                    color="#1800AD"
                                     emptyLabel="Aucun paiement validé sur cette période"
                                 />
                             </div>
@@ -303,7 +303,7 @@ export default function AdminDashboard({
                             <div style={{ height: Math.max(160, soldes_par_agence.length * 40) }}>
                                 <BarAgence
                                     data={soldes_par_agence}
-                                    color="#8b5cf6"
+                                    color="#4A6FE8"
                                     emptyLabel="Aucun solde agence disponible"
                                 />
                             </div>

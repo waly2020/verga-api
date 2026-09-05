@@ -8,6 +8,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { APP_BRAND_NAME } from '@/lib/brand';
 import { home } from '@/routes';
 
 export default function AuthCardLayout({
@@ -26,9 +27,8 @@ export default function AuthCardLayout({
                     href={home()}
                     className="flex items-center gap-2 self-center font-medium"
                 >
-                    <div className="flex h-9 w-9 items-center justify-center">
-                        <AppLogoIcon className="size-9 fill-current text-black dark:text-white" />
-                    </div>
+                    <AppLogoIcon className="h-14 w-auto" />
+                    <span className="sr-only">{APP_BRAND_NAME}</span>
                 </Link>
 
                 <div className="flex flex-col gap-6">

@@ -85,12 +85,12 @@ export function BarAgence({ data, color, emptyLabel = 'Aucune donnée' }: BarAge
 
 const STATUT_CONFIG: Record<string, { label: string; color: string }> = {
     en_attente: { label: 'En attente', color: '#f59e0b' },
-    réservée:   { label: 'Réservée',   color: '#3b82f6' },
+    réservée:   { label: 'Réservée',   color: '#1800AD' },
     confirmée:  { label: 'Confirmée',  color: '#22c55e' },
     annulée:    { label: 'Annulée',    color: '#ef4444' },
 };
 
-const FALLBACK_COLORS = ['#3b82f6', '#a855f7', '#14b8a6', '#f97316'];
+const FALLBACK_COLORS = ['#1800AD', '#4A6FE8', '#7EB8D4', '#BFE4EE'];
 
 interface DoughnutStatutProps {
     data: Record<string, number>;

@@ -60,7 +60,15 @@ const adminNavItems: NavItem[] = [
     { title: 'Commandes', href: admin.commandes.index(), icon: ShoppingCart },
     { title: 'Colis', href: admin.colis.index(), icon: Archive },
     { title: 'Paiements', href: admin.paiements.index(), icon: CreditCard },
-    { title: 'Commissions', href: admin.commissions.index(), icon: Percent },
+    {
+        title: 'Commissions',
+        href: admin.commissions.clients(),
+        icon: Percent,
+        children: [
+            { title: 'Clients', href: admin.commissions.clients(), icon: UserCircle },
+            { title: 'Agences', href: admin.commissions.agences(), icon: Building2 },
+        ],
+    },
     { title: 'Reversements', href: admin.reversements.index(), icon: Banknote },
     { title: 'Réclamations', href: admin.reclamations.index(), icon: MessageSquareWarning },
     {
@@ -91,11 +99,7 @@ export function AdminSidebar() {
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
                             <Link href={admin.dashboard().url} prefetch>
-                                <AppLogo />
-                                <div className="flex flex-col">
-                                    <span className="truncate text-sm font-semibold">VERGA</span>
-                                    <span className="truncate text-xs text-muted-foreground">Administration</span>
-                                </div>
+                                <AppLogo subtitle="Administration" />
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

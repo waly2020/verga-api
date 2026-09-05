@@ -26,20 +26,22 @@ class ConfigurationCommissionTest extends TestCase
         ]);
     }
 
-    public function test_admin_can_view_commissions_configuration_page(): void
+    public function test_admin_commissions_index_redirects_to_clients(): void
     {
-        $response = $this->actingAs($this->adminUser())
-            ->get('/admin/commissions');
+        $this->actingAs($this->adminUser())
+            ->get('/admin/commissions')
+            ->assertRedirect('/admin/commissions/clients');
+    }
 
-        $response->assertOk()
+    public function test_admin_can_view_client_commissions_page(): void
+    {
+        $this->actingAs($this->adminUser())
+            ->get('/admin/commissions/clients')
+            ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->component('admin/commissions/index')
-                ->has('client', fn ($prop) => $prop
+                ->component('admin/commissions/clients')
+                ->has('config', fn ($prop) => $prop
                     ->where('destinataire', 'client')
-                    ->etc()
-                )
-                ->has('agence', fn ($prop) => $prop
-                    ->where('destinataire', 'agence')
                     ->etc()
                 )
             );
@@ -47,6 +49,21 @@ class ConfigurationCommissionTest extends TestCase
         $this->assertDatabaseHas('configurations_commission', [
             'destinataire' => 'client',
         ]);
+    }
+
+    public function test_admin_can_view_agence_commissions_page(): void
+    {
+        $this->actingAs($this->adminUser())
+            ->get('/admin/commissions/agences')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('admin/commissions/agences')
+                ->has('config', fn ($prop) => $prop
+                    ->where('destinataire', 'agence')
+                    ->etc()
+                )
+            );
+
         $this->assertDatabaseHas('configurations_commission', [
             'destinataire' => 'agence',
         ]);
@@ -116,7 +133,8 @@ class ConfigurationCommissionTest extends TestCase
 
     public function test_guest_cannot_access_commissions_configuration(): void
     {
-        $this->get('/admin/commissions')->assertRedirect('/login');
+        $this->get('/admin/commissions/clients')->assertRedirect('/login');
+        $this->get('/admin/commissions/agences')->assertRedirect('/login');
     }
 
     public function test_non_admin_cannot_access_commissions_configuration(): void
@@ -127,7 +145,11 @@ class ConfigurationCommissionTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get('/admin/commissions')
+            ->get('/admin/commissions/clients')
+            ->assertForbidden();
+
+        $this->actingAs($user)
+            ->get('/admin/commissions/agences')
             ->assertForbidden();
     }
 

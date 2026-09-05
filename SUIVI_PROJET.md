@@ -442,7 +442,7 @@ Au paiement, le **sous-total du versement** choisit la tranche. La commission **
 
 ## Journal de suivi
 
-> **Dernière session** : 2026-09-05 — grille tarifaire commissions client (tranches sur le sous-total du versement)
+> **Dernière session** : 2026-09-05 — thème back-office + mails aux couleurs du logo VERGA
 
 | Date | Poste | Module | Action | Statut |
 |------|-------|--------|--------|--------|
@@ -485,6 +485,7 @@ Au paiement, le **sous-total du versement** choisit la tranche. La commission **
 | 2026-09-05 | — | Villes | Table `villes` (plus de table `pays`) ; pays = champ réutilisé ; admin `/admin/villes` ; API `GET /agence/pays` + `GET /agence/villes` | `[x]` |
 | 2026-09-05 | — | Commissions | Grille client : `commission_paliers`, type `grille`, admin `/admin/commissions`, estimation OpenAPI v1.8 | `[x]` |
 | 2026-09-05 | — | Offres | Job `DesactiverOffresDepartPassees` en file database, cron 23:59 Africa/Libreville | `[x]` |
+| 2026-09-05 | — | Admin / Mails | Thème VERGA (bleu `#1800AD` / ciel `#BFE4EE`), logo, mails et facture | `[x]` |
 
 ---
 
@@ -507,6 +508,7 @@ Au paiement, le **sous-total du versement** choisit la tranche. La commission **
 - **Publicités — parcours payant** (agence/client) : création `en_attente` / `non_payé` → admin valide ou refuse → si validée, paiement Bamboo **dédié** (ne pas réutiliser le settlement commandes) → `publiée` / `payé`. Durée inclusive `(date_fin − date_debut) + 1`.
 - **Publicités — admin** : création directe → `publiée` + `payé` (pas de Bamboo). Modération : transitions `en_attente` → validée/refusée/retirée ; retrait depuis `publiée` ; republication depuis `retirée`/`expirée` si payée et `date_fin` ≥ aujourd’hui. Tarif : prix/jour et frais en **entiers** (FCFA, pas de centimes).
 - **Publicités — affichage site** : `GET /api/v1/publicites` ; emplacement visuel = front Angular.
+- **Identité visuelle** : couleurs du logo — primaire `#1800AD`, accent `#BFE4EE`, fond blanc. Tokens dans `resources/css/app.css`. Mails : `resources/views/vendor/mail`. Logo web : `public/logo/logo-web.png`.
 - **Références** : `CONTEXTE/DOCUMENT_DESCRIPTIF_DE_VERGA.pdf`, `CONTEXTE/Documentation_BDD_VERGA.pdf`.
 
 ---
