@@ -48,7 +48,9 @@ class CommandeController extends Controller
             'client:id,nom,prenom,email,telephone',
             'agence:id,nom,email,ville',
             'offre:id,destination_id,titre,type,type_offre_id,prix,statut,capacite_illimitee,capacite_totale,capacite_disponible',
-            'offre.destination:id,depart,arrivee,montant,commission_pourcentage,appliquer_configuration',
+            'offre.destination:id,ville_depart_id,ville_arrivee_id,montant,commission_pourcentage,appliquer_configuration',
+            'offre.destination.villeDepart:id,pays,ville,code',
+            'offre.destination.villeArrivee:id,pays,ville,code',
             'offre.typeOffre:id,unite,unite_label,quantite_entier',
             'paiement:id,commande_id,code,quantite,reference,bamboo_reference,montant,montant_sous_total,montant_commission_client,montant_commission_agence,montant_agence,methode,statut,created_at',
             'paiements' => fn ($q) => $q

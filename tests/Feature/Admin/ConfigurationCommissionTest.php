@@ -11,6 +11,13 @@ class ConfigurationCommissionTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->withoutVite();
+    }
+
     private function adminUser(): User
     {
         return User::factory()->create([
@@ -122,5 +129,61 @@ class ConfigurationCommissionTest extends TestCase
         $this->actingAs($user)
             ->get('/admin/commissions')
             ->assertForbidden();
+    }
+
+    public function test_admin_can_save_client_grille_with_nullable_libelle(): void
+    {
+        $this->actingAs($this->adminUser())
+            ->patch('/admin/commissions/client', [
+                'type' => 'grille',
+                'actif' => true,
+                'libelle' => 'Frais de service VERGA',
+                'paliers' => [
+                    [
+                        'montant_min' => 0,
+                        'montant_max' => 9999,
+                        'frais' => 1500,
+                        'libelle' => null,
+                    ],
+                    [
+                        'montant_min' => 10000,
+                        'montant_max' => null,
+                        'frais' => 2500,
+                        'libelle' => 'Frais Dossier',
+                    ],
+                ],
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('configurations_commission', [
+            'destinataire' => 'client',
+            'type' => 'grille',
+            'actif' => true,
+        ]);
+        $this->assertDatabaseHas('commission_paliers', [
+            'montant_min' => 0,
+            'montant_max' => 9999,
+            'frais' => 1500,
+            'libelle' => null,
+        ]);
+        $this->assertDatabaseHas('commission_paliers', [
+            'montant_min' => 10000,
+            'frais' => 2500,
+            'libelle' => 'Frais Dossier',
+        ]);
+    }
+
+    public function test_agence_cannot_use_grille(): void
+    {
+        $this->actingAs($this->adminUser())
+            ->patch('/admin/commissions/agence', [
+                'type' => 'grille',
+                'actif' => true,
+                'paliers' => [
+                    ['montant_min' => 0, 'montant_max' => null, 'frais' => 1000],
+                ],
+            ])
+            ->assertSessionHasErrors('type');
     }
 }

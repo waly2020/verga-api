@@ -23,6 +23,7 @@ class OffreDestinationConfigService
             }
 
             $data['prix'] = (float) $destination->montant;
+            $data['paliers'] = null;
         }
 
         $data['destination_id'] = $destination->id;

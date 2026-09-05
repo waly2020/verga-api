@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('configurations_commission', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->enum('destinataire', ['agence', 'client'])->unique();
-            $table->enum('type', ['fixe', 'pourcentage']);
+            $table->enum('type', ['fixe', 'pourcentage', 'grille']);
             $table->decimal('valeur', 12, 2);
             $table->boolean('actif')->default(true)->index();
             $table->string('libelle')->nullable();

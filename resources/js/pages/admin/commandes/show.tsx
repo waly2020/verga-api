@@ -20,6 +20,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import admin from '@/routes/admin';
 import { formatQuantite } from '@/lib/format-quantite';
 import type { CommandeDetail } from '@/types';
+import { destinationTrajetLabel } from '@/types/models/destination';
 
 interface Props {
     commande: CommandeDetail;
@@ -216,7 +217,7 @@ export default function CommandeShow({ commande }: Props) {
                                     </Row>
                                     {commande.offre.destination && (
                                         <Row label="Trajet">
-                                            {`${commande.offre.destination.depart} → ${commande.offre.destination.arrivee}`}
+                                            {destinationTrajetLabel(commande.offre.destination)}
                                         </Row>
                                     )}
                                     <Row label="Statut offre">

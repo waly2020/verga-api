@@ -18,6 +18,13 @@ class OffreTest extends TestCase
     use CreatesTestAgences;
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->withoutVite();
+    }
+
     private function adminUser(): User
     {
         return User::factory()->create([
@@ -127,6 +134,72 @@ class OffreTest extends TestCase
         $offre = Offre::where('titre', 'Nouvelle offre admin')->firstOrFail();
         $this->assertSame('2026-07-20', $offre->date_depart?->toDateString());
         $this->assertSame('2026-07-19', $offre->date_depot_colis?->toDateString());
+    }
+
+    public function test_admin_can_create_offre_with_paliers(): void
+    {
+        ['agence' => $agence] = $this->createAgence();
+        $type = TypeOffre::query()->where('slug', 'particulier')->firstOrFail();
+        $destination = $this->createDestination([
+            'depart' => 'libreville',
+            'arrivee' => 'marseille',
+        ]);
+
+        $this->actingAs($this->adminUser())
+            ->post('/admin/offres', [
+                'agence_id' => $agence->id,
+                'destination_id' => $destination->id,
+                'titre' => 'Offre paliers',
+                'type_offre_id' => $type->id,
+                'prix' => 3000,
+                'paliers' => [
+                    ['min' => 1, 'max' => 2, 'prix' => 3000],
+                    ['min' => 3, 'max' => null, 'prix' => 2000],
+                ],
+                'capacite_totale' => 100,
+                'statut' => 'active',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $offre = Offre::where('titre', 'Offre paliers')->firstOrFail();
+
+        $this->assertTrue($offre->hasPaliers());
+        $this->assertEquals(1, $offre->paliers[0]['min']);
+        $this->assertEquals(2, $offre->paliers[0]['max']);
+        $this->assertEquals(3000, $offre->paliers[0]['prix']);
+        $this->assertNull($offre->paliers[1]['max']);
+        $this->assertEquals(2000, $offre->paliers[1]['prix']);
+    }
+
+    public function test_admin_cannot_create_paliers_when_destination_forces_prix(): void
+    {
+        ['agence' => $agence] = $this->createAgence();
+        $type = TypeOffre::query()->where('slug', 'particulier')->firstOrFail();
+        $destination = $this->createDestination([
+            'depart' => 'chine',
+            'arrivee' => 'port-gentil',
+            'appliquer_configuration' => true,
+            'montant' => 8750,
+            'commission_pourcentage' => 10,
+        ]);
+
+        $this->actingAs($this->adminUser())
+            ->post('/admin/offres', [
+                'agence_id' => $agence->id,
+                'destination_id' => $destination->id,
+                'titre' => 'Offre paliers interdits',
+                'type_offre_id' => $type->id,
+                'prix' => 3000,
+                'paliers' => [
+                    ['min' => 1, 'max' => 2, 'prix' => 3000],
+                    ['min' => 3, 'max' => null, 'prix' => 2000],
+                ],
+                'capacite_totale' => 100,
+                'statut' => 'active',
+            ])
+            ->assertRedirect()
+            ->assertSessionHasErrors('paliers');
     }
 
     public function test_admin_can_create_offre_capacite_illimitee(): void

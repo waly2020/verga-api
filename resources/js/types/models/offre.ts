@@ -2,6 +2,18 @@ import type { AgenceSummary, LogoApi, OffreStatut, OffreType } from './common';
 import type { DestinationSummary } from './destination';
 import type { TypeOffreApi, TypeOffreSummary } from './type-offre';
 
+export type OffrePalier = {
+    min: number | string;
+    max: number | string | null;
+    prix: number | string;
+};
+
+export type OffrePalierForm = {
+    min: string;
+    max: string;
+    prix: string;
+};
+
 export type OffreCapacite = {
     capacite_illimitee?: boolean;
     capacite_totale: string | number | null;
@@ -19,6 +31,7 @@ export type OffreRow = OffreCapacite & {
     type_offre?: TypeOffreSummary | null;
     destination?: DestinationSummary | null;
     prix: string;
+    paliers?: OffrePalier[] | null;
     date_depart?: string | null;
     date_depot_colis?: string | null;
     statut: OffreStatut | string;
@@ -52,6 +65,7 @@ export type OffreApi = OffreCapacite & {
     type_offre_id?: string | null;
     type_offre?: TypeOffreApi | null;
     prix: string | number;
+    paliers?: OffrePalier[] | null;
     destination_id: string;
     destination?: DestinationSummary | null;
     date_depart?: string | null;
@@ -81,6 +95,7 @@ export type OffreFormData = {
     titre: string;
     type_offre_id: string;
     prix: string;
+    paliers: OffrePalierForm[] | null;
     capacite_illimitee: boolean;
     capacite_totale: string;
     date_depart: string;

@@ -17,6 +17,13 @@ class PaiementRetourTest extends TestCase
     use CreatesTestAgences;
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->withoutVite();
+    }
+
     /**
      * @return array{commande: Commande, paiement: Paiement}
      */

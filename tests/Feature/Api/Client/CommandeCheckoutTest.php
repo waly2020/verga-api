@@ -184,6 +184,39 @@ class CommandeCheckoutTest extends ClientApiTestCase
         ]);
     }
 
+    public function test_reservation_on_palier_offer_uses_reserved_quantity_unit_price(): void
+    {
+        $this->mockBambooRedirect();
+        ['offre' => $offre] = $this->createActiveOffre(100);
+        $offre->update([
+            'prix' => 3000,
+            'paliers' => [
+                ['min' => 1, 'max' => 2, 'prix' => 3000],
+                ['min' => 3, 'max' => null, 'prix' => 2000],
+            ],
+        ]);
+
+        $this->postJson('/api/v1/client/commandes', [
+            'offre_id' => $offre->id,
+            'quantite' => 2,
+            'quantite_reservee' => 5,
+            'nom' => 'Obame',
+            'prenom' => 'Sarah',
+            'telephone' => '0612345678',
+        ])
+            ->assertCreated()
+            ->assertJsonPath('montant_sous_total', 4000)
+            ->assertJsonPath('montant_total', 4000)
+            ->assertJsonPath('quantite_reservee', 5)
+            ->assertJsonPath('quantite_a_payer', 2);
+
+        $this->assertDatabaseHas('paiements', [
+            'statut' => 'en_attente',
+            'quantite' => 2,
+            'montant' => 4000,
+        ]);
+    }
+
     public function test_balance_payment_completes_reservation_with_commission_on_each_payment(): void
     {
         $this->mockBambooRedirect();

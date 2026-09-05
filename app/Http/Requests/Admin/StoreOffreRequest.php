@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Http\Requests\Concerns\ValidatesOffrePaliers;
 use App\Models\Destination;
 use App\Services\OffreDestinationConfigService;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -10,6 +11,8 @@ use Illuminate\Validation\Rule;
 
 class StoreOffreRequest extends FormRequest
 {
+    use ValidatesOffrePaliers;
+
     public function authorize(): bool
     {
         return $this->user()?->isAdmin() ?? false;
@@ -31,6 +34,7 @@ class StoreOffreRequest extends FormRequest
             'type_offre_id' => ['required_without:type', 'uuid', 'exists:types_offres,id'],
             'type' => ['required_without:type_offre_id', Rule::in(['particulier', 'metre_cube', 'conteneur'])],
             'prix' => ['required', 'numeric', 'min:0'],
+            ...$this->paliersRules(),
             'capacite_illimitee' => ['sometimes', 'boolean'],
             'capacite_totale' => ['required_unless:capacite_illimitee,true', 'nullable', 'numeric', 'min:0.001'],
             'date_depart' => ['nullable', 'date'],
@@ -56,6 +60,7 @@ class StoreOffreRequest extends FormRequest
             'prix.required' => 'Le prix est obligatoire.',
             'prix.min' => 'Le prix ne peut pas être négatif.',
             'capacite_totale.required_unless' => 'La capacité totale est obligatoire pour une offre à stock limité.',
+            ...$this->paliersMessages(),
         ];
     }
 
@@ -70,6 +75,8 @@ class StoreOffreRequest extends FormRequest
         if ($this->boolean('capacite_illimitee')) {
             $this->merge(['capacite_totale' => null]);
         }
+
+        $this->preparePaliersForValidation();
     }
 
     /**
@@ -82,6 +89,7 @@ class StoreOffreRequest extends FormRequest
         $validated = parent::validated();
 
         $destination = Destination::query()->findOrFail($validated['destination_id']);
+        $validated = $this->finalizePaliers($validated);
         $validated = app(OffreDestinationConfigService::class)->apply($validated, $destination);
 
         return is_null($key) ? $validated : data_get($validated, $key, $default);

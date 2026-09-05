@@ -10,5 +10,6 @@ export type * from './destination';
 export type * from './finance';
 export type * from './offre';
 export type * from './paiement';
+export type * from './ville';
 export type * from './pricing';
 export type * from './type-offre';

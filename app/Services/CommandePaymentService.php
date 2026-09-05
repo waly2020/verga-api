@@ -45,7 +45,11 @@ class CommandePaymentService
 
         $this->validateQuantiteChunk($offre, $quantiteAPayer);
 
-        $pricing = $this->pricing->calculate($offre, $quantiteAPayer);
+        $pricing = $this->pricing->calculate(
+            $offre,
+            $quantiteAPayer,
+            (float) $commande->quantite,
+        );
 
         $paiement = Paiement::create([
             'commande_id' => $commande->id,

@@ -14,10 +14,15 @@ class DestinationResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $this->resource->loadMissing(['villeDepart', 'villeArrivee']);
+
         return [
             'id' => $this->id,
-            'depart' => $this->depart,
-            'arrivee' => $this->arrivee,
+            'ville_depart_id' => $this->ville_depart_id,
+            'ville_arrivee_id' => $this->ville_arrivee_id,
+            'ville_depart' => VilleResource::make($this->villeDepart),
+            'ville_arrivee' => VilleResource::make($this->villeArrivee),
+            'label' => $this->trajetLabel(),
             'montant' => $this->montant !== null ? (float) $this->montant : null,
             'commission_pourcentage' => $this->commission_pourcentage !== null
                 ? (float) $this->commission_pourcentage

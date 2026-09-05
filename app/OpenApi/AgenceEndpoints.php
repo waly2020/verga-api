@@ -31,6 +31,70 @@ class AgenceEndpoints
     public function listTypesAgences(): void {}
 
     #[OA\Get(
+        path: '/agence/pays',
+        operationId: 'agenceListPays',
+        summary: 'Lister les pays (noms distincts)',
+        description: 'Retourne les noms de pays déjà utilisés par au moins une ville active. À appeler avant de lister les villes. Aucune authentification requise.',
+        tags: ['Agence - Référentiels'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Liste des pays',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(ref: '#/components/schemas/PaysNomResource')
+                        ),
+                    ]
+                )
+            ),
+        ]
+    )]
+    public function listPays(): void {}
+
+    #[OA\Get(
+        path: '/agence/villes',
+        operationId: 'agenceListVilles',
+        summary: 'Lister les villes',
+        description: 'Catalogue des villes actives. Filtrer avec `pays` après `GET /agence/pays` pour le parcours pays → villes. Aucune authentification requise.',
+        tags: ['Agence - Référentiels'],
+        parameters: [
+            new OA\Parameter(
+                name: 'pays',
+                in: 'query',
+                required: false,
+                schema: new OA\Schema(type: 'string', example: 'Gabon'),
+                description: 'Nom de pays (insensible à la casse)'
+            ),
+            new OA\Parameter(
+                name: 'search',
+                in: 'query',
+                required: false,
+                schema: new OA\Schema(type: 'string'),
+                description: 'Filtre sur le pays, la ville ou le code'
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Liste des villes actives',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(ref: '#/components/schemas/VilleResource')
+                        ),
+                    ]
+                )
+            ),
+        ]
+    )]
+    public function listVilles(): void {}
+
+    #[OA\Get(
         path: '/agence/types-offres',
         operationId: 'agenceListTypesOffres',
         summary: 'Lister les types d\'offre disponibles',
@@ -190,7 +254,7 @@ class AgenceEndpoints
         path: '/agence/destinations',
         operationId: 'agenceListDestinations',
         summary: 'Lister toutes les destinations (sans pagination)',
-        description: 'Retourne le catalogue global des destinations actives. Chaque élément expose le booléen rattachee (liée ou non à l\'agence).',
+        description: 'Retourne le catalogue global des destinations actives, avec les villes `ville_depart` / `ville_arrivee` et le libellé `label`. Chaque élément expose le booléen rattachee (liée ou non à l\'agence).',
         tags: ['Agence - Destinations'],
         security: [['sanctum' => []]],
         parameters: [
@@ -199,7 +263,7 @@ class AgenceEndpoints
                 in: 'query',
                 required: false,
                 schema: new OA\Schema(type: 'string'),
-                description: 'Filtre sur départ ou arrivée'
+                description: 'Filtre sur le pays, la ville ou le code des localités'
             ),
         ],
         responses: [
@@ -225,7 +289,7 @@ class AgenceEndpoints
         path: '/agence/destinations/paginated',
         operationId: 'agenceListDestinationsPaginated',
         summary: 'Lister les destinations (paginé)',
-        description: 'Retourne le catalogue global des destinations actives, paginé. Chaque élément expose le booléen rattachee.',
+        description: 'Retourne le catalogue global des destinations actives, paginé, avec les villes `ville_depart` / `ville_arrivee` et le libellé `label`. Chaque élément expose le booléen rattachee.',
         tags: ['Agence - Destinations'],
         security: [['sanctum' => []]],
         parameters: [
@@ -246,7 +310,7 @@ class AgenceEndpoints
                 in: 'query',
                 required: false,
                 schema: new OA\Schema(type: 'string'),
-                description: 'Filtre sur départ ou arrivée'
+                description: 'Filtre sur le pays, la ville ou le code des localités'
             ),
         ],
         responses: [
@@ -274,16 +338,16 @@ class AgenceEndpoints
         path: '/agence/destinations',
         operationId: 'agenceCreateDestination',
         summary: 'Créer ou rattacher une destination',
-        description: 'Find-or-create une destination (sans configuration forcée) puis l\'attache à l\'agence. Body : depart, arrivee uniquement.',
+        description: 'Find-or-create une destination (sans configuration forcée) à partir de deux villes actives distinctes (`GET /agence/villes`), puis l\'attache à l\'agence.',
         tags: ['Agence - Destinations'],
         security: [['sanctum' => []]],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['depart', 'arrivee'],
+                required: ['ville_depart_id', 'ville_arrivee_id'],
                 properties: [
-                    new OA\Property(property: 'depart', type: 'string', example: 'Chine'),
-                    new OA\Property(property: 'arrivee', type: 'string', example: 'Libreville'),
+                    new OA\Property(property: 'ville_depart_id', type: 'string', format: 'uuid', description: 'UUID d\'une ville active (`GET /agence/villes`)'),
+                    new OA\Property(property: 'ville_arrivee_id', type: 'string', format: 'uuid', description: 'UUID d\'une ville active distincte du départ'),
                 ]
             )
         ),
@@ -511,7 +575,8 @@ Peut être envoyé en `multipart/form-data` pour joindre un **logo** et des **do
                     new OA\Property(property: 'titre', type: 'string', example: 'Forfait Particulier Chine → Libreville'),
                     new OA\Property(property: 'type_offre_id', type: 'string', format: 'uuid', description: 'Type d\'offre (recommandé)'),
                     new OA\Property(property: 'type', type: 'string', enum: ['particulier', 'metre_cube', 'conteneur'], description: 'Legacy — requis si type_offre_id absent'),
-                    new OA\Property(property: 'prix', type: 'number', format: 'float', example: 8750, description: 'Prix unitaire (FCFA/kg, FCFA/m³ ou FCFA/conteneur) — forcé si destination.appliquer_configuration'),
+                    new OA\Property(property: 'prix', type: 'number', format: 'float', example: 8750, description: 'Prix unitaire (FCFA/kg, FCFA/m³ ou FCFA/conteneur) — forcé si destination.appliquer_configuration. Catalogue si paliers présents'),
+                    new OA\Property(property: 'paliers', type: 'array', nullable: true, description: 'Intervalles optionnels (min 2). Dernier max = null. Interdit si destination.appliquer_configuration', items: new OA\Items(ref: '#/components/schemas/OffrePalier')),
                     new OA\Property(property: 'capacite_illimitee', type: 'boolean', example: false, description: 'Si true, pas de plafond de stock (capacite_totale ignorée)'),
                     new OA\Property(property: 'capacite_totale', type: 'number', format: 'float', nullable: true, example: 30000, description: 'Stock total — requis sauf si capacite_illimitee=true'),
                     new OA\Property(property: 'destination_id', type: 'string', format: 'uuid', description: 'Destination active du catalogue (rattachée automatiquement à l\'agence)'),
@@ -562,7 +627,8 @@ Peut être envoyé en `multipart/form-data` pour joindre un **logo** et des **do
                     new OA\Property(property: 'titre', type: 'string', example: 'Forfait Particulier Chine → Libreville'),
                     new OA\Property(property: 'type_offre_id', type: 'string', format: 'uuid'),
                     new OA\Property(property: 'type', type: 'string', enum: ['particulier', 'metre_cube', 'conteneur']),
-                    new OA\Property(property: 'prix', type: 'number', format: 'float', example: 8750, description: 'Forcé si destination.appliquer_configuration'),
+                    new OA\Property(property: 'prix', type: 'number', format: 'float', example: 8750, description: 'Forcé si destination.appliquer_configuration. Catalogue si paliers présents'),
+                    new OA\Property(property: 'paliers', type: 'array', nullable: true, description: 'Omis = inchangé. null = revient au prix unique. Interdit si destination.appliquer_configuration', items: new OA\Items(ref: '#/components/schemas/OffrePalier')),
                     new OA\Property(property: 'capacite_illimitee', type: 'boolean', example: false, description: 'Si true, pas de plafond de stock'),
                     new OA\Property(property: 'capacite_totale', type: 'number', format: 'float', nullable: true, example: 30000, description: 'Requis sauf si capacite_illimitee=true ; doit rester ≥ quantité déjà réservée'),
                     new OA\Property(property: 'destination_id', type: 'string', format: 'uuid', description: 'Destination active du catalogue (rattachée automatiquement à l\'agence)'),

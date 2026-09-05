@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ConfigurationCommission extends Model
 {
@@ -27,12 +28,24 @@ class ConfigurationCommission extends Model
         ];
     }
 
+    public function paliers(): HasMany
+    {
+        return $this->hasMany(CommissionPalier::class, 'configuration_commission_id')
+            ->orderBy('montant_min');
+    }
+
     public static function pour(string $destinataire): ?self
     {
         return static::query()
             ->where('destinataire', $destinataire)
             ->where('actif', true)
+            ->with('paliers')
             ->first();
+    }
+
+    public function estGrille(): bool
+    {
+        return $this->type === 'grille';
     }
 
     public function calculerMontant(float $montantBase): float

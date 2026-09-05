@@ -18,8 +18,8 @@ class UpdateDestinationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'depart' => ['required', 'string', 'max:255'],
-            'arrivee' => ['required', 'string', 'max:255'],
+            'ville_depart_id' => ['required', 'uuid', 'exists:villes,id'],
+            'ville_arrivee_id' => ['required', 'uuid', 'exists:villes,id', 'different:ville_depart_id'],
             'appliquer_configuration' => ['sometimes', 'boolean'],
             'montant' => ['required_if:appliquer_configuration,true', 'nullable', 'numeric', 'min:0.01'],
             'commission_pourcentage' => ['required_if:appliquer_configuration,true', 'nullable', 'numeric', 'min:0', 'max:100'],
@@ -33,8 +33,9 @@ class UpdateDestinationRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'depart.required' => 'Le départ est obligatoire.',
-            'arrivee.required' => "L'arrivée est obligatoire.",
+            'ville_depart_id.required' => 'La ville de départ est obligatoire.',
+            'ville_arrivee_id.required' => "La ville d'arrivée est obligatoire.",
+            'ville_arrivee_id.different' => 'Le départ et l\'arrivée doivent être différents.',
             'montant.required_if' => 'Le montant est obligatoire lorsque la configuration est appliquée.',
             'montant.min' => 'Le montant doit être supérieur à zéro.',
             'commission_pourcentage.required_if' => 'La commission est obligatoire lorsque la configuration est appliquée.',

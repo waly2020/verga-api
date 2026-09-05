@@ -24,6 +24,7 @@ class OffreResource extends JsonResource
             'type_offre_id' => $this->type_offre_id,
             'type_offre' => TypeOffreResource::make($this->whenLoaded('typeOffre')),
             'prix' => (float) $this->prix,
+            'paliers' => $this->hasPaliers() ? $this->paliers : null,
             'capacite_illimitee' => (bool) $this->capacite_illimitee,
             'capacite_totale' => $this->capacite_totale !== null ? (float) $this->capacite_totale : null,
             'capacite_disponible' => $this->capacite_disponible !== null ? (float) $this->capacite_disponible : null,

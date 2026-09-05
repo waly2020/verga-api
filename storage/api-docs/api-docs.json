@@ -2,12 +2,12 @@
     "openapi": "3.0.0",
     "info": {
         "title": "VERGA API",
-        "description": "API REST pour les applications externes VERGA (back-office agence Angular, application client mobile/web). Authentification Bearer Sanctum.\n\n**Médias (logo / documents)**\n- Inscription agence : `multipart/form-data` avec `logo` + `documents[i][fichier|type_document]`\n- Inscription client : `multipart/form-data` avec `documents[i][fichier|type_document]`\n- `GET /agence/me` et `GET /client/me` exposent `logo` / `documents` (id, type_document, chemin, url, nom_original)\n\n**Finance agence**\n- `GET /agence/solde` — solde courant, reversements effectués/en attente, montant disponible\n- `GET /agence/reversements` — historique des reversements (lecture seule)\n\n**Réservations et paiements multiples**\n- `quantite_reservee` : quantité bloquée sur l'offre (ex. 50 kg)\n- `quantite` : quantité payée lors du versement en cours (ex. 30 kg)\n- Après validation du 1er paiement partiel : statut commande `réservée`, stock bloqué sur la quantité réservée\n- Solde via `POST /client/commandes/{commande}/paiements` (auth requise)\n- Commission client recalculée à chaque versement sur la quantité payée\n\n**Quantités et unités**\n- Chaque quantité numérique (`quantite`, `quantite_payee`, etc.) est accompagnée d'un champ `*_label` formaté selon le `type_offre` de l'offre (ex. `2 kg`, `2 conteneurs`, `2,5 m³`)\n- L'unité source est dans `offre.type_offre` (`unite`, `unite_label`, `quantite_entier`)\n- Pour les colis : `quantite_label` affiche le poids physique (`poids_label`) s'il est renseigné, sinon la quantité de la commande avec unité\n\n**Publicités**\n- Parcours agence/client : création `en_attente` → modération admin → si validée, paiement Bamboo dédié (`PUB-`) → `publiée`\n- Agence : `offre_id` optionnel (offre de l'agence uniquement) ; client : pas d'offre rattachable\n- Tarif consultable : `GET /agence/publicites/configuration` (prix/jour + frais, montants entiers FCFA)\n- Catalogue public : `GET /publicites` (statut `publiée`, dates valides)\n- Vérification paiement pub : `GET /publicites/paiements/{code}/statut`\n- Callback Bamboo dédié : `POST /payments/bamboo-pay/publicites/callback` (ne pas confondre avec les commandes)",
+        "description": "API REST pour les applications externes VERGA (back-office agence Angular, application client mobile/web). Authentification Bearer Sanctum.\n\n**Médias (logo / documents)**\n- Inscription agence : `multipart/form-data` avec `logo` + `documents[i][fichier|type_document]`\n- Inscription client : `multipart/form-data` avec `documents[i][fichier|type_document]`\n- `GET /agence/me` et `GET /client/me` exposent `logo` / `documents` (id, type_document, chemin, url, nom_original)\n\n**Destinations et villes**\n- Une ville = ville + nom de pays + code unique. Pas de table pays : `GET /agence/pays` liste les **noms de pays distincts** déjà utilisés\n- Villes d'un pays : `GET /agence/villes?pays=Gabon`\n- Une destination = couple `ville_depart_id` / `ville_arrivee_id` (villes distinctes et actives)\n- Réponse destination : `ville_depart` / `ville_arrivee` (`VilleResource`) et `label`\n- Filtres `search` et `destination` : correspondance partielle sur ville, pays ou code\n\n**Finance agence**\n- `GET /agence/solde` — solde courant, reversements effectués/en attente, montant disponible\n- `GET /agence/reversements` — historique des reversements (lecture seule)\n\n**Réservations et paiements multiples**\n- `quantite_reservee` : quantité bloquée sur l'offre (ex. 50 kg)\n- `quantite` : quantité payée lors du versement en cours (ex. 30 kg)\n- Après validation du 1er paiement partiel : statut commande `réservée`, stock bloqué sur la quantité réservée\n- Solde via `POST /client/commandes/{commande}/paiements` (auth requise)\n- Commission client recalculée à chaque versement sur la quantité payée\n\n**Paliers de prix**\n- Champ optionnel `paliers` sur l'offre : `[{ min, max, prix }, …]` (au moins 2 intervalles, dernier `max` = null = jusqu'à N)\n- Sans `paliers` : tarif unique `prix × quantité` (comportement historique)\n- Le palier est choisi sur la **quantité réservée**, puis appliqué à chaque versement (`prix_palier × quantité_payée`)\n- Interdit si la destination a `appliquer_configuration`\n\n**Commission client (grille)**\n- Si la config admin est en `grille`, les frais VERGA dépendent du **sous-total du versement**\n- Tranches continues, dernière ouverte (`montant_max` null) ; `libelle` optionnel par tranche\n- L'estimation expose `commission.type = grille`, `commission.valeur` = frais appliqués, `commission.libelle` nullable\n\n**Quantités et unités**\n- Chaque quantité numérique (`quantite`, `quantite_payee`, etc.) est accompagnée d'un champ `*_label` formaté selon le `type_offre` de l'offre (ex. `2 kg`, `2 conteneurs`, `2,5 m³`)\n- L'unité source est dans `offre.type_offre` (`unite`, `unite_label`, `quantite_entier`)\n- Pour les colis : `quantite_label` affiche le poids physique (`poids_label`) s'il est renseigné, sinon la quantité de la commande avec unité\n\n**Publicités**\n- Parcours agence/client : création `en_attente` → modération admin → si validée, paiement Bamboo dédié (`PUB-`) → `publiée`\n- Agence : `offre_id` optionnel (offre de l'agence uniquement) ; client : pas d'offre rattachable\n- Tarif consultable : `GET /agence/publicites/configuration` (prix/jour + frais, montants entiers FCFA)\n- Catalogue public : `GET /publicites` (statut `publiée`, dates valides)\n- Vérification paiement pub : `GET /publicites/paiements/{code}/statut`\n- Callback Bamboo dédié : `POST /payments/bamboo-pay/publicites/callback` (ne pas confondre avec les commandes)",
         "contact": {
             "name": "VERGA",
             "email": "contact@verga.test"
         },
-        "version": "1.5.0"
+        "version": "1.8.0"
     },
     "servers": [
         {
@@ -35,6 +35,87 @@
                                             "type": "array",
                                             "items": {
                                                 "$ref": "#/components/schemas/TypeAgenceResource"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/agence/pays": {
+            "get": {
+                "tags": [
+                    "Agence - Référentiels"
+                ],
+                "summary": "Lister les pays (noms distincts)",
+                "description": "Retourne les noms de pays déjà utilisés par au moins une ville active. À appeler avant de lister les villes. Aucune authentification requise.",
+                "operationId": "agenceListPays",
+                "responses": {
+                    "200": {
+                        "description": "Liste des pays",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PaysNomResource"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/agence/villes": {
+            "get": {
+                "tags": [
+                    "Agence - Référentiels"
+                ],
+                "summary": "Lister les villes",
+                "description": "Catalogue des villes actives. Filtrer avec `pays` après `GET /agence/pays` pour le parcours pays → villes. Aucune authentification requise.",
+                "operationId": "agenceListVilles",
+                "parameters": [
+                    {
+                        "name": "pays",
+                        "in": "query",
+                        "description": "Nom de pays (insensible à la casse)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "Gabon"
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Filtre sur le pays, la ville ou le code",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste des villes actives",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/VilleResource"
                                             }
                                         }
                                     },
@@ -350,13 +431,13 @@
                     "Agence - Destinations"
                 ],
                 "summary": "Lister toutes les destinations (sans pagination)",
-                "description": "Retourne le catalogue global des destinations actives. Chaque élément expose le booléen rattachee (liée ou non à l'agence).",
+                "description": "Retourne le catalogue global des destinations actives, avec les villes `ville_depart` / `ville_arrivee` et le libellé `label`. Chaque élément expose le booléen rattachee (liée ou non à l'agence).",
                 "operationId": "agenceListDestinations",
                 "parameters": [
                     {
                         "name": "search",
                         "in": "query",
-                        "description": "Filtre sur départ ou arrivée",
+                        "description": "Filtre sur le pays, la ville ou le code des localités",
                         "required": false,
                         "schema": {
                             "type": "string"
@@ -397,7 +478,7 @@
                     "Agence - Destinations"
                 ],
                 "summary": "Créer ou rattacher une destination",
-                "description": "Find-or-create une destination (sans configuration forcée) puis l'attache à l'agence. Body : depart, arrivee uniquement.",
+                "description": "Find-or-create une destination (sans configuration forcée) à partir de deux villes actives distinctes (`GET /agence/villes`), puis l'attache à l'agence.",
                 "operationId": "agenceCreateDestination",
                 "requestBody": {
                     "required": true,
@@ -405,17 +486,19 @@
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "depart",
-                                    "arrivee"
+                                    "ville_depart_id",
+                                    "ville_arrivee_id"
                                 ],
                                 "properties": {
-                                    "depart": {
+                                    "ville_depart_id": {
+                                        "description": "UUID d'une ville active (`GET /agence/villes`)",
                                         "type": "string",
-                                        "example": "Chine"
+                                        "format": "uuid"
                                     },
-                                    "arrivee": {
+                                    "ville_arrivee_id": {
+                                        "description": "UUID d'une ville active distincte du départ",
                                         "type": "string",
-                                        "example": "Libreville"
+                                        "format": "uuid"
                                     }
                                 },
                                 "type": "object"
@@ -459,7 +542,7 @@
                     "Agence - Destinations"
                 ],
                 "summary": "Lister les destinations (paginé)",
-                "description": "Retourne le catalogue global des destinations actives, paginé. Chaque élément expose le booléen rattachee.",
+                "description": "Retourne le catalogue global des destinations actives, paginé, avec les villes `ville_depart` / `ville_arrivee` et le libellé `label`. Chaque élément expose le booléen rattachee.",
                 "operationId": "agenceListDestinationsPaginated",
                 "parameters": [
                     {
@@ -486,7 +569,7 @@
                     {
                         "name": "search",
                         "in": "query",
-                        "description": "Filtre sur départ ou arrivée",
+                        "description": "Filtre sur le pays, la ville ou le code des localités",
                         "required": false,
                         "schema": {
                             "type": "string"
@@ -1087,10 +1170,18 @@
                                         ]
                                     },
                                     "prix": {
-                                        "description": "Prix unitaire (FCFA/kg, FCFA/m³ ou FCFA/conteneur) — forcé si destination.appliquer_configuration",
+                                        "description": "Prix unitaire (FCFA/kg, FCFA/m³ ou FCFA/conteneur) — forcé si destination.appliquer_configuration. Catalogue si paliers présents",
                                         "type": "number",
                                         "format": "float",
                                         "example": 8750
+                                    },
+                                    "paliers": {
+                                        "description": "Intervalles optionnels (min 2). Dernier max = null. Interdit si destination.appliquer_configuration",
+                                        "type": "array",
+                                        "items": {
+                                            "$ref": "#/components/schemas/OffrePalier"
+                                        },
+                                        "nullable": true
                                     },
                                     "capacite_illimitee": {
                                         "description": "Si true, pas de plafond de stock (capacite_totale ignorée)",
@@ -1286,10 +1377,18 @@
                                         ]
                                     },
                                     "prix": {
-                                        "description": "Forcé si destination.appliquer_configuration",
+                                        "description": "Forcé si destination.appliquer_configuration. Catalogue si paliers présents",
                                         "type": "number",
                                         "format": "float",
                                         "example": 8750
+                                    },
+                                    "paliers": {
+                                        "description": "Omis = inchangé. null = revient au prix unique. Interdit si destination.appliquer_configuration",
+                                        "type": "array",
+                                        "items": {
+                                            "$ref": "#/components/schemas/OffrePalier"
+                                        },
+                                        "nullable": true
                                     },
                                     "capacite_illimitee": {
                                         "description": "Si true, pas de plafond de stock",
@@ -2413,25 +2512,25 @@
                     "Client - Offres"
                 ],
                 "summary": "Lister les offres disponibles (paginé)",
-                "description": "Catalogue public des offres actives avec capacité disponible > 0. Aucune authentification requise.\n\nFiltres disponibles :\n- `search` : titre, départ/arrivée destination, description\n- `destination` : filtre sur départ ou arrivée (partiel)\n- `type` : particulier, metre_cube, conteneur (legacy)\n- `type_offre_id` : UUID du type d'offre (recommandé)\n- `date_debut` / `date_fin` : plage de dates de publication (`created_at`, format `YYYY-MM-DD`)\n- `page` / `per_page` : pagination (défaut 15, max 100)",
+                "description": "Catalogue public des offres actives avec capacité disponible > 0. Aucune authentification requise.\n\nFiltres disponibles :\n- `search` : titre, description, ou localité (ville, pays, code)\n- `destination` : filtre sur les localités de départ ou d'arrivée (ville, pays ou code, correspondance partielle)\n- `type` : particulier, metre_cube, conteneur (legacy)\n- `type_offre_id` : UUID du type d'offre (recommandé)\n- `date_debut` / `date_fin` : plage de dates de publication (`created_at`, format `YYYY-MM-DD`)\n- `page` / `per_page` : pagination (défaut 15, max 100)",
                 "operationId": "clientListOffres",
                 "parameters": [
                     {
                         "name": "search",
                         "in": "query",
-                        "description": "Recherche titre, départ/arrivée, description",
+                        "description": "Recherche titre, description, ou localité (ville, pays, code)",
                         "schema": {
                             "type": "string",
-                            "example": "Paris"
+                            "example": "Libreville"
                         }
                     },
                     {
                         "name": "destination",
                         "in": "query",
-                        "description": "Filtre départ ou arrivée (correspondance partielle)",
+                        "description": "Filtre sur ville, pays ou code des localités de départ/arrivée",
                         "schema": {
                             "type": "string",
-                            "example": "Libreville"
+                            "example": "LBV"
                         }
                     },
                     {
@@ -2567,7 +2666,7 @@
                     "Client - Offres"
                 ],
                 "summary": "Estimer le montant à payer (prix + commission client)",
-                "description": "Calcule le détail tarifaire avant checkout pour affichage front.\n\nRetourne le sous-total (prix × quantité), la commission client active et le total à payer via Bamboo. Public, sans authentification.\n\n**Exemple** : offre à 2 500 FCFA/kg, quantité 10, commission 5 % → sous-total 25 000, commission 1 250, total 26 250 FCFA.",
+                "description": "Calcule le détail tarifaire avant checkout pour affichage front.\n\nRetourne le sous-total (prix unitaire × quantité), la commission client active et le total à payer via Bamboo. Public, sans authentification.\n\nSi l'offre a des `paliers`, le prix unitaire est celui de l'intervalle qui contient `quantite`.\n\nSi la commission client est une `grille`, les frais sont ceux de la tranche qui contient le sous-total (`libelle` optionnel).\n\n**Exemple** : offre à 2 500 FCFA/kg, quantité 10, commission 5 % → sous-total 25 000, commission 1 250, total 26 250 FCFA.",
                 "operationId": "clientEstimateOffrePricing",
                 "parameters": [
                     {
@@ -5803,19 +5902,101 @@
                 },
                 "type": "object"
             },
+            "OffrePalier": {
+                "required": [
+                    "min",
+                    "prix"
+                ],
+                "properties": {
+                    "min": {
+                        "description": "Quantité minimale inclusive",
+                        "type": "number",
+                        "format": "float",
+                        "example": 1
+                    },
+                    "max": {
+                        "description": "Quantité maximale inclusive. Null = jusqu'à N (dernier palier uniquement)",
+                        "type": "number",
+                        "format": "float",
+                        "example": 2,
+                        "nullable": true
+                    },
+                    "prix": {
+                        "description": "Prix unitaire FCFA dans cet intervalle",
+                        "type": "number",
+                        "format": "float",
+                        "example": 3000
+                    }
+                },
+                "type": "object"
+            },
+            "PaysNomResource": {
+                "properties": {
+                    "pays": {
+                        "description": "Nom de pays déjà utilisé par au moins une ville active",
+                        "type": "string",
+                        "example": "Gabon"
+                    }
+                },
+                "type": "object"
+            },
+            "VilleResource": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "pays": {
+                        "type": "string",
+                        "example": "Gabon"
+                    },
+                    "ville": {
+                        "type": "string",
+                        "example": "Libreville"
+                    },
+                    "code": {
+                        "description": "Code unique de la ville",
+                        "type": "string",
+                        "example": "LBV"
+                    },
+                    "label": {
+                        "description": "Libellé ville (pays)",
+                        "type": "string",
+                        "example": "Libreville (Gabon)"
+                    },
+                    "actif": {
+                        "type": "boolean",
+                        "example": true
+                    }
+                },
+                "type": "object"
+            },
             "DestinationResource": {
                 "properties": {
                     "id": {
                         "type": "string",
                         "format": "uuid"
                     },
-                    "depart": {
+                    "ville_depart_id": {
+                        "description": "UUID de la ville de départ",
                         "type": "string",
-                        "example": "chine"
+                        "format": "uuid"
                     },
-                    "arrivee": {
+                    "ville_arrivee_id": {
+                        "description": "UUID de la ville d'arrivée",
                         "type": "string",
-                        "example": "libreville"
+                        "format": "uuid"
+                    },
+                    "ville_depart": {
+                        "$ref": "#/components/schemas/VilleResource"
+                    },
+                    "ville_arrivee": {
+                        "$ref": "#/components/schemas/VilleResource"
+                    },
+                    "label": {
+                        "description": "Libellé du trajet (ville/pays)",
+                        "type": "string",
+                        "example": "Libreville (Gabon) → Port-Gentil (Gabon)"
                     },
                     "montant": {
                         "type": "number",
@@ -6241,6 +6422,13 @@
                         "format": "float",
                         "example": 2500
                     },
+                    "paliers": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/OffrePalier"
+                        },
+                        "nullable": true
+                    },
                     "capacite_illimitee": {
                         "type": "boolean",
                         "example": false
@@ -6331,16 +6519,18 @@
                         "example": "pourcentage",
                         "enum": [
                             "pourcentage",
-                            "fixe"
+                            "fixe",
+                            "grille"
                         ]
                     },
                     "valeur": {
-                        "description": "Pourcentage ou montant fixe FCFA",
+                        "description": "Pourcentage, montant fixe, ou frais de la tranche retenue si type = grille",
                         "type": "number",
                         "format": "float",
                         "example": 5
                     },
                     "libelle": {
+                        "description": "Libellé de la config, ou de la tranche si type = grille",
                         "type": "string",
                         "example": "Frais de service",
                         "nullable": true
@@ -6360,7 +6550,7 @@
                         "example": 10
                     },
                     "prix_unitaire": {
-                        "description": "Prix unitaire de l'offre (FCFA)",
+                        "description": "Prix unitaire appliqué (palier atteint ou prix unique, FCFA)",
                         "type": "number",
                         "format": "float",
                         "example": 2500
@@ -6565,6 +6755,13 @@
                         "type": "number",
                         "format": "float",
                         "example": 2500
+                    },
+                    "paliers": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/OffrePalier"
+                        },
+                        "nullable": true
                     },
                     "capacite_illimitee": {
                         "type": "boolean",
@@ -7424,6 +7621,10 @@
             "description": "Types d'offre plateforme et personnalisés par agence"
         },
         {
+            "name": "Agence - Destinations",
+            "description": "Catalogue des trajets (localités de départ et d'arrivée) et rattachement à l'agence"
+        },
+        {
             "name": "Agence - Offres",
             "description": "Gestion des offres de transport"
         },
@@ -7498,10 +7699,6 @@
         {
             "name": "Publicités",
             "description": "Catalogue public des publicités publiées"
-        },
-        {
-            "name": "Agence - Destinations",
-            "description": "Agence - Destinations"
         },
         {
             "name": "Agence - Utilisateurs",

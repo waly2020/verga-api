@@ -67,8 +67,8 @@ class OffreCatalogTest extends ClientApiTestCase
                     'destination_id',
                     'destination' => [
                         'id',
-                        'depart',
-                        'arrivee',
+                        'ville_depart',
+                        'ville_arrivee',
                         'montant',
                         'commission_pourcentage',
                         'appliquer_configuration',

@@ -31,16 +31,15 @@ class OffreController extends Controller
             'agence:id,nom',
             'agence.logo',
             'typeOffre:id,slug,nom,unite_label',
-            'destination:id,depart,arrivee,montant,commission_pourcentage,appliquer_configuration,actif',
+            'destination:id,ville_depart_id,ville_arrivee_id,montant,commission_pourcentage,appliquer_configuration,actif',
+            'destination.villeDepart:id,pays,ville,code',
+            'destination.villeArrivee:id,pays,ville,code',
         ]);
 
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('titre', 'like', "%{$search}%")
-                    ->orWhereHas('destination', function ($dq) use ($search) {
-                        $dq->where('depart', 'like', "%{$search}%")
-                            ->orWhere('arrivee', 'like', "%{$search}%");
-                    });
+                    ->orWhereHas('destination', fn ($dq) => $dq->matchingLocalite($search));
             });
         }
 
@@ -62,6 +61,7 @@ class OffreController extends Controller
             'agences' => Agence::where('statut', 'actif')->orderBy('nom')->get(['id', 'nom']),
             'types_offres' => TypeOffre::query()->actif()->orderBy('nom')->get(),
             'destinations' => Destination::query()
+                ->with(['villeDepart:id,pays,ville,code', 'villeArrivee:id,pays,ville,code'])
                 ->where(function ($q) use ($destinationIdsOnPage) {
                     $q->where('actif', true);
 
@@ -69,9 +69,16 @@ class OffreController extends Controller
                         $q->orWhereIn('id', $destinationIdsOnPage);
                     }
                 })
-                ->orderBy('depart')
-                ->orderBy('arrivee')
-                ->get(['id', 'depart', 'arrivee', 'montant', 'commission_pourcentage', 'appliquer_configuration', 'actif']),
+                ->orderByTrajet()
+                ->get([
+                    'id',
+                    'ville_depart_id',
+                    'ville_arrivee_id',
+                    'montant',
+                    'commission_pourcentage',
+                    'appliquer_configuration',
+                    'actif',
+                ]),
         ]);
     }
 

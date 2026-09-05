@@ -10,6 +10,7 @@ import { StatusBadge } from '@/components/admin/status-badge';
 import { Button } from '@/components/ui/button';
 import admin from '@/routes/admin';
 import type { AgenceSummary, DestinationSummary, OffreRow, Paginated, TypeOffreApi } from '@/types';
+import { destinationTrajetLabel } from '@/types/models/destination';
 
 const TYPE_LABELS: Record<string, string> = {
     particulier: 'Au kg',
@@ -26,7 +27,7 @@ function trajetLabel(row: OffreRow): string {
         return '—';
     }
 
-    return `${row.destination.depart} → ${row.destination.arrivee}`;
+    return destinationTrajetLabel(row.destination);
 }
 
 interface Props {
@@ -66,7 +67,23 @@ const columns: Column<OffreRow>[] = [
         },
     },
     { key: 'type', label: 'Type', render: (r) => typeLabel(r) },
-    { key: 'prix', label: 'Prix', render: (r) => `${Number(r.prix).toLocaleString('fr-FR')} FCFA` },
+    {
+        key: 'prix',
+        label: 'Prix',
+        render: (r) => {
+            if (r.paliers && r.paliers.length > 0) {
+                const plusBas = Math.min(...r.paliers.map((palier) => Number(palier.prix)));
+
+                return (
+                    <span>
+                        à partir de {plusBas.toLocaleString('fr-FR')} FCFA
+                    </span>
+                );
+            }
+
+            return `${Number(r.prix).toLocaleString('fr-FR')} FCFA`;
+        },
+    },
     {
         key: 'capacite_disponible',
         label: 'Stock',
@@ -152,7 +169,7 @@ export default function OffresIndex({ offres, filters, agences, types_offres, de
                     pagination={offres.meta}
                     initialSearch={filters.search ?? ''}
                     initialFilter={filters.statut ?? ''}
-                    searchPlaceholder="Rechercher une offre..."
+                    searchPlaceholder="Titre, ville, pays ou code..."
                     filterKey="statut"
                     filterOptions={filterOptions}
                     emptyTitle="Aucune offre"
