@@ -6,23 +6,27 @@
     <style>
         * { box-sizing: border-box; }
         body { font-family: DejaVu Sans, sans-serif; font-size: 12px; color: #111; margin: 0; padding: 24px; }
-        h1 { font-size: 20px; margin: 0 0 4px; }
-        h2 { font-size: 14px; margin: 24px 0 8px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+        h1 { font-size: 20px; margin: 0 0 4px; color: #1800AD; }
+        h2 { font-size: 14px; margin: 24px 0 8px; border-bottom: 1px solid #BFE4EE; padding-bottom: 4px; color: #1800AD; }
         .muted { color: #555; }
         .header { margin-bottom: 24px; }
+        .brand { margin-bottom: 16px; }
         .grid { width: 100%; border-collapse: collapse; margin-top: 8px; }
-        .grid th, .grid td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
-        .grid th { background: #f5f5f5; }
+        .grid th, .grid td { border: 1px solid #D5E8EF; padding: 8px; text-align: left; vertical-align: top; }
+        .grid th { background: #E8F4F8; }
         .totals { width: 100%; margin-top: 16px; }
         .totals td { padding: 4px 0; }
         .totals .label { text-align: right; padding-right: 12px; color: #555; width: 70%; }
         .totals .value { text-align: right; font-weight: bold; width: 30%; }
-        .total-row .value { font-size: 14px; color: #0f766e; }
-        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; background: #f3f4f6; font-size: 11px; }
+        .total-row .value { font-size: 14px; color: #1800AD; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; background: #BFE4EE; color: #1800AD; font-size: 11px; }
     </style>
 </head>
 <body>
     <div class="header">
+        <div class="brand">
+            <img src="{{ public_path('logo/logo-web.png') }}" width="72" height="72" alt="VERGA">
+        </div>
         <h1>VERGA — Facture de paiement</h1>
         <p class="muted">Référence paiement : <strong>{{ $paiement['code'] }}</strong></p>
         @if($commande)

@@ -17,11 +17,22 @@ class ConfigurationCommissionController extends Controller
         private readonly CommissionPaliersService $paliers,
     ) {}
 
-    public function index(): Response
+    public function index(): RedirectResponse
     {
-        return Inertia::render('admin/commissions/index', [
-            'client' => $this->resolveConfig('client'),
-            'agence' => $this->resolveConfig('agence'),
+        return redirect()->route('admin.commissions.clients');
+    }
+
+    public function clients(): Response
+    {
+        return Inertia::render('admin/commissions/clients', [
+            'config' => $this->resolveConfig('client'),
+        ]);
+    }
+
+    public function agences(): Response
+    {
+        return Inertia::render('admin/commissions/agences', [
+            'config' => $this->resolveConfig('agence'),
         ]);
     }
 
