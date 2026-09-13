@@ -139,6 +139,44 @@ class CommandeMailTest extends ClientApiTestCase
         Mail::assertQueued(PaiementCommandeValideAgenceMail::class, fn ($mail) => $mail->hasTo($agence->email));
     }
 
+    public function test_agence_payment_mail_shows_net_amount_not_client_total(): void
+    {
+        ['agence' => $agence] = $this->createCheckoutOffre();
+
+        $commande = Commande::create([
+            'offre_id' => $agence->offres()->first()->id,
+            'agence_id' => $agence->id,
+            'code' => 'CMD-MAIL-NET',
+            'nom' => 'Obame',
+            'prenom' => 'Sarah',
+            'telephone' => '0622222222',
+            'quantite' => 2,
+            'quantite_payee' => 2,
+            'montant_sous_total' => 5000,
+            'montant_commission_client' => 250,
+            'montant_total' => 5250,
+            'capacite_bloquee' => false,
+            'statut' => 'confirmée',
+        ]);
+
+        $paiement = Paiement::create([
+            'commande_id' => $commande->id,
+            'code' => 'PAY-MAIL-NET',
+            'quantite' => 2,
+            'montant_sous_total' => 5000,
+            'montant_commission_client' => 250,
+            'montant' => 5250,
+            'methode' => 'bamboo_redirect',
+            'statut' => 'validé',
+        ]);
+
+        $mail = new PaiementCommandeValideAgenceMail($commande, $paiement);
+
+        $mail->assertSeeInHtml('5 000 FCFA');
+        $mail->assertSeeInHtml('Montant net');
+        $mail->assertDontSeeInHtml('5 250 FCFA');
+    }
+
     public function test_payment_failed_queues_client_mail(): void
     {
         Mail::fake();

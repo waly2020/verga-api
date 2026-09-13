@@ -36,7 +36,60 @@ class ColisMailTest extends AgenceApiTestCase
         Mail::assertQueued(ColisStatutChangedClientMail::class, 4);
     }
 
-    public function test_colis_status_advance_skips_mail_without_client_email(): void
+    public function test_colis_status_advance_uses_guest_commande_email(): void
+    {
+        Mail::fake();
+
+        ['token' => $token, 'colis' => $colis] = $this->createColisWithClient(
+            clientEmail: null,
+            commandeEmail: 'invite@example.com',
+        );
+
+        $this->withAgenceToken($token)
+            ->patchJson("/api/v1/agence/colis/{$colis->id}/statut")
+            ->assertOk();
+
+        Mail::assertQueued(ColisStatutChangedClientMail::class, fn ($mail) => $mail->hasTo('invite@example.com'));
+    }
+
+    public function test_colis_status_advance_uses_commande_email_before_client_email(): void
+    {
+        Mail::fake();
+
+        ['token' => $token, 'colis' => $colis] = $this->createColisWithClient(
+            clientEmail: 'compte-client@example.com',
+            commandeEmail: 'commande-invite@example.com',
+        );
+
+        $this->withAgenceToken($token)
+            ->patchJson("/api/v1/agence/colis/{$colis->id}/statut")
+            ->assertOk();
+
+        Mail::assertQueued(ColisStatutChangedClientMail::class, function (ColisStatutChangedClientMail $mail): bool {
+            return $mail->hasTo('commande-invite@example.com');
+        });
+        Mail::assertNotQueued(ColisStatutChangedClientMail::class, function (ColisStatutChangedClientMail $mail): bool {
+            return $mail->hasTo('compte-client@example.com');
+        });
+    }
+
+    public function test_colis_status_advance_falls_back_to_client_email(): void
+    {
+        Mail::fake();
+
+        ['token' => $token, 'colis' => $colis] = $this->createColisWithClient(
+            clientEmail: 'client-colis@example.com',
+            commandeEmail: null,
+        );
+
+        $this->withAgenceToken($token)
+            ->patchJson("/api/v1/agence/colis/{$colis->id}/statut")
+            ->assertOk();
+
+        Mail::assertQueued(ColisStatutChangedClientMail::class, fn ($mail) => $mail->hasTo('client-colis@example.com'));
+    }
+
+    public function test_colis_status_advance_skips_mail_without_any_email(): void
     {
         Mail::fake();
 
@@ -52,7 +105,7 @@ class ColisMailTest extends AgenceApiTestCase
     /**
      * @return array{token: string, colis: Colis}
      */
-    private function createColisWithClient(?string $email): array
+    private function createColisWithClient(?string $clientEmail, ?string $commandeEmail = null): array
     {
         ['agence' => $agence, 'token' => $token] = $this->createAuthenticatedAgence();
 
@@ -67,8 +120,8 @@ class ColisMailTest extends AgenceApiTestCase
             'statut' => 'active',
         ]);
 
-        $client = $email
-            ? $this->createClientWithEmail($email)
+        $client = $clientEmail
+            ? $this->createClientWithEmail($clientEmail)
             : null;
 
         $commande = Commande::create([
@@ -79,6 +132,7 @@ class ColisMailTest extends AgenceApiTestCase
             'nom' => 'Mba',
             'prenom' => 'Paul',
             'telephone' => '0612345678',
+            'email' => $commandeEmail,
             'quantite' => 5,
             'montant_total' => 43750,
             'statut' => 'confirmée',

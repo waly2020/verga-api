@@ -21,7 +21,7 @@ class ColisController extends AgenceApiController
         $query = $this->agence($request)
             ->colis()
             ->with([
-                'commande:id,code,quantite,offre_id',
+                'commande:id,code,quantite,offre_id,statut',
                 'commande.offre:id,type_offre_id',
                 'commande.offre.typeOffre:id,unite,quantite_entier',
                 'photos',

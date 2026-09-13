@@ -35,8 +35,13 @@ class ColisMailService
             return null;
         }
 
-        $email = $commande->client?->email ?? $commande->client?->user?->email;
+        return $this->normalizeEmail($commande->email)
+            ?? $this->normalizeEmail($commande->client?->email)
+            ?? $this->normalizeEmail($commande->client?->user?->email);
+    }
 
+    private function normalizeEmail(mixed $email): ?string
+    {
         if (! is_string($email) || $email === '') {
             return null;
         }

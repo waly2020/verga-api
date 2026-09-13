@@ -9,14 +9,17 @@ use App\Models\Paiement;
 use App\Models\User;
 use App\Services\BambooPayService;
 use App\Services\CommandeCheckoutService;
+use App\Support\Audit\AuditAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
+use Tests\Support\AssertsAuditLogs;
 use Tests\Support\CreatesTestAgences;
 use Tests\TestCase;
 
 class PaiementTest extends TestCase
 {
+    use AssertsAuditLogs;
     use CreatesTestAgences;
     use RefreshDatabase;
 
@@ -171,5 +174,35 @@ class PaiementTest extends TestCase
             'statut' => 'échec',
             'bamboo_message' => 'Fonds insuffisants',
         ]);
+    }
+
+    public function test_admin_verify_logs_bamboo_http_error_in_audit(): void
+    {
+        ['paiement' => $paiement] = $this->createPendingPayment('TXN-BP-404');
+
+        $connector = new BambooPayConnector;
+        $connector->withMockClient(new MockClient([
+            CheckStatusRequest::class => MockResponse::make([
+                'message' => 'Transaction introuvable',
+            ], 404),
+        ]));
+
+        $this->app->forgetInstance(BambooPayService::class);
+        $this->app->forgetInstance(CommandeCheckoutService::class);
+        $this->app->instance(BambooPayConnector::class, $connector);
+
+        $this->actingAs($this->adminUser())
+            ->patch("/admin/paiements/{$paiement->id}/verifier-statut")
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        $bamboo = $this->auditEntries(AuditAction::BambooRequest);
+        $this->assertNotEmpty($bamboo);
+        $this->assertSame(404, $bamboo[0]['context']['response_status']);
+        $this->assertSame('Transaction introuvable', $bamboo[0]['context']['response']['message']);
+
+        $admin = $this->auditEntries(AuditAction::PaiementVerifie);
+        $this->assertNotEmpty($admin);
+        $this->assertSame($paiement->code, $admin[0]['context']['code']);
     }
 }

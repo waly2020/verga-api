@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\AccountMailService;
+use App\Services\Audit\AuditLogService;
+use App\Support\Audit\AuditAction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -16,6 +18,7 @@ class CollaborateurController extends Controller
 {
     public function __construct(
         private readonly AccountMailService $accountMail,
+        private readonly AuditLogService $audit,
     ) {}
 
     public function index(Request $request): Response
@@ -62,6 +65,13 @@ class CollaborateurController extends Controller
 
         $this->accountMail->notifyCollaborateurCreated($user);
 
+        $this->audit->record(AuditAction::CollaborateurCreated, [
+            'collaborateur_id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role,
+        ]);
+
         return redirect()
             ->route('admin.collaborateurs.index')
             ->with('success', "Le compte de {$validated['name']} a été créé avec succès.");
@@ -74,6 +84,14 @@ class CollaborateurController extends Controller
         }
 
         $name = $collaborateur->name;
+
+        $this->audit->record(AuditAction::CollaborateurDeleted, [
+            'collaborateur_id' => $collaborateur->id,
+            'name' => $name,
+            'email' => $collaborateur->email,
+            'role' => $collaborateur->role,
+        ]);
+
         $collaborateur->delete();
 
         return back()->with('success', "Le compte de {$name} a été supprimé.");

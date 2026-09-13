@@ -112,7 +112,7 @@ Objectif : disposer d'un schéma fiable, documenté et migrable avant tout déve
 ### 1.5 Migrations — système
 
 - [ ] `notifications` — notifications in-app
-- [ ] `logs` — journal d'audit / actions admin
+- [x] `logs` — journal d'audit JSON (fichiers journaliers, consultation admin, pas de suppression)
 
 ### 1.6 Contraintes, index et qualité
 
@@ -313,6 +313,7 @@ Objectif : connecter chaque écran aux modèles, controllers et règles métier 
 - [x] Colis : photos renvoyées en liste et détail (`photos[]` avec `url`)
 - [x] Commandes : client invité exposé via `CommandeClientPresenter` (plus de `client: null`)
 - [x] **Publicités client** — CRUD, resoumettre, paiement (pas d’offre rattachable)
+- [x] Catalogue public `GET /api/v1/client/destinations` (trajets actifs, sans auth)
 - [x] Catalogue public `GET /api/v1/publicites` (pubs `publiée` dans les dates)
 - [x] Statut paiement pub `GET /api/v1/publicites/paiements/{code}/statut`
 - [x] Page retour `/publicite-paiement/{code}/retour`
@@ -442,7 +443,7 @@ Au paiement, le **sous-total du versement** choisit la tranche. La commission **
 
 ## Journal de suivi
 
-> **Dernière session** : 2026-09-05 — thème back-office + mails aux couleurs du logo VERGA
+> **Dernière session** : 2026-09-13 — statut commande sur les listes colis API
 
 | Date | Poste | Module | Action | Statut |
 |------|-------|--------|--------|--------|
@@ -486,6 +487,14 @@ Au paiement, le **sous-total du versement** choisit la tranche. La commission **
 | 2026-09-05 | — | Commissions | Grille client : `commission_paliers`, type `grille`, admin `/admin/commissions`, estimation OpenAPI v1.8 | `[x]` |
 | 2026-09-05 | — | Offres | Job `DesactiverOffresDepartPassees` en file database, cron 23:59 Africa/Libreville | `[x]` |
 | 2026-09-05 | — | Admin / Mails | Thème VERGA (bleu `#1800AD` / ciel `#BFE4EE`), logo, mails et facture | `[x]` |
+| 2026-09-12 | — | Mails | Mail paiement agence : montant net (`montant_sous_total`), plus le total client | `[x]` |
+| 2026-09-13 | — | API Client | `GET /client/destinations` public + filtre `destination_id` sur les offres, OpenAPI v1.9 | `[x]` |
+| 2026-09-13 | — | API | Listes colis client/agence : `commande.statut` exposé, OpenAPI v1.9.1 | `[x]` |
+| 2026-09-13 | — | Mails | Statut colis : `commande.email` prioritaire, sinon `client.email` | `[x]` |
+| 2026-09-13 | — | Mails | Front [verga-export.com](https://verga-export.com/) + connexion `/connexion` | `[x]` |
+| 2026-09-13 | — | Offres | Expiration horaire (plus 23:59) + catalogue masque les départs passés + commande `offres:desactiver-depart-passes` | `[x]` |
+| 2026-09-13 | — | Audit | Journal JSON quotidien (`storage/app/audit`) + page admin `/admin/logs` (lecture seule) | `[x]` |
+| 2026-09-13 | — | Commandes | ENUM MySQL `commandes.statut` : ajout de `réservée` (blocage vérif paiement en prod) | `[x]` |
 
 ---
 
@@ -508,6 +517,7 @@ Au paiement, le **sous-total du versement** choisit la tranche. La commission **
 - **Publicités — parcours payant** (agence/client) : création `en_attente` / `non_payé` → admin valide ou refuse → si validée, paiement Bamboo **dédié** (ne pas réutiliser le settlement commandes) → `publiée` / `payé`. Durée inclusive `(date_fin − date_debut) + 1`.
 - **Publicités — admin** : création directe → `publiée` + `payé` (pas de Bamboo). Modération : transitions `en_attente` → validée/refusée/retirée ; retrait depuis `publiée` ; republication depuis `retirée`/`expirée` si payée et `date_fin` ≥ aujourd’hui. Tarif : prix/jour et frais en **entiers** (FCFA, pas de centimes).
 - **Publicités — affichage site** : `GET /api/v1/publicites` ; emplacement visuel = front Angular.
+- **Front client / agence** : [verga-export.com](https://verga-export.com/) pour les liens des mails ; connexion [verga-export.com/connexion](https://verga-export.com/connexion). Config `verga.frontend.*`.
 - **Identité visuelle** : couleurs du logo — primaire `#1800AD`, accent `#BFE4EE`, fond blanc. Tokens dans `resources/css/app.css`. Mails : `resources/views/vendor/mail`. Logo web : `public/logo/logo-web.png`.
 - **Références** : `CONTEXTE/DOCUMENT_DESCRIPTIF_DE_VERGA.pdf`, `CONTEXTE/Documentation_BDD_VERGA.pdf`.
 

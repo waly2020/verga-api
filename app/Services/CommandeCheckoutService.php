@@ -33,6 +33,7 @@ class CommandeCheckoutService
         return DB::transaction(function () use ($data, $photos, $clientId) {
             $offre = Offre::query()
                 ->where('statut', 'active')
+                ->departNonPasse()
                 ->lockForUpdate()
                 ->findOrFail($data['offre_id']);
 

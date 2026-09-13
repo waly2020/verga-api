@@ -13,6 +13,17 @@ class BambooPayConnector extends Connector
         return (string) config('bamboopay.base_url');
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    protected function defaultConfig(): array
+    {
+        return [
+            'timeout' => 15,
+            'connect_timeout' => 5,
+        ];
+    }
+
     protected function defaultAuth(): ?Authenticator
     {
         return new BasicAuthenticator(

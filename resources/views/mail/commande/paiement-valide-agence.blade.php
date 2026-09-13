@@ -4,7 +4,7 @@
 Un paiement a été validé pour la commande **{{ $commandeCode }}**.
 
 - **Client** : {{ $clientName }}
-- **Montant** : {{ $montantTotal }}
+- **Montant net** : {{ $montantNet }}
 - **Statut commande** : {{ $commandeStatut }}
 
 <x-mail::button :url="$commandeUrl">

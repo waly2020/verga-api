@@ -5,7 +5,7 @@ namespace App\OpenApi;
 use OpenApi\Attributes as OA;
 
 #[OA\Info(
-    version: '1.8.0',
+    version: '1.9.1',
     title: 'VERGA API',
     description: 'API REST pour les applications externes VERGA (back-office agence Angular, application client mobile/web). Authentification Bearer Sanctum.
 
@@ -19,7 +19,8 @@ use OpenApi\Attributes as OA;
 - Villes d\'un pays : `GET /agence/villes?pays=Gabon`
 - Une destination = couple `ville_depart_id` / `ville_arrivee_id` (villes distinctes et actives)
 - Réponse destination : `ville_depart` / `ville_arrivee` (`VilleResource`) et `label`
-- Filtres `search` et `destination` : correspondance partielle sur ville, pays ou code
+- Catalogue client public : `GET /client/destinations` (destinations actives, sans auth)
+- Filtres `search`, `destination` et `destination_id` : texte (ville, pays, code) ou UUID du trajet
 
 **Finance agence**
 - `GET /agence/solde` — solde courant, reversements effectués/en attente, montant disponible
@@ -77,6 +78,7 @@ use OpenApi\Attributes as OA;
 #[OA\Tag(name: 'Client - Auth', description: 'Inscription, connexion et session client')]
 #[OA\Tag(name: 'Client - Profil', description: 'Mise à jour du profil client')]
 #[OA\Tag(name: 'Client - Offres', description: 'Catalogue public des offres actives')]
+#[OA\Tag(name: 'Client - Destinations', description: 'Catalogue public des trajets actifs (sélection client)')]
 #[OA\Tag(name: 'Client - Commandes', description: 'Commandes du client (création publique ou connectée)')]
 #[OA\Tag(name: 'Client - Colis', description: 'Colis du client')]
 #[OA\Tag(name: 'Client - Paiements', description: 'Paiements et vérification de statut')]
@@ -249,6 +251,7 @@ use OpenApi\Attributes as OA;
     properties: [
         new OA\Property(property: 'id', type: 'string', format: 'uuid'),
         new OA\Property(property: 'code', type: 'string', example: 'CMD-ABCDEFGH'),
+        new OA\Property(property: 'statut', type: 'string', enum: ['en_attente', 'réservée', 'confirmée', 'annulée']),
         new OA\Property(property: 'quantite', type: 'number', format: 'float', nullable: true, example: 2),
         new OA\Property(property: 'quantite_label', type: 'string', nullable: true, example: '2 kg'),
     ]

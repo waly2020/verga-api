@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AgenceController;
 use App\Http\Controllers\Admin\AgenceRoleController;
 use App\Http\Controllers\Admin\AgenceUserController;
+use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ColisController;
 use App\Http\Controllers\Admin\CollaborateurController;
@@ -99,6 +100,11 @@ Route::middleware(['auth', 'verified', 'admin'])
         Route::get('reclamations', [ReclamationController::class, 'index'])->name('reclamations.index');
         Route::get('reclamations/{reclamation}', [ReclamationController::class, 'show'])->name('reclamations.show');
         Route::patch('reclamations/{reclamation}/statut', [ReclamationController::class, 'updateStatut'])->name('reclamations.statut');
+        Route::get('logs', [AuditLogController::class, 'index'])->name('logs.index');
+        Route::get('logs/{date}/download', [AuditLogController::class, 'download'])
+            ->where('date', '\d{4}-\d{2}-\d{2}')
+            ->name('logs.download');
+
         Route::get('collaborateurs', [CollaborateurController::class, 'index'])->name('collaborateurs.index');
         Route::get('collaborateurs/create', [CollaborateurController::class, 'create'])->name('collaborateurs.create');
         Route::post('collaborateurs', [CollaborateurController::class, 'store'])->name('collaborateurs.store');

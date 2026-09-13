@@ -6,15 +6,21 @@ use App\Http\Integrations\BambooPay\BambooPayConnector;
 use App\Http\Integrations\BambooPay\Requests\CheckStatusRequest;
 use App\Http\Integrations\BambooPay\Requests\InstantPaymentRequest;
 use App\Http\Integrations\BambooPay\Requests\RedirectPaymentRequest;
+use App\Services\Audit\AuditLogService;
+use App\Support\Audit\AuditAction;
+use Saloon\Contracts\Body\HasBody;
 use Saloon\Http\Request;
 use Saloon\Http\Response;
+use Throwable;
 
 class BambooPayService
 {
     public function __construct(
         private ?BambooPayConnector $connector = null,
+        private ?AuditLogService $audit = null,
     ) {
         $this->connector ??= app(BambooPayConnector::class);
+        $this->audit ??= app(AuditLogService::class);
     }
 
     /**
@@ -59,7 +65,93 @@ class BambooPayService
 
     private function send(Request $request): Response
     {
-        return $this->connector->send($request)->throw();
+        $started = microtime(true);
+
+        try {
+            $response = $this->connector->send($request)->throw();
+
+            $this->audit?->record(AuditAction::BambooRequest, [
+                'method' => $request->getMethod()->value,
+                'endpoint' => $request->resolveEndpoint(),
+                'request' => $this->requestPayload($request),
+                'response_status' => $response->status(),
+                'response' => $this->responsePayload($response),
+                'duration_ms' => (int) round((microtime(true) - $started) * 1000),
+            ]);
+
+            return $response;
+        } catch (Throwable $exception) {
+            $this->audit?->record(AuditAction::BambooRequest, [
+                'method' => $request->getMethod()->value,
+                'endpoint' => $request->resolveEndpoint(),
+                'request' => $this->requestPayload($request),
+                ...$this->exceptionPayload($exception),
+                'duration_ms' => (int) round((microtime(true) - $started) * 1000),
+            ], level: 'warning');
+
+            throw $exception;
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function exceptionPayload(Throwable $exception): array
+    {
+        $payload = [
+            'error' => $exception->getMessage(),
+        ];
+
+        if (! method_exists($exception, 'getResponse')) {
+            return $payload;
+        }
+
+        try {
+            $response = $exception->getResponse();
+        } catch (Throwable) {
+            return $payload;
+        }
+
+        if (! $response instanceof Response) {
+            return $payload;
+        }
+
+        $payload['response_status'] = $response->status();
+        $payload['response'] = $this->responsePayload($response);
+
+        return $payload;
+    }
+
+    /**
+     * @return array<string, mixed>|string|null
+     */
+    private function responsePayload(Response $response): array|string|null
+    {
+        try {
+            $json = $response->json();
+
+            return is_array($json) ? $json : $response->body();
+        } catch (Throwable) {
+            return $response->body();
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function requestPayload(Request $request): array
+    {
+        if (! $request instanceof HasBody) {
+            return [];
+        }
+
+        try {
+            $body = $request->body();
+
+            return method_exists($body, 'all') ? $body->all() : [];
+        } catch (Throwable) {
+            return [];
+        }
     }
 
     /**

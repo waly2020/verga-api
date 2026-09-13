@@ -784,6 +784,7 @@ class AgenceResourcesTest extends AgenceApiTestCase
             ->assertOk()
             ->assertJsonPath('data.0.reference', 'COL-001')
             ->assertJsonPath('data.0.description', 'Documents douane')
+            ->assertJsonPath('data.0.commande.statut', 'confirmée')
             ->assertJsonPath('data.0.photos.0.chemin', "colis/{$colis->id}/doc.pdf.jpg");
 
         $this->withAgenceToken($token)

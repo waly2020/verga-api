@@ -39,7 +39,7 @@ class AgenceCollaborateurWelcomeMail extends Mailable implements ShouldQueue
                 'userName' => $this->agenceUser->name,
                 'agenceName' => $this->agence->nom,
                 'roleName' => $this->agenceUser->role?->nom ?? 'collaborateur',
-                'appUrl' => config('verga.frontend.agence_url'),
+                'appUrl' => config('verga.frontend.agence_login_url'),
             ],
         );
     }

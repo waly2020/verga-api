@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\Commande;
 use App\Models\Offre;
 use App\Models\Paiement;
+use App\Services\Audit\AuditLogService;
+use App\Support\Audit\AuditAction;
 use Illuminate\Support\Facades\DB;
 
 class PaymentSettlementService
@@ -12,6 +14,7 @@ class PaymentSettlementService
     public function __construct(
         private readonly AgencePaymentAmountService $agenceAmounts,
         private readonly CommandeMailService $commandeMail,
+        private readonly AuditLogService $audit,
     ) {}
 
     /**
@@ -56,12 +59,16 @@ class PaymentSettlementService
         $status = $payload['status'] ?? null;
 
         if (! $status) {
+            $this->logCallback($payload, processed: false);
+
             return null;
         }
 
         $merchantCodes = self::merchantCodeCandidatesFromCallback($payload);
 
         if ($merchantCodes === []) {
+            $this->logCallback($payload, processed: false);
+
             return null;
         }
 
@@ -70,6 +77,8 @@ class PaymentSettlementService
             ->first();
 
         if (! $paiement) {
+            $this->logCallback($payload, processed: false);
+
             return null;
         }
 
@@ -78,11 +87,29 @@ class PaymentSettlementService
             'operateur' => self::operateurFromPayload($payload),
         ]);
 
-        return $this->settleFromBambooStatus(
+        $settled = $this->settleFromBambooStatus(
             $paiement->fresh() ?? $paiement,
             (string) $status,
             self::messageFromCallbackPayload($payload),
         );
+
+        $this->logCallback($payload, processed: true, paiement: $settled);
+
+        return $settled;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function logCallback(array $payload, bool $processed, ?Paiement $paiement = null): void
+    {
+        $this->audit->record(AuditAction::BambooCallback, [
+            'channel' => 'commande',
+            'payload' => $payload,
+            'processed' => $processed,
+            'paiement_code' => $paiement?->code,
+            'statut' => $paiement?->statut,
+        ]);
     }
 
     /**

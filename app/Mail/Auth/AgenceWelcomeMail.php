@@ -38,7 +38,7 @@ class AgenceWelcomeMail extends Mailable implements ShouldQueue
             with: [
                 'userName' => $this->agenceUser->name,
                 'agenceName' => $this->agence->nom,
-                'appUrl' => config('verga.frontend.agence_url'),
+                'appUrl' => config('verga.frontend.agence_login_url'),
             ],
         );
     }

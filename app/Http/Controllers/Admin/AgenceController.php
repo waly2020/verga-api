@@ -10,6 +10,8 @@ use App\Models\AgenceUser;
 use App\Models\TypeAgence;
 use App\Services\AccountMailService;
 use App\Services\AgenceMediaService;
+use App\Services\Audit\AuditLogService;
+use App\Support\Audit\AuditAction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -22,6 +24,7 @@ class AgenceController extends Controller
     public function __construct(
         private readonly AgenceMediaService $media,
         private readonly AccountMailService $accountMail,
+        private readonly AuditLogService $audit,
     ) {}
 
     public function index(Request $request): Response
@@ -95,6 +98,13 @@ class AgenceController extends Controller
         });
 
         $this->accountMail->notifyAgenceRegistered($created['agenceUser'], $created['agence']);
+
+        $this->audit->record(AuditAction::AgenceCreated, [
+            'agence_id' => $created['agence']->id,
+            'agence' => $created['agence']->nom,
+            'gerant_id' => $created['agenceUser']->id,
+            'gerant_email' => $created['agenceUser']->email,
+        ]);
 
         return back()->with('success', "L'agence \"{$data['nom']}\" a été créée avec succès.");
     }

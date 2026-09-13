@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreReversementRequest;
 use App\Models\Agence;
 use App\Models\Reversement;
+use App\Services\Audit\AuditLogService;
 use App\Services\Finance\AgenceSoldeService;
 use App\Services\ReversementMailService;
+use App\Support\Audit\AuditAction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -18,6 +20,7 @@ class ReversementController extends Controller
 {
     public function __construct(
         private readonly ReversementMailService $reversementMail,
+        private readonly AuditLogService $audit,
     ) {}
 
     public function index(Request $request): Response
@@ -66,6 +69,14 @@ class ReversementController extends Controller
 
         $agence = Agence::findOrFail($validated['agence_id']);
 
+        $this->audit->record(AuditAction::ReversementCreated, [
+            'reversement_id' => $reversement->id,
+            'agence_id' => $agence->id,
+            'agence' => $agence->nom,
+            'montant' => $validated['montant'],
+            'periode' => $validated['periode'],
+        ]);
+
         return back()->with(
             'success',
             "Reversement de {$agence->nom} enregistré en attente de validation."
@@ -96,6 +107,14 @@ class ReversementController extends Controller
         ]);
 
         $this->reversementMail->notifyEffectue($reversement->fresh(['agence.proprietaire']));
+
+        $this->audit->record(AuditAction::ReversementEffectue, [
+            'reversement_id' => $reversement->id,
+            'agence_id' => $reversement->agence_id,
+            'agence' => $reversement->agence?->nom,
+            'montant' => $reversement->montant,
+            'periode' => $reversement->periode,
+        ]);
 
         return back()->with(
             'success',

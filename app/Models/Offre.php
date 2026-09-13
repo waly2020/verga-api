@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\OffreExpirationService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -82,5 +84,19 @@ class Offre extends Model
     public function scopeActive($query)
     {
         return $query->where('statut', 'active');
+    }
+
+    /**
+     * @param  Builder<Offre>  $query
+     * @return Builder<Offre>
+     */
+    public function scopeDepartNonPasse(Builder $query): Builder
+    {
+        $today = now(OffreExpirationService::TIMEZONE)->toDateString();
+
+        return $query->where(function (Builder $q) use ($today) {
+            $q->whereNull('date_depart')
+                ->orWhereDate('date_depart', '>=', $today);
+        });
     }
 }

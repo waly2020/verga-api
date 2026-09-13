@@ -128,6 +128,17 @@ class OffreCatalogTest extends ClientApiTestCase
             ->assertJsonPath('data.0.id', $active->id);
     }
 
+    public function test_excludes_offres_with_past_departure_date(): void
+    {
+        $visible = $this->createOffre(['titre' => 'Départ demain', 'date_depart' => now()->addDay()->toDateString()]);
+        $this->createOffre(['titre' => 'Départ hier', 'date_depart' => now()->subDay()->toDateString()]);
+
+        $this->getJson('/api/v1/client/offres')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $visible->id);
+    }
+
     public function test_excludes_offres_with_inactive_destination(): void
     {
         $active = $this->createOffre(['titre' => 'Visible']);
@@ -182,6 +193,18 @@ class OffreCatalogTest extends ClientApiTestCase
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', $paris->id);
+    }
+
+    public function test_filters_by_destination_id(): void
+    {
+        $paris = $this->createOffre(['arrivee' => 'Paris']);
+        $this->createOffre(['arrivee' => 'Lyon']);
+
+        $this->getJson('/api/v1/client/offres?destination_id='.$paris->destination_id)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $paris->id)
+            ->assertJsonPath('data.0.destination_id', $paris->destination_id);
     }
 
     public function test_filters_by_type(): void

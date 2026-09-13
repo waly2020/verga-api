@@ -175,7 +175,11 @@ class ClientResourcesTest extends ClientApiTestCase
             ->assertJsonPath('data.0.code', 'CMD-CLIENT-001')
             ->assertJsonPath('data.0.offre.capacite_totale', 1000)
             ->assertJsonPath('data.0.offre.capacite_disponible', 1000);
-        $this->withClientToken($token)->getJson('/api/v1/client/colis')->assertOk()->assertJsonPath('data.0.reference', 'COL-CLIENT-001');
+        $this->withClientToken($token)
+            ->getJson('/api/v1/client/colis')
+            ->assertOk()
+            ->assertJsonPath('data.0.reference', 'COL-CLIENT-001')
+            ->assertJsonPath('data.0.commande.statut', 'confirmée');
         $this->withClientToken($token)
             ->getJson('/api/v1/client/paiements')
             ->assertOk()
@@ -238,6 +242,7 @@ class ClientResourcesTest extends ClientApiTestCase
             ->getJson("/api/v1/client/colis/{$colis->id}")
             ->assertOk()
             ->assertJsonPath('data.reference', 'COL-SUIVI-001')
+            ->assertJsonPath('data.commande.statut', 'confirmée')
             ->assertJsonPath('data.historique.0.statut', 'déposé')
             ->assertJsonPath('data.historique.0.date_statut', '2026-07-20')
             ->assertJsonPath('data.historique.0.commentaire', 'Déposé à l\'agence');

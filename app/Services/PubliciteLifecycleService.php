@@ -6,6 +6,8 @@ use App\Models\Agence;
 use App\Models\Client;
 use App\Models\Offre;
 use App\Models\Publicite;
+use App\Services\Audit\AuditLogService;
+use App\Support\Audit\AuditAction;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
@@ -287,6 +289,19 @@ class PubliciteLifecycleService
             $publicite->update(['statut' => Publicite::STATUT_EXPIREE]);
             $this->publiciteMail->notifyExpiree($publicite->fresh());
         }
+
+        app(AuditLogService::class)->record(
+            AuditAction::JobPublicitesExpire,
+            [
+                'count' => $publicites->count(),
+                'publicites' => $publicites->map(fn (Publicite $publicite) => [
+                    'id' => $publicite->id,
+                    'titre' => $publicite->titre,
+                    'date_fin' => $publicite->date_fin?->toDateString(),
+                ])->all(),
+            ],
+            actor: app(AuditLogService::class)->systeme(),
+        );
 
         return $publicites->count();
     }
