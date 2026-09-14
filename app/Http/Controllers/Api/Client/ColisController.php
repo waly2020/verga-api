@@ -16,7 +16,7 @@ class ColisController extends ClientApiController
 
         $query = Colis::query()
             ->with([
-                'commande:id,code,client_id,quantite,offre_id',
+                'commande:id,code,client_id,quantite,offre_id,statut',
                 'commande.offre:id,type_offre_id',
                 'commande.offre.typeOffre:id,unite,quantite_entier',
                 'agence:id,nom',

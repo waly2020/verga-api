@@ -7,7 +7,9 @@ use App\Http\Requests\Admin\StoreDestinationRequest;
 use App\Http\Requests\Admin\UpdateDestinationRequest;
 use App\Models\Destination;
 use App\Models\Ville;
+use App\Services\Audit\AuditLogService;
 use App\Services\DestinationResolver;
+use App\Support\Audit\AuditAction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -17,6 +19,7 @@ class DestinationController extends Controller
 {
     public function __construct(
         private DestinationResolver $destinationResolver,
+        private readonly AuditLogService $audit,
     ) {}
 
     public function index(Request $request): Response
@@ -53,6 +56,14 @@ class DestinationController extends Controller
 
         $destination = $this->destinationResolver->createForAdmin($validated);
 
+        $this->audit->record(AuditAction::DestinationCreated, [
+            'destination_id' => $destination->id,
+            'trajet' => $destination->trajetLabel(),
+            'appliquer_configuration' => $destination->appliquer_configuration,
+            'montant' => $destination->montant,
+            'commission_pourcentage' => $destination->commission_pourcentage,
+        ]);
+
         return back()->with(
             'success',
             "Destination « {$destination->trajetLabel()} » créée avec succès."
@@ -74,6 +85,13 @@ class DestinationController extends Controller
 
         $appliquer = $request->boolean('appliquer_configuration');
 
+        $avant = $destination->only([
+            'appliquer_configuration',
+            'montant',
+            'commission_pourcentage',
+            'actif',
+        ]);
+
         $destination->update([
             'ville_depart_id' => $trajet['ville_depart_id'],
             'ville_arrivee_id' => $trajet['ville_arrivee_id'],
@@ -81,6 +99,18 @@ class DestinationController extends Controller
             'montant' => $appliquer ? $validated['montant'] : null,
             'commission_pourcentage' => $appliquer ? $validated['commission_pourcentage'] : null,
             'actif' => $request->boolean('actif'),
+        ]);
+
+        $this->audit->record(AuditAction::DestinationUpdated, [
+            'destination_id' => $destination->id,
+            'trajet' => $destination->fresh()->trajetLabel(),
+            'avant' => $avant,
+            'apres' => $destination->only([
+                'appliquer_configuration',
+                'montant',
+                'commission_pourcentage',
+                'actif',
+            ]),
         ]);
 
         return back()->with(

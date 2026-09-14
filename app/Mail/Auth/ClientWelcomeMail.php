@@ -35,7 +35,7 @@ class ClientWelcomeMail extends Mailable implements ShouldQueue
             markdown: 'mail.auth.client-welcome',
             with: [
                 'userName' => $this->user->name,
-                'appUrl' => config('verga.frontend.client_url'),
+                'appUrl' => config('verga.frontend.client_login_url'),
             ],
         );
     }

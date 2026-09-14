@@ -2,11 +2,17 @@
 
 namespace App\Providers;
 
+use App\Listeners\Audit\LogFailedLogin;
+use App\Listeners\Audit\LogLogout;
+use App\Listeners\Audit\LogSuccessfulLogin;
 use App\Models\Agence;
 use App\Models\AgenceUser;
 use App\Models\Client;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Auth\Events\Failed;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -15,6 +21,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -39,6 +46,7 @@ class AppServiceProvider extends ServiceProvider
 
         $this->configureFrenchAuthNotifications();
         $this->configureDefaults();
+        $this->configureAuditListeners();
 
         Relation::enforceMorphMap([
             'agence' => Agence::class,
@@ -46,6 +54,13 @@ class AppServiceProvider extends ServiceProvider
             'client' => Client::class,
             'user' => User::class,
         ]);
+    }
+
+    protected function configureAuditListeners(): void
+    {
+        Event::listen(Login::class, LogSuccessfulLogin::class);
+        Event::listen(Failed::class, LogFailedLogin::class);
+        Event::listen(Logout::class, LogLogout::class);
     }
 
     protected function configureFrenchAuthNotifications(): void

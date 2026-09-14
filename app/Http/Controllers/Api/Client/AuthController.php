@@ -8,7 +8,9 @@ use App\Http\Resources\Api\Client\ClientUserResource;
 use App\Models\Client;
 use App\Models\User;
 use App\Services\AccountMailService;
+use App\Services\Audit\AuditLogService;
 use App\Services\ClientMediaService;
+use App\Support\Audit\AuditAction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -21,6 +23,7 @@ class AuthController extends ClientApiController
     public function __construct(
         private readonly ClientMediaService $media,
         private readonly AccountMailService $accountMail,
+        private readonly AuditLogService $audit,
     ) {}
 
     public function register(RegisterClientRequest $request): JsonResponse
@@ -61,6 +64,17 @@ class AuthController extends ClientApiController
 
         $result['user']->load(['client.documents']);
         $this->accountMail->notifyClientRegistered($result['user']);
+
+        $this->audit->record(
+            AuditAction::AuthClientRegister,
+            [
+                'user_id' => $result['user']->id,
+                'client_id' => $result['client']->id,
+                'email' => $result['user']->email,
+            ],
+            actor: $this->audit->actorFromUser($result['user']),
+        );
+
         $token = $result['user']->createToken($data['device_name'] ?? 'client-api');
 
         return response()->json([
@@ -75,6 +89,16 @@ class AuthController extends ClientApiController
         $user = User::where('email', $request->email)->first();
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
+            $this->audit->record(AuditAction::AuthClientLoginFailed, [
+                'email' => $request->email,
+            ], actor: [
+                'type' => 'client',
+                'id' => $user?->id,
+                'name' => $user?->name,
+                'email' => $request->email,
+                'role' => $user?->role,
+            ]);
+
             throw ValidationException::withMessages([
                 'email' => ['Identifiants incorrects.'],
             ]);
@@ -99,6 +123,14 @@ class AuthController extends ClientApiController
                 'message' => 'Ce compte client est '.$user->client->statut.'.',
             ], 403);
         }
+
+        $this->audit->record(
+            AuditAction::AuthClientLoginSuccess,
+            [
+                'client_id' => $user->client?->id,
+            ],
+            actor: $this->audit->actorFromUser($user),
+        );
 
         $token = $user->createToken($request->input('device_name', 'client-api'));
 

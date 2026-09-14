@@ -7,6 +7,7 @@ use App\Http\Requests\Api\Client\ListClientOffresRequest;
 use App\Http\Resources\Api\Client\OffreResource;
 use App\Models\Offre;
 use App\Services\ClientOffreCatalogService;
+use App\Services\OffreExpirationService;
 use App\Services\OrderPricingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -28,6 +29,11 @@ class OffreController extends ClientApiController
         OrderPricingService $pricing,
     ): JsonResponse {
         abort_unless($offre->statut === 'active', 404);
+        abort_if(
+            $offre->date_depart !== null
+                && $offre->date_depart->toDateString() < now(OffreExpirationService::TIMEZONE)->toDateString(),
+            404,
+        );
 
         return response()->json(
             $pricing->estimate($offre, (float) $request->validated('quantite'))

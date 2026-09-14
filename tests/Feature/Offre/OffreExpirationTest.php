@@ -4,13 +4,16 @@ namespace Tests\Feature\Offre;
 
 use App\Jobs\DesactiverOffresDepartPassees;
 use App\Services\OffreExpirationService;
+use App\Support\Audit\AuditAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Tests\Support\AssertsAuditLogs;
 use Tests\Support\CreatesTestAgences;
 use Tests\TestCase;
 
 class OffreExpirationTest extends TestCase
 {
+    use AssertsAuditLogs;
     use CreatesTestAgences;
     use RefreshDatabase;
 
@@ -48,6 +51,25 @@ class OffreExpirationTest extends TestCase
         $this->assertSame('inactive', $aujourdHui->fresh()->statut);
         $this->assertSame('active', $future->fresh()->statut);
         $this->assertSame('active', $sansDate->fresh()->statut);
+    }
+
+    public function test_commande_artisan_desactive_les_departs_passes(): void
+    {
+        ['agence' => $agence] = $this->createTestAgence();
+        $offre = $this->createOffreForAgence($agence, [
+            'date_depart' => now(OffreExpirationService::TIMEZONE)->subDay()->toDateString(),
+            'statut' => 'active',
+        ]);
+
+        $this->artisan('offres:desactiver-depart-passes')
+            ->assertSuccessful();
+
+        $this->assertSame('inactive', $offre->fresh()->statut);
+
+        $entries = $this->auditEntries(AuditAction::JobOffresExpire);
+        $this->assertNotEmpty($entries);
+        $this->assertSame(1, $entries[0]['context']['count']);
+        $this->assertSame($offre->id, $entries[0]['context']['offres'][0]['id']);
     }
 
     public function test_job_desactive_via_la_file(): void

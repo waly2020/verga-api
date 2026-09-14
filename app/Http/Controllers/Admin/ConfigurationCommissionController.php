@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateConfigurationCommissionRequest;
 use App\Models\ConfigurationCommission;
+use App\Services\Audit\AuditLogService;
 use App\Services\CommissionPaliersService;
+use App\Support\Audit\AuditAction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -15,6 +17,7 @@ class ConfigurationCommissionController extends Controller
 {
     public function __construct(
         private readonly CommissionPaliersService $paliers,
+        private readonly AuditLogService $audit,
     ) {}
 
     public function index(): RedirectResponse
@@ -67,6 +70,15 @@ class ConfigurationCommissionController extends Controller
         });
 
         $label = $destinataire === 'client' ? 'clients' : 'agences';
+
+        $this->audit->record(AuditAction::CommissionUpdated, [
+            'destinataire' => $destinataire,
+            'type' => $data['type'] ?? null,
+            'valeur' => $data['valeur'] ?? null,
+            'actif' => $data['actif'] ?? null,
+            'libelle' => $data['libelle'] ?? null,
+            'paliers' => $paliers,
+        ]);
 
         return back()->with('success', "Configuration commission {$label} mise à jour.");
     }

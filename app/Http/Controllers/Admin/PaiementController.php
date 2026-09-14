@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Paiement;
+use App\Services\Audit\AuditLogService;
+use App\Services\BambooPayService;
 use App\Services\CommandeCheckoutService;
+use App\Support\Audit\AuditAction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -36,8 +39,12 @@ class PaiementController extends Controller
         ]);
     }
 
-    public function verifierStatut(Paiement $paiement, CommandeCheckoutService $checkout): RedirectResponse
-    {
+    public function verifierStatut(
+        Paiement $paiement,
+        CommandeCheckoutService $checkout,
+        AuditLogService $audit,
+        BambooPayService $bambooPay,
+    ): RedirectResponse {
         if (! $paiement->code) {
             return back()->with('error', 'Ce paiement ne possède pas de référence VERGA.');
         }
@@ -45,16 +52,46 @@ class PaiementController extends Controller
         try {
             $result = $checkout->verifyPaymentStatus($paiement->code);
         } catch (RequestException $exception) {
+            $bamboo = $bambooPay->exceptionPayload($exception);
+
+            $audit->record(AuditAction::PaiementVerifie, [
+                'paiement_id' => $paiement->id,
+                'code' => $paiement->code,
+                'bamboo_reference' => $paiement->bamboo_reference,
+                ...$bamboo,
+            ], level: 'warning');
+
+            $detail = is_array($bamboo['response'] ?? null)
+                ? ($bamboo['response']['message'] ?? $bamboo['response']['description'] ?? null)
+                : null;
+
             return back()->with(
                 'error',
-                'Bamboo Pay n\'a pas pu confirmer le statut de cette transaction.'
+                filled($detail)
+                    ? 'Bamboo Pay : '.$detail
+                    : 'Bamboo Pay n\'a pas pu confirmer le statut de cette transaction.'
             );
-        } catch (Throwable) {
+        } catch (Throwable $exception) {
+            $audit->record(AuditAction::PaiementVerifie, [
+                'paiement_id' => $paiement->id,
+                'code' => $paiement->code,
+                'bamboo_reference' => $paiement->bamboo_reference,
+                'error' => $exception->getMessage(),
+            ], level: 'warning');
+
             return back()->with(
                 'error',
                 'Une erreur est survenue lors de la vérification du paiement.'
             );
         }
+
+        $audit->record(AuditAction::PaiementVerifie, [
+            'paiement_id' => $paiement->id,
+            'code' => $paiement->code,
+            'bamboo_reference' => $paiement->bamboo_reference,
+            'statut' => $result['statut'] ?? null,
+            'bamboo_message' => $result['bamboo_message'] ?? null,
+        ]);
 
         [$flashKey, $message] = match ($result['statut']) {
             'validé' => ['success', 'Paiement validé avec succès.'],

@@ -15,6 +15,7 @@ class ClientEndpoints
 Filtres disponibles :
 - `search` : titre, description, ou localité (ville, pays, code)
 - `destination` : filtre sur les localités de départ ou d\'arrivée (ville, pays ou code, correspondance partielle)
+- `destination_id` : UUID du trajet (après sélection via `GET /client/destinations`)
 - `type` : particulier, metre_cube, conteneur (legacy)
 - `type_offre_id` : UUID du type d\'offre (recommandé)
 - `date_debut` / `date_fin` : plage de dates de publication (`created_at`, format `YYYY-MM-DD`)
@@ -23,6 +24,7 @@ Filtres disponibles :
         parameters: [
             new OA\QueryParameter(name: 'search', description: 'Recherche titre, description, ou localité (ville, pays, code)', schema: new OA\Schema(type: 'string', example: 'Libreville')),
             new OA\QueryParameter(name: 'destination', description: 'Filtre sur ville, pays ou code des localités de départ/arrivée', schema: new OA\Schema(type: 'string', example: 'LBV')),
+            new OA\QueryParameter(name: 'destination_id', description: 'UUID de la destination sélectionnée', schema: new OA\Schema(type: 'string', format: 'uuid')),
             new OA\QueryParameter(name: 'type', schema: new OA\Schema(type: 'string', enum: ['particulier', 'metre_cube', 'conteneur'])),
             new OA\QueryParameter(name: 'type_offre_id', description: 'Filtre par type d\'offre (UUID)', schema: new OA\Schema(type: 'string', format: 'uuid')),
             new OA\QueryParameter(name: 'date_debut', description: 'Date de publication minimum (inclus)', schema: new OA\Schema(type: 'string', format: 'date', example: '2026-06-01')),
@@ -50,6 +52,34 @@ Filtres disponibles :
         ]
     )]
     public function listOffres(): void {}
+
+    #[OA\Get(
+        path: '/client/destinations',
+        operationId: 'clientListDestinations',
+        summary: 'Lister les destinations actives',
+        description: 'Catalogue public des trajets actifs (`ville_depart` / `ville_arrivee`, `label`). Aucune authentification requise. Filtre optionnel `search` sur ville, pays ou code.',
+        tags: ['Client - Destinations'],
+        parameters: [
+            new OA\QueryParameter(name: 'search', description: 'Filtre sur ville, pays ou code des localités', schema: new OA\Schema(type: 'string', example: 'Libreville')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Liste des destinations actives',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            type: 'array',
+                            items: new OA\Items(ref: '#/components/schemas/DestinationResource')
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(response: 422, description: 'Filtres invalides', content: new OA\JsonContent(ref: '#/components/schemas/ValidationError')),
+        ]
+    )]
+    public function listDestinations(): void {}
 
     #[OA\Get(
         path: '/client/types-offres',

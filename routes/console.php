@@ -1,6 +1,5 @@
 <?php
 
-use App\Jobs\DesactiverOffresDepartPassees;
 use App\Services\OffreExpirationService;
 use App\Services\PubliciteLifecycleService;
 use Illuminate\Foundation\Inspiring;
@@ -16,7 +15,7 @@ Artisan::command('inspire', function () {
 | Cron Hostinger (mutualisé / premium, sans Supervisor)
 |--------------------------------------------------------------------------
 |
-| Un seul cron, toutes les minutes :
+| Un seul cron, toutes les minutes (pas toutes les 2 min : 23:59 et :15 seraient manqués) :
 |
 |   cd /chemin/vers/projet && php artisan schedule:run >> /dev/null 2>&1
 |
@@ -39,12 +38,12 @@ Schedule::call(fn () => app(PubliciteLifecycleService::class)->expireOverdue())
     ->name('publicites-expire')
     ->description('Expire les publicités dont la date de fin est dépassée');
 
-Schedule::job(new DesactiverOffresDepartPassees)
-    ->dailyAt('23:59')
+Schedule::command('offres:desactiver-depart-passes')
+    ->hourly()
     ->timezone(OffreExpirationService::TIMEZONE)
-    ->withoutOverlapping()
     ->name('offres-expire-depart')
-    ->description('Désactive les offres dont la date de départ est passée (fin de journée, file database)');
+    ->withoutOverlapping()
+    ->description('Désactive les offres dont la date de départ est passée (toutes les heures, synchrone)');
 
 Schedule::command('queue:prune-failed --hours=168')
     ->weekly()

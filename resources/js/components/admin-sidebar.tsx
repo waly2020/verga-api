@@ -13,6 +13,7 @@ import {
     MessageSquareWarning,
     Package,
     Percent,
+    ScrollText,
     Shield,
     ShoppingCart,
     Tag,
@@ -89,6 +90,7 @@ const adminNavItems: NavItem[] = [
         ],
     },
     { title: 'Collaborateurs', href: admin.collaborateurs.index(), icon: Users },
+    { title: 'Journal d’audit', href: admin.logs.index(), icon: ScrollText },
 ];
 
 export function AdminSidebar() {

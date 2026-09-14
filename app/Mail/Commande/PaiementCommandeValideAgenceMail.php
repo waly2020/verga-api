@@ -24,6 +24,7 @@ class PaiementCommandeValideAgenceMail extends CommandeMail
             markdown: 'mail.commande.paiement-valide-agence',
             with: [
                 ...$this->sharedData(),
+                'montantNet' => $this->formatMontant((float) $this->paiement->montant_sous_total),
                 'commandeStatut' => MailLabels::commandeStatut($this->commande->statut),
                 'commandeUrl' => CommandeMailUrls::agenceCommande($this->commande),
             ],

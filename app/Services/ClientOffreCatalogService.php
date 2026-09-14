@@ -22,6 +22,7 @@ class ClientOffreCatalogService
                 'destination.villeArrivee',
             ])
             ->active()
+            ->departNonPasse()
             ->whereHas('destination', fn ($q) => $q->actif())
             ->where(function ($q) {
                 $q->where('capacite_illimitee', true)
@@ -40,6 +41,10 @@ class ClientOffreCatalogService
             $query->whereHas('destination', function ($dq) use ($destination) {
                 $dq->matchingLocalite($destination);
             });
+        }
+
+        if ($destinationId = $filters['destination_id'] ?? null) {
+            $query->where('destination_id', $destinationId);
         }
 
         if ($type = $filters['type'] ?? null) {

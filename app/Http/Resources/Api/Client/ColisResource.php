@@ -36,6 +36,7 @@ class ColisResource extends JsonResource
                 return [
                     'id' => $commande?->id,
                     'code' => $commande?->code,
+                    'statut' => $commande?->statut,
                     'quantite' => $commande?->quantite,
                     'quantite_label' => QuantiteFormatter::format($commande?->quantite, $typeOffre),
                 ];

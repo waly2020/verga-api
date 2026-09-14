@@ -4,12 +4,15 @@ namespace App\Services;
 
 use App\Models\PaiementPublicite;
 use App\Models\Publicite;
+use App\Services\Audit\AuditLogService;
+use App\Support\Audit\AuditAction;
 use Illuminate\Support\Facades\DB;
 
 class PublicitePaymentSettlementService
 {
     public function __construct(
         private readonly PubliciteMailService $publiciteMail,
+        private readonly AuditLogService $audit,
     ) {}
 
     /**
@@ -42,11 +45,21 @@ class PublicitePaymentSettlementService
             'operateur' => PaymentSettlementService::operateurFromPayload($payload),
         ]);
 
-        return $this->settleFromBambooStatus(
+        $settled = $this->settleFromBambooStatus(
             $paiement->fresh() ?? $paiement,
             (string) $status,
             PaymentSettlementService::messageFromCallbackPayload($payload),
         );
+
+        $this->audit->record(AuditAction::BambooCallback, [
+            'channel' => 'publicite',
+            'payload' => $payload,
+            'processed' => $settled !== null,
+            'paiement_code' => $settled?->code,
+            'statut' => $settled?->statut,
+        ]);
+
+        return $settled;
     }
 
     public function settleFromBambooStatus(

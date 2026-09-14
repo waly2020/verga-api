@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\Client\AuthController;
 use App\Http\Controllers\Api\Client\ColisController;
 use App\Http\Controllers\Api\Client\CommandeController;
 use App\Http\Controllers\Api\Client\DashboardController;
+use App\Http\Controllers\Api\Client\DestinationController;
 use App\Http\Controllers\Api\Client\OffreController;
 use App\Http\Controllers\Api\Client\PaiementController;
 use App\Http\Controllers\Api\Client\PasswordController;
@@ -23,6 +24,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('client')->name('api.client.')->group(function () {
     Route::get('offres', [OffreController::class, 'index'])->name('offres.index');
+    Route::get('destinations', [DestinationController::class, 'index'])->name('destinations.index');
     Route::get('types-offres', [TypeOffreController::class, 'index'])->name('types-offres.index');
     Route::get('offres/{offre}/estimation', [OffreController::class, 'estimate'])->name('offres.estimate');
     Route::post('commandes', [CommandeController::class, 'store'])

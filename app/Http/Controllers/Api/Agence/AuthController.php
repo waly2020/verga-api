@@ -13,6 +13,8 @@ use App\Models\AgenceRole;
 use App\Models\AgenceUser;
 use App\Services\AccountMailService;
 use App\Services\AgenceMediaService;
+use App\Services\Audit\AuditLogService;
+use App\Support\Audit\AuditAction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -25,6 +27,7 @@ class AuthController extends Controller
     public function __construct(
         private readonly AgenceMediaService $media,
         private readonly AccountMailService $accountMail,
+        private readonly AuditLogService $audit,
     ) {}
 
     public function register(RegisterAgenceRequest $request): JsonResponse
@@ -75,6 +78,18 @@ class AuthController extends Controller
 
         $result['agenceUser']->load(['role', 'agence.typeAgence', 'agence.logo', 'agence.documents']);
         $this->accountMail->notifyAgenceRegistered($result['agenceUser'], $result['agence']);
+
+        $this->audit->record(
+            AuditAction::AuthAgenceRegister,
+            [
+                'agence_id' => $result['agence']->id,
+                'agence' => $result['agence']->nom,
+                'user_id' => $result['agenceUser']->id,
+                'email' => $result['agenceUser']->email,
+            ],
+            actor: $this->audit->actorFromUser($result['agenceUser']),
+        );
+
         $token = $result['agenceUser']->createToken($data['device_name'] ?? 'agence-api');
 
         return response()->json([
@@ -89,6 +104,16 @@ class AuthController extends Controller
         $agenceUser = AgenceUser::query()->where('email', $request->email)->first();
 
         if (! $agenceUser || ! Hash::check($request->password, $agenceUser->password)) {
+            $this->audit->record(AuditAction::AuthAgenceLoginFailed, [
+                'email' => $request->email,
+            ], actor: [
+                'type' => 'agence',
+                'id' => $agenceUser?->id,
+                'name' => $agenceUser?->name,
+                'email' => $request->email,
+                'role' => null,
+            ]);
+
             throw ValidationException::withMessages([
                 'email' => ['Identifiants incorrects.'],
             ]);
@@ -113,6 +138,14 @@ class AuthController extends Controller
                 'message' => 'Ce compte agence est '.$agenceUser->agence->statut.'.',
             ], 403);
         }
+
+        $this->audit->record(
+            AuditAction::AuthAgenceLoginSuccess,
+            [
+                'agence_id' => $agenceUser->agence_id,
+            ],
+            actor: $this->audit->actorFromUser($agenceUser),
+        );
 
         $tokenName = $request->input('device_name', 'agence-api');
         $token = $agenceUser->createToken($tokenName);
